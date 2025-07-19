@@ -42,7 +42,7 @@ export default function HeroSection() {
           <Button 
             variant="outline"
             size="lg"
-            className="border-2 border-white text-white hover:bg-white hover:text-black px-8 py-4 text-lg font-bold"
+            className="border-2 border-white bg-white text-black hover:bg-gray-100 hover:text-black px-8 py-4 text-lg font-bold transition-all duration-300"
             asChild
           >
             <a href="#portfolio">
