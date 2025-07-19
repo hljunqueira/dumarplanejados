@@ -82,7 +82,7 @@ export default function AboutSection() {
               />
               <div className="absolute -bottom-6 -left-6 bg-black text-white p-6 rounded-xl shadow-xl">
                 <p className="text-2xl font-bold">Experiência</p>
-                <p className="text-sm">Anos de Experiência</p>
+                <p className="text-sm">Especializada</p>
               </div>
             </div>
             
