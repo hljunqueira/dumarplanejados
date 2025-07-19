@@ -1,0 +1,23 @@
+import { Button } from "@/components/ui/button";
+import { MessageCircle } from "lucide-react";
+
+export default function WhatsAppButton() {
+  return (
+    <div className="fixed bottom-6 right-6 z-50">
+      <Button
+        size="icon"
+        className="bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse"
+        asChild
+      >
+        <a 
+          href="https://wa.me/554898486827?text=Olá! Gostaria de agendar um atendimento para móveis planejados."
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Entrar em contato via WhatsApp"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </a>
+      </Button>
+    </div>
+  );
+}
