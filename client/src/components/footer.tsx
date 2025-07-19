@@ -1,7 +1,7 @@
 import { MapPin, Instagram, Phone, ExternalLink } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
-import dumarLogo from "@assets/logo_dumar_1752931725312.png";
+import dumarLogo from "@assets/logo_dumar_1752933539772.png";
 
 export default function Footer() {
   return (
@@ -17,7 +17,7 @@ export default function Footer() {
                   <img 
                     src={dumarLogo} 
                     alt="Dumar Móveis Planejados" 
-                    className="h-12 w-auto object-contain filter brightness-0 invert"
+                    className="h-12 w-auto object-contain"
                   />
                 </div>
                 <div>
