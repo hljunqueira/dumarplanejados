@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { MessageCircle } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 
 export default function WhatsAppButton() {
   return (
@@ -15,7 +15,7 @@ export default function WhatsAppButton() {
           rel="noopener noreferrer"
           aria-label="Entrar em contato via WhatsApp"
         >
-          <MessageCircle className="h-6 w-6" />
+          <SiWhatsapp className="h-6 w-6" />
         </a>
       </Button>
     </div>

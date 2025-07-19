@@ -1,4 +1,5 @@
-import { MapPin, Instagram, Phone, MessageCircle, ExternalLink } from "lucide-react";
+import { MapPin, Instagram, Phone, ExternalLink } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import dumarLogo from "@assets/logo_dumar_1752931725312.png";
 
@@ -38,7 +39,7 @@ export default function Footer() {
                   href="https://wa.me/554898486827?text=Olá! Gostaria de um orçamento personalizado para móveis planejados."
                   className="flex items-center space-x-2"
                 >
-                  <MessageCircle className="h-5 w-5" />
+                  <SiWhatsapp className="h-5 w-5" />
                   <span>Solicitar Orçamento</span>
                 </a>
               </Button>
@@ -147,7 +148,7 @@ export default function Footer() {
                 className="text-white/60 hover:text-white transition-colors"
                 aria-label="WhatsApp"
               >
-                <MessageCircle className="h-5 w-5" />
+                <SiWhatsapp className="h-5 w-5" />
               </a>
             </div>
           </div>

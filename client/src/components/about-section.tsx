@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MapPin, Instagram, MessageCircle } from "lucide-react";
+import { CheckCircle, MapPin, Instagram } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import aboutImage from "@assets/WhatsApp Image 2025-07-19 at 10.07.37_1752931725315.jpeg";
 
 export default function AboutSection() {
@@ -68,7 +69,7 @@ export default function AboutSection() {
                   href="https://wa.me/554898486827"
                   className="flex items-center space-x-2"
                 >
-                  <MessageCircle className="h-5 w-5" />
+                  <SiWhatsapp className="h-5 w-5" />
                   <span>WhatsApp</span>
                 </a>
               </Button>

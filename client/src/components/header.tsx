@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Menu, X, MessageCircle } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import dumarLogo from "@assets/logo_dumar_1752931725312.png";
 
@@ -90,7 +91,7 @@ export default function Header() {
                 href="https://wa.me/554898486827?text=Olá! Gostaria de conhecer mais sobre os móveis planejados da Dumar."
                 className="flex items-center space-x-2"
               >
-                <MessageCircle className="h-4 w-4" />
+                <SiWhatsapp className="h-4 w-4" />
                 <span>WhatsApp</span>
               </a>
             </Button>
@@ -152,7 +153,7 @@ export default function Header() {
                     className="flex items-center justify-center space-x-2"
                     onClick={handleLinkClick}
                   >
-                    <MessageCircle className="h-4 w-4" />
+                    <SiWhatsapp className="h-4 w-4" />
                     <span>Falar no WhatsApp</span>
                   </a>
                 </Button>
