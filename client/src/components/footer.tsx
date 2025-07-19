@@ -33,7 +33,7 @@ export default function Footer() {
               {/* CTA Button */}
               <Button 
                 asChild 
-                className="bg-white text-black hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg"
+                className="bg-[#5dc722] text-white hover:bg-green-600 px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg"
               >
                 <a 
                   href="https://wa.me/554898486827?text=Olá! Gostaria de um orçamento personalizado para móveis planejados."
