@@ -1,0 +1,55 @@
+Dumar Landing Page
+I want to build a landing page website that helps clientes interessados em móveis planejados de alto padrão conhecerem a Dumar, visualizarem nosso portfólio e agendarem atendimentos por WhatsApp.
+Ela deve ter um visual sofisticado, moderno e impactante, e ser otimizada para web e mobile.
+
+Project Name:
+Dumar Móveis Planejados
+
+Target Audience:
+• Pessoas reformando ou construindo residências
+• Arquitetos e designers de interiores
+• Clientes de alto padrão buscando móveis sob medida
+
+Core Features and Pages:
+✅ Homepage
+• Banner com imagem de destaque e CTA agressivo: “Transforme seu ambiente com móveis planejados sob medida”
+• Botão fixo e visível de WhatsApp: +55 48 98848-6827
+• Destaques rápidos: “Tecnologia Exclusiva”, “Atendimento Personalizado”, “Alta Qualidade e Design”
+
+✅ Sobre a Dumar
+• Texto institucional apresentando a empresa
+• Ênfase na experiência, tecnologia exclusiva e atendimento diferenciado
+• Mapa de localização (Google Maps embed)
+• Link para o Instagram oficial
+
+✅ Galeria de Projetos
+• Seção visual com fotos de ambientes planejados (cozinhas, closets, salas, etc.)
+• Estilo portfólio com rolagem suave e animações leves
+• Opção de filtro por tipo de ambiente (opcional)
+
+✅ Formulário de Contato
+• Título forte: “Quer um ambiente sob medida? Fale conosco agora mesmo.”
+• Campos: nome, telefone, cidade, mensagem
+• Integração com WhatsApp via link direto com pré-texto preenchido
+• Texto chamativo acima do formulário: “Atendemos Balneário Arroio do Silva e região — consulte disponibilidade no WhatsApp”
+
+Tech Stack (Recommended Defaults):
+• Frontend: Vite, TypeScript, React, shadcn/ui components, e Tailwind CSS
+• Backend & Storage: Nenhum necessário para esta versão
+• Auth: Nenhum (página pública)
+
+Design Preferences:
+• Font: Inter
+• Colors:
+
+Primary: #000000 (Preto)
+
+Accent: #888888 (Cinza médio)
+
+Backgrounds: #FFFFFF (Branco) + tons de cinza claros
+• Layout: Mobile-first, com destaque para imagens grandes, layout clean, botões grandes e visíveis
+• Estilo: Minimalista, sofisticado, com foco comercial forte
+https://www.instagram.com/dumar_moveis_planejados/
+https://www.google.com/maps/place/Dumar+M%C3%B3veis+Planejados+Ltda/@-28.9810786,-49.4223242,17z/data=!3m1!4b1!4m6!3m5!1s0x952233f170c4dd17:0xbace300c22b9a705!8m2!3d-28.9810786!4d-49.4223242!16s%2Fg%2F11xlgs0wbw?entry=ttu&g_ep=EgoyMDI1MDcxMy4wIKXMDSoASAFQAw%3D%3D
+Whatsapp: +55 48 98848-6827
+Dumar Móveis Planejados Ltda
