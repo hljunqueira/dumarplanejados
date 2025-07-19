@@ -4,6 +4,8 @@ import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import dumarLogo from "@assets/logo_dumar_1752933539772.png";
 
+import WhatsApp_Image_2025_07_19_at_10_07_46 from "@assets/WhatsApp Image 2025-07-19 at 10.07.46.jpeg";
+
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -38,7 +40,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <div className="relative">
               <img 
-                src={dumarLogo} 
+                src={WhatsApp_Image_2025_07_19_at_10_07_46} 
                 alt="Dumar Móveis Planejados" 
                 className="h-12 w-auto object-contain"
               />
