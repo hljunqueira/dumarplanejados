@@ -6,7 +6,7 @@ export default function WhatsAppButton() {
     <div className="fixed bottom-6 right-6 z-50">
       <Button
         size="icon"
-        className="bg-yellow-400 hover:bg-yellow-500 text-black w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse"
+        className="bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse"
         asChild
       >
         <a 

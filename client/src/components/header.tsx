@@ -85,7 +85,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <Button 
               asChild 
-              className="hidden sm:flex bg-white text-black hover:bg-gray-100 px-6 py-2.5 rounded-lg font-medium transition-all duration-300 hover:shadow-lg"
+              className="hidden sm:flex bg-green-500 text-white hover:bg-green-600 px-6 py-2.5 rounded-lg font-medium transition-all duration-300 hover:shadow-lg"
             >
               <a 
                 href="https://wa.me/554898486827?text=Olá! Gostaria de conhecer mais sobre os móveis planejados da Dumar."
