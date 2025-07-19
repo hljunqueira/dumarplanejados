@@ -17,11 +17,7 @@ export default function AboutSection() {
                 A Dumar Móveis Planejados é especializada em criar ambientes únicos e funcionais, 
                 transformando sonhos em realidade através de móveis sob medida de alto padrão.
               </p>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Com mais de 10 anos de experiência consolidada no mercado, utilizamos tecnologia exclusiva 
-                e oferecemos atendimento personalizado para cada projeto, garantindo qualidade superior 
-                e design inovador em cada detalhe.
-              </p>
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">Com experiência consolidada no mercado, utilizamos tecnologia exclusiva e oferecemos atendimento personalizado para cada projeto, garantindo qualidade superior e design inovador em cada detalhe.</p>
             </div>
             
             {/* Features List */}
