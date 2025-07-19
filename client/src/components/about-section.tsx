@@ -1,65 +1,93 @@
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MapPin } from "lucide-react";
+import { CheckCircle, MapPin, Instagram, MessageCircle } from "lucide-react";
+import aboutImage from "@assets/WhatsApp Image 2025-07-19 at 10.07.37_1752931725315.jpeg";
 
 export default function AboutSection() {
   return (
-    <section id="sobre" className="py-20 dumar-light">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Sobre a Dumar</h2>
-            <p className="text-lg dumar-accent mb-6 leading-relaxed">
-              A Dumar Móveis Planejados é especializada em criar ambientes únicos e funcionais, 
-              transformando sonhos em realidade através de móveis sob medida de alto padrão.
-            </p>
-            <p className="text-lg dumar-accent mb-6 leading-relaxed">
-              Com experiência consolidada no mercado, utilizamos tecnologia exclusiva e oferecemos 
-              atendimento personalizado para cada projeto, garantindo qualidade superior e design 
-              inovador em cada detalhe.
-            </p>
+    <section id="sobre" className="py-20 bg-gradient-to-br from-gray-50 to-white">
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="order-2 lg:order-1">
+            <div className="mb-8">
+              <h2 className="text-5xl md:text-6xl font-bold mb-8 text-gray-900 leading-tight">
+                Sobre a <span className="text-gray-600">Dumar</span>
+              </h2>
+              <p className="text-xl text-gray-700 mb-6 leading-relaxed">
+                A Dumar Móveis Planejados é especializada em criar ambientes únicos e funcionais, 
+                transformando sonhos em realidade através de móveis sob medida de alto padrão.
+              </p>
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                Com mais de 10 anos de experiência consolidada no mercado, utilizamos tecnologia exclusiva 
+                e oferecemos atendimento personalizado para cada projeto, garantindo qualidade superior 
+                e design inovador em cada detalhe.
+              </p>
+            </div>
             
             {/* Features List */}
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-lg">Mais de 10 anos de experiência</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+              <div className="flex items-center bg-white rounded-lg p-4 shadow-sm">
+                <CheckCircle className="h-6 w-6 text-green-500 mr-4 flex-shrink-0" />
+                <span className="text-gray-800 font-medium">Mais de 10 anos de experiência</span>
               </div>
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-lg">Tecnologia de ponta em marcenaria</span>
+              <div className="flex items-center bg-white rounded-lg p-4 shadow-sm">
+                <CheckCircle className="h-6 w-6 text-green-500 mr-4 flex-shrink-0" />
+                <span className="text-gray-800 font-medium">Tecnologia de ponta</span>
               </div>
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-lg">Garantia total em todos os projetos</span>
+              <div className="flex items-center bg-white rounded-lg p-4 shadow-sm">
+                <CheckCircle className="h-6 w-6 text-green-500 mr-4 flex-shrink-0" />
+                <span className="text-gray-800 font-medium">Garantia total</span>
               </div>
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-lg">Atendimento em toda a região</span>
+              <div className="flex items-center bg-white rounded-lg p-4 shadow-sm">
+                <CheckCircle className="h-6 w-6 text-green-500 mr-4 flex-shrink-0" />
+                <span className="text-gray-800 font-medium">Atendimento regional</span>
               </div>
             </div>
 
             {/* Social Links */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Button asChild className="bg-black text-white hover:bg-gray-700">
-                <a href="https://www.instagram.com/dumar_moveis_planejados/" target="_blank" rel="noopener noreferrer">
-                  Siga no Instagram
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                asChild 
+                className="bg-black text-white hover:bg-gray-800 px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg"
+              >
+                <a 
+                  href="https://www.instagram.com/dumar_moveis_planejados/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2"
+                >
+                  <Instagram className="h-5 w-5" />
+                  <span>Siga no Instagram</span>
                 </a>
               </Button>
-              <Button variant="outline" asChild className="border-black text-black hover:bg-black hover:text-white">
-                <a href="https://wa.me/554898486827">
-                  WhatsApp
+              <Button 
+                variant="outline" 
+                asChild 
+                className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300"
+              >
+                <a 
+                  href="https://wa.me/554898486827"
+                  className="flex items-center space-x-2"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  <span>WhatsApp</span>
                 </a>
               </Button>
             </div>
           </div>
 
-          <div>
+          <div className="order-1 lg:order-2">
             {/* Company Image */}
-            <img 
-              src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
-              alt="Escritório elegante com móveis planejados" 
-              className="rounded-2xl shadow-2xl w-full h-auto mb-8"
-            />
+            <div className="relative">
+              <img 
+                src={aboutImage}
+                alt="Projeto Dumar - Ambiente planejado com móveis sob medida" 
+                className="rounded-2xl shadow-2xl w-full h-auto object-cover"
+              />
+              <div className="absolute -bottom-6 -left-6 bg-black text-white p-6 rounded-xl shadow-xl">
+                <p className="text-2xl font-bold">10+</p>
+                <p className="text-sm">Anos de Experiência</p>
+              </div>
+            </div>
             
             {/* Location Map */}
             <div className="bg-white rounded-2xl shadow-lg p-6">

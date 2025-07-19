@@ -1,79 +1,156 @@
-import { MapPin, Instagram, Phone } from "lucide-react";
+import { MapPin, Instagram, Phone, MessageCircle, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import dumarLogo from "@assets/logo_dumar_1752931725312.png";
 
 export default function Footer() {
   return (
-    <footer className="bg-black text-white py-12">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Company Info */}
-          <div>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-black font-bold text-xl">D</span>
+    <footer className="bg-gradient-to-br from-gray-900 to-black text-white">
+      <div className="container mx-auto px-4 lg:px-8">
+        {/* Main Footer Content */}
+        <div className="py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+            {/* Company Info */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="relative">
+                  <img 
+                    src={dumarLogo} 
+                    alt="Dumar Móveis Planejados" 
+                    className="h-12 w-auto object-contain filter brightness-0 invert"
+                  />
+                </div>
+                <div>
+                  <div className="text-white font-bold text-2xl tracking-tight">Dumar</div>
+                  <div className="text-white/70 text-sm font-medium">Móveis Planejados</div>
+                </div>
               </div>
-              <div>
-                <div className="text-white font-bold text-xl">Dumar</div>
-                <div className="text-white/70 text-sm">Móveis Planejados</div>
-              </div>
-            </div>
-            <p className="text-white/80 leading-relaxed">
-              Especialistas em móveis planejados de alto padrão, transformando ambientes 
-              com tecnologia exclusiva e atendimento personalizado.
-            </p>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-bold mb-4">Links Rápidos</h4>
-            <div className="space-y-2">
-              <a href="#inicio" className="block text-white/80 hover:text-white transition-colors">
-                Início
-              </a>
-              <a href="#sobre" className="block text-white/80 hover:text-white transition-colors">
-                Sobre
-              </a>
-              <a href="#portfolio" className="block text-white/80 hover:text-white transition-colors">
-                Portfólio
-              </a>
-              <a href="#contato" className="block text-white/80 hover:text-white transition-colors">
-                Contato
-              </a>
-              <a 
-                href="https://www.instagram.com/dumar_moveis_planejados/" 
-                className="block text-white/80 hover:text-white transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
+              <p className="text-white/80 leading-relaxed text-lg mb-8 max-w-md">
+                Especialistas em móveis planejados de alto padrão, transformando ambientes 
+                com tecnologia exclusiva e atendimento personalizado há mais de 10 anos.
+              </p>
+              
+              {/* CTA Button */}
+              <Button 
+                asChild 
+                className="bg-white text-black hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg"
               >
-                Instagram
-              </a>
+                <a 
+                  href="https://wa.me/554898486827?text=Olá! Gostaria de um orçamento personalizado para móveis planejados."
+                  className="flex items-center space-x-2"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  <span>Solicitar Orçamento</span>
+                </a>
+              </Button>
             </div>
-          </div>
 
-          {/* Contact Info */}
-          <div>
-            <h4 className="text-lg font-bold mb-4">Contato</h4>
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <Phone className="h-5 w-5 mr-3" />
-                <span className="text-white/80">(48) 98848-6827</span>
+            {/* Quick Links */}
+            <div>
+              <h4 className="text-xl font-bold mb-6 text-white">Navegação</h4>
+              <div className="space-y-3">
+                <a 
+                  href="#inicio" 
+                  className="block text-white/70 hover:text-white transition-colors text-lg hover:translate-x-1 transform duration-200"
+                >
+                  Início
+                </a>
+                <a 
+                  href="#sobre" 
+                  className="block text-white/70 hover:text-white transition-colors text-lg hover:translate-x-1 transform duration-200"
+                >
+                  Sobre Nós
+                </a>
+                <a 
+                  href="#portfolio" 
+                  className="block text-white/70 hover:text-white transition-colors text-lg hover:translate-x-1 transform duration-200"
+                >
+                  Portfólio
+                </a>
+                <a 
+                  href="#contato" 
+                  className="block text-white/70 hover:text-white transition-colors text-lg hover:translate-x-1 transform duration-200"
+                >
+                  Contato
+                </a>
               </div>
-              <div className="flex items-center">
-                <MapPin className="h-5 w-5 mr-3" />
-                <span className="text-white/80">Balneário Arroio do Silva</span>
-              </div>
-              <div className="flex items-center">
-                <Instagram className="h-5 w-5 mr-3" />
-                <span className="text-white/80">@dumar_moveis_planejados</span>
+            </div>
+
+            {/* Contact Info */}
+            <div>
+              <h4 className="text-xl font-bold mb-6 text-white">Contato</h4>
+              <div className="space-y-4">
+                <div className="flex items-center group cursor-pointer">
+                  <div className="bg-white/10 p-2 rounded-lg mr-4 group-hover:bg-white/20 transition-colors">
+                    <Phone className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">WhatsApp</p>
+                    <a 
+                      href="https://wa.me/554898486827"
+                      className="text-white/70 hover:text-white transition-colors"
+                    >
+                      (48) 98848-6827
+                    </a>
+                  </div>
+                </div>
+                
+                <div className="flex items-center group">
+                  <div className="bg-white/10 p-2 rounded-lg mr-4 group-hover:bg-white/20 transition-colors">
+                    <MapPin className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">Localização</p>
+                    <p className="text-white/70">Balneário Arroio do Silva</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center group">
+                  <div className="bg-white/10 p-2 rounded-lg mr-4 group-hover:bg-white/20 transition-colors">
+                    <Instagram className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">Instagram</p>
+                    <a 
+                      href="https://www.instagram.com/dumar_moveis_planejados/" 
+                      className="text-white/70 hover:text-white transition-colors flex items-center"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      @dumar_moveis_planejados
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Copyright */}
-        <div className="border-t border-white/20 mt-8 pt-8 text-center">
-          <p className="text-white/70">
-            © 2024 Dumar Móveis Planejados Ltda. Todos os direitos reservados.
-          </p>
+        {/* Bottom Bar */}
+        <div className="border-t border-white/20 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <p className="text-white/60 text-sm mb-4 md:mb-0">
+              © 2024 Dumar Móveis Planejados Ltda. Todos os direitos reservados.
+            </p>
+            <div className="flex items-center space-x-6">
+              <a 
+                href="https://www.instagram.com/dumar_moveis_planejados/" 
+                className="text-white/60 hover:text-white transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
+                <Instagram className="h-5 w-5" />
+              </a>
+              <a 
+                href="https://wa.me/554898486827" 
+                className="text-white/60 hover:text-white transition-colors"
+                aria-label="WhatsApp"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

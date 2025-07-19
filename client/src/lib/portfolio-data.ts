@@ -1,3 +1,13 @@
+import cozinha1 from "@assets/WhatsApp Image 2025-07-19 at 10.07.32_1752931725313.jpeg";
+import cozinha2 from "@assets/WhatsApp Image 2025-07-19 at 10.07.34_1752931725313.jpeg";
+import closet1 from "@assets/WhatsApp Image 2025-07-19 at 10.07.35 (1)_1752931725314.jpeg";
+import closet2 from "@assets/WhatsApp Image 2025-07-19 at 10.07.35_1752931725314.jpeg";
+import banheiro1 from "@assets/WhatsApp Image 2025-07-19 at 10.07.36_1752931725314.jpeg";
+import ambiente1 from "@assets/WhatsApp Image 2025-07-19 at 10.07.37 (1)_1752931725314.jpeg";
+import ambiente2 from "@assets/WhatsApp Image 2025-07-19 at 10.07.37_1752931725315.jpeg";
+import closet3 from "@assets/WhatsApp Image 2025-07-19 at 10.07.38_1752931725315.jpeg";
+import projeto1 from "@assets/WhatsApp Image 2025-07-19 at 10.07.39 (1)_1752931725315.jpeg";
+
 export interface PortfolioItem {
   id: string;
   title: string;
@@ -9,51 +19,75 @@ export interface PortfolioItem {
 
 export const portfolioItems: PortfolioItem[] = [
   {
-    id: 'modal1',
-    title: 'Cozinha Moderna com Ilha',
-    subtitle: 'Projeto completo com marcenaria sob medida',
+    id: 'dumar1',
+    title: 'Cozinha Planejada Premium',
+    subtitle: 'Projeto executado com materiais de primeira linha',
     category: 'cozinha',
-    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=800',
-    description: 'Projeto completo de cozinha moderna com ilha central, bancada em quartzo, armários sob medida com acabamento em laca branca e sistema de iluminação LED integrado. Eletrodomésticos embutidos e aproveitamento máximo do espaço.'
+    image: cozinha1,
+    description: 'Cozinha planejada completa com acabamentos em madeira nobre, bancada em granito, armários com design exclusivo e aproveitamento inteligente do espaço. Projeto executado com a qualidade e precisão características da Dumar.'
   },
   {
-    id: 'modal2',
-    title: 'Closet de Luxo',
-    subtitle: 'Organização e sofisticação em cada detalhe',
+    id: 'dumar2',
+    title: 'Cozinha Moderna Integrada',
+    subtitle: 'Funcionalidade e estilo em perfeita harmonia',
+    category: 'cozinha',
+    image: cozinha2,
+    description: 'Ambiente moderno com marcenaria sob medida, ilha central funcional, sistema de armazenamento otimizado e design contemporâneo. Cada detalhe pensado para máxima praticidade no dia a dia.'
+  },
+  {
+    id: 'dumar3',
+    title: 'Closet Sob Medida',
+    subtitle: 'Organização personalizada para seu estilo de vida',
     category: 'closet',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=800',
-    description: 'Closet luxuoso com sistema de organização personalizado, cabideiros múltiplos, gavetas com divisórias, sapateiras e iluminação LED. Acabamento em madeira nobre com detalhes em vidro fumê.'
+    image: closet1,
+    description: 'Closet personalizado com sistema de organização inteligente, cabideiros ajustáveis, gavetas com divisórias, prateleiras modulares e iluminação estratégica. Design pensado para otimizar o espaço e facilitar o uso diário.'
   },
   {
-    id: 'modal3',
-    title: 'Banheiro Completo',
-    subtitle: 'Funcionalidade e design integrados',
+    id: 'dumar4',
+    title: 'Closet Elegante',
+    subtitle: 'Sofisticação e funcionalidade em cada detalhe',
+    category: 'closet',
+    image: closet2,
+    description: 'Projeto de closet com acabamentos elegantes, sistema de organização premium, espelhos integrados e aproveitamento total do espaço disponível. Qualidade Dumar em cada componente.'
+  },
+  {
+    id: 'dumar5',
+    title: 'Banheiro Planejado',
+    subtitle: 'Móveis sob medida para ambientes úmidos',
     category: 'banheiro',
-    image: 'https://images.unsplash.com/photo-1620626011761-996317b8d101?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=800',
-    description: 'Banheiro completo com móveis planejados incluindo gabinete suspenso, espelheira com iluminação LED, nichos embutidos e aproveitamento inteligente dos espaços. Materiais resistentes à umidade.'
+    image: banheiro1,
+    description: 'Banheiro com móveis planejados resistentes à umidade, gabinete sob medida, nichos integrados e design funcional. Materiais selecionados especialmente para ambientes molhados, garantindo durabilidade e beleza.'
   },
   {
-    id: 'modal4',
-    title: 'Sala de Estar Integrada',
-    subtitle: 'Ambiente completo com home theater',
+    id: 'dumar6',
+    title: 'Ambiente Integrado',
+    subtitle: 'Sala completa com móveis planejados',
     category: 'sala',
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=800',
-    description: 'Ambiente integrado com painel para TV, estantes modulares, home office e sistema de armazenamento oculto. Design clean com materiais nobres e funcionalidade máxima.'
+    image: ambiente1,
+    description: 'Projeto de sala integrada com painel para TV, estantes modulares, mesa de centro sob medida e sistema de armazenamento discreto. Design moderno que combina funcionalidade e elegância.'
   },
   {
-    id: 'modal5',
-    title: 'Cozinha Minimalista',
-    subtitle: 'Design clean com alta funcionalidade',
-    category: 'cozinha',
-    image: 'https://images.unsplash.com/photo-1556185781-a47769abb7aa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=800',
-    description: 'Cozinha com design minimalista, armários sem puxadores com sistema push-pull, cores neutras e linhas retas. Funcionalidade máxima com visual clean e contemporâneo.'
+    id: 'dumar7',
+    title: 'Living Personalizado',
+    subtitle: 'Ambiente aconchegante e funcional',
+    category: 'sala',
+    image: ambiente2,
+    description: 'Living room com móveis planejados incluindo rack personalizado, prateleiras integradas, mesa lateral sob medida e aproveitamento inteligente dos cantos. Cada peça desenhada especialmente para o ambiente.'
   },
   {
-    id: 'modal6',
-    title: 'Closet Master Suite',
-    subtitle: 'Elegância e organização premium',
+    id: 'dumar8',
+    title: 'Closet Compacto',
+    subtitle: 'Máximo aproveitamento em espaços reduzidos',
     category: 'closet',
-    image: 'https://images.unsplash.com/photo-1571508601891-ca5e7a713859?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=800',
-    description: 'Closet master suite com portas de vidro, sistema de organização premium, ilha central com gavetas, espelho de corpo inteiro e iluminação automatizada. Máxima elegância e funcionalidade.'
+    image: closet3,
+    description: 'Closet compacto com design inteligente, gavetas deslizantes, cabideiros otimizados e prateleiras ajustáveis. Prova de que é possível ter organização e estilo mesmo em espaços pequenos.'
+  },
+  {
+    id: 'dumar9',
+    title: 'Projeto Residencial Completo',
+    subtitle: 'Ambientes integrados com design único',
+    category: 'sala',
+    image: projeto1,
+    description: 'Projeto residencial completo com móveis planejados em diversos ambientes, mantendo harmonia no design e qualidade superior em todos os detalhes. Exemplo da capacidade da Dumar em criar ambientes únicos e funcionais.'
   }
 ];

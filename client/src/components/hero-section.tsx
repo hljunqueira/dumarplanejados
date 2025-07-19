@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Settings, UserCheck, Star } from "lucide-react";
+import { Settings, UserCheck, Star, Award, Clock, Sparkles } from "lucide-react";
+import heroImage from "@assets/WhatsApp Image 2025-07-19 at 10.07.32_1752931725313.jpeg";
 
 export default function HeroSection() {
   return (
@@ -11,7 +12,7 @@ export default function HeroSection() {
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1556912173-3bb406ef7e77?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2000&h=1200')`
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.3)), url(${heroImage})`
         }}
       />
       
@@ -50,21 +51,29 @@ export default function HeroSection() {
         </div>
 
         {/* Key Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-            <Settings className="h-12 w-12 mb-4 text-yellow-400 mx-auto" />
-            <h3 className="font-bold text-lg mb-2">Tecnologia Exclusiva</h3>
-            <p className="text-white/80">Equipamentos de última geração para precisão milimétrica</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center border border-white/20 hover:bg-white/15 transition-all duration-300 group">
+            <div className="bg-yellow-400/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+              <Settings className="h-8 w-8 text-yellow-400" />
+            </div>
+            <h3 className="font-bold text-xl mb-3 text-white">Tecnologia Exclusiva</h3>
+            <p className="text-white/90 leading-relaxed">Equipamentos de última geração para precisão milimétrica em cada corte e acabamento</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-            <UserCheck className="h-12 w-12 mb-4 text-yellow-400 mx-auto" />
-            <h3 className="font-bold text-lg mb-2">Atendimento Personalizado</h3>
-            <p className="text-white/80">Consultoria completa do projeto à instalação</p>
+          
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center border border-white/20 hover:bg-white/15 transition-all duration-300 group">
+            <div className="bg-yellow-400/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+              <Award className="h-8 w-8 text-yellow-400" />
+            </div>
+            <h3 className="font-bold text-xl mb-3 text-white">Mais de 10 Anos</h3>
+            <p className="text-white/90 leading-relaxed">Experiência consolidada no mercado com centenas de projetos executados</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-            <Star className="h-12 w-12 mb-4 text-yellow-400 mx-auto" />
-            <h3 className="font-bold text-lg mb-2">Alta Qualidade e Design</h3>
-            <p className="text-white/80">Materiais premium e design exclusivo para cada cliente</p>
+          
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center border border-white/20 hover:bg-white/15 transition-all duration-300 group">
+            <div className="bg-yellow-400/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+              <Sparkles className="h-8 w-8 text-yellow-400" />
+            </div>
+            <h3 className="font-bold text-xl mb-3 text-white">Design Exclusivo</h3>
+            <p className="text-white/90 leading-relaxed">Projetos únicos desenvolvidos especialmente para cada cliente</p>
           </div>
         </div>
       </div>
