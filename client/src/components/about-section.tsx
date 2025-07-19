@@ -24,7 +24,7 @@ export default function AboutSection() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
               <div className="flex items-center bg-white rounded-lg p-4 shadow-sm">
                 <CheckCircle className="h-6 w-6 text-green-500 mr-4 flex-shrink-0" />
-                <span className="text-gray-800 font-medium">Mais de 10 anos de experiência</span>
+                <span className="text-gray-800 font-medium">Experiência especializada</span>
               </div>
               <div className="flex items-center bg-white rounded-lg p-4 shadow-sm">
                 <CheckCircle className="h-6 w-6 text-green-500 mr-4 flex-shrink-0" />
