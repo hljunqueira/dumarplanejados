@@ -10,6 +10,11 @@ build/
 .next/
 out/
 
+# Allow assets from build to be committed for GitHub Pages
+!dist/public/assets/
+!dist/public/index.html
+!dist/public/favicon.svg
+
 # Environment variables
 .env
 .env.local
