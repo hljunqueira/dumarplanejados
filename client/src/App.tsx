@@ -1,43 +1,12 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import Header from "@/components/header";
-import HeroSection from "@/components/hero-section";
-import AboutSection from "@/components/about-section";
-import PortfolioSection from "@/components/portfolio-section";
-import ContactSection from "@/components/contact-section";
-import Footer from "@/components/footer";
-import WhatsAppButton from "@/components/whatsapp-button";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    },
-  },
-});
-
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className="min-h-screen w-full">
-          <Header />
-          <HeroSection />
-          <div id="sobre">
-            <AboutSection />
-          </div>
-          <div id="portfolio">
-            <PortfolioSection />
-          </div>
-          <div id="contato">
-            <ContactSection />
-          </div>
-          <Footer />
-          <WhatsAppButton />
-        </div>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center">
+      <div className="text-center text-white">
+        <h1 className="text-6xl font-bold mb-4">Dumar Móveis</h1>
+        <p className="text-xl">Site funcionando!</p>
+        <p className="text-sm mt-2">React + Vite + GitHub Pages</p>
+        <p className="text-xs mt-4">Domínio: dumarplanejados.com.br</p>
+      </div>
+    </div>
   );
 }
