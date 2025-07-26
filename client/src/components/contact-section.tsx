@@ -1,237 +1,160 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Clock, Instagram, Phone } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { Phone, Send, MessageCircle, MapPin, Mail } from "lucide-react";
 
 export default function ContactSection() {
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    city: '',
-    message: ''
-  });
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name || !formData.phone || !formData.city) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Create WhatsApp message
-    const whatsappMessage = `Olá! Meu nome é ${formData.name}, sou de ${formData.city}. ${
-      formData.message 
-        ? `Gostaria de saber mais sobre: ${formData.message}` 
-        : 'Gostaria de um orçamento para móveis planejados.'
-    } Meu telefone: ${formData.phone}`;
-    
-    const whatsappUrl = `https://wa.me/554898486827?text=${encodeURIComponent(whatsappMessage)}`;
-    window.open(whatsappUrl, '_blank');
-
-    toast({
-      title: "Redirecionando para WhatsApp",
-      description: "Você será redirecionado para o WhatsApp com sua mensagem pré-preenchida."
-    });
+  const onSubmit = (data: any) => {
+    console.log(data);
+    // Aqui você pode implementar o envio do formulário
   };
 
   return (
-    <section id="contato" className="py-20 dumar-light">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Quer um ambiente sob medida?<br />
-              <span className="dumar-accent">Fale conosco agora mesmo.</span>
-            </h2>
-            <p className="text-xl dumar-accent">
-              Atendemos Balneário Arroio do Silva e região — consulte disponibilidade no WhatsApp
-            </p>
+    <section id="contato" className="py-16 sm:py-20 bg-gradient-to-br from-gray-50 via-white to-slate-50">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header melhorado */}
+        <div className="text-center mb-12 sm:mb-16">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+            Quer um ambiente sob medida?
+          </h2>
+          <p className="text-xl sm:text-2xl text-gray-600 mb-6 font-medium">
+            Fale conosco agora mesmo.
+          </p>
+          <p className="text-gray-500 max-w-2xl mx-auto">
+            Atendemos Balneário Arroio do Silva e região — consulte disponibilidade no WhatsApp
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
+          {/* Formulário - Card melhorado */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 sm:p-10 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center mb-6">
+              <div className="bg-gradient-to-br from-blue-500 to-purple-600 w-12 h-12 rounded-xl flex items-center justify-center mr-4">
+                <MessageCircle className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">Envie sua mensagem</h3>
+                <p className="text-gray-600">Preencha o formulário abaixo</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome completo *
+                </label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Seu nome completo"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
+                  {...register("name", { required: true })}
+                />
+                {errors.name && <span className="text-red-500 text-sm">Nome é obrigatório</span>}
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Telefone/WhatsApp *
+                </label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="(48) 99999-9999"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
+                  {...register("phone", { required: true })}
+                />
+                {errors.phone && <span className="text-red-500 text-sm">Telefone é obrigatório</span>}
+              </div>
+
+              <div>
+                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                  Mensagem
+                </label>
+                <Textarea
+                  id="message"
+                  placeholder="Conte-nos sobre seu projeto..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300 min-h-[120px]"
+                  {...register("message")}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group"
+              >
+                <Send className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                Enviar Mensagem
+              </Button>
+            </form>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <Card className="shadow-lg">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">Envie sua mensagem</h3>
-                
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <Label htmlFor="name" className="text-sm font-medium dumar-primary">
-                      Nome completo *
-                    </Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="Seu nome completo"
-                      className="mt-2"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="phone" className="text-sm font-medium dumar-primary">
-                      Telefone/WhatsApp *
-                    </Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="(48) 99999-9999"
-                      className="mt-2"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="city" className="text-sm font-medium dumar-primary">
-                      Cidade *
-                    </Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      type="text"
-                      required
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      placeholder="Sua cidade"
-                      className="mt-2"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="message" className="text-sm font-medium dumar-primary">
-                      Mensagem
-                    </Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      rows={4}
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      placeholder="Conte-nos sobre seu projeto..."
-                      className="mt-2"
-                    />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-black text-white py-4 text-lg font-bold hover:bg-gray-700"
-                  >
-                    Enviar via WhatsApp
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+          {/* WhatsApp Direto - Card melhorado */}
+          <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-xl p-8 sm:p-10 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center mb-6">
+              <div className="bg-white/20 backdrop-blur-sm w-12 h-12 rounded-xl flex items-center justify-center mr-4">
+                <Phone className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold">WhatsApp Direto</h3>
+                <p className="text-green-100 font-medium">Resposta rápida garantida</p>
+              </div>
+            </div>
 
-            {/* Contact Information */}
-            <div className="space-y-8">
-              {/* WhatsApp Card */}
-              <Card className="bg-green-50 border-green-200">
-                <CardContent className="p-6">
-                  <div className="flex items-center mb-4">
-                    <Phone className="h-8 w-8 text-green-600 mr-4" />
-                    <div>
-                      <h4 className="text-xl font-bold text-green-800">WhatsApp Direto</h4>
-                      <p className="text-green-600">Resposta rápida garantida</p>
-                    </div>
-                  </div>
-                  <p className="text-green-700 mb-4">
-                    Para atendimento imediato, fale diretamente conosco pelo WhatsApp.
-                  </p>
-                  <Button 
-                    className="bg-green-600 text-white hover:bg-green-700"
-                    asChild
-                  >
-                    <a href="https://wa.me/554898486827?text=Olá! Gostaria de saber mais sobre móveis planejados.">
-                      (48) 98848-6827
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
+            <p className="text-green-100 mb-8 leading-relaxed">
+              Para atendimento imediato, fale diretamente conosco pelo WhatsApp. 
+              Nossa equipe está pronta para tirar suas dúvidas e fazer seu orçamento.
+            </p>
 
-              {/* Contact Info */}
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
-                  <h4 className="text-xl font-bold mb-4">Informações de Contato</h4>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center">
-                      <MapPin className="h-5 w-5 dumar-accent mr-4" />
-                      <div>
-                        <p className="font-medium">Localização</p>
-                        <p className="dumar-accent">Balneário Arroio do Silva e região</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <Clock className="h-5 w-5 dumar-accent mr-4" />
-                      <div>
-                        <p className="font-medium">Horário de Atendimento</p>
-                        <p className="dumar-accent">Segunda a Sexta: 8h às 18h</p>
-                        <p className="dumar-accent">Sábado: 8h às 12h</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <Instagram className="h-5 w-5 dumar-accent mr-4" />
-                      <div>
-                        <p className="font-medium">Instagram</p>
-                        <a 
-                          href="https://www.instagram.com/dumar_moveis_planejados/" 
-                          className="dumar-accent hover:text-black transition-colors"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          @dumar_moveis_planejados
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="space-y-4">
+              <Button
+                className="w-full bg-white text-green-600 hover:bg-green-50 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group"
+                asChild
+              >
+                <a href="https://wa.me/554898486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
+                  <Phone className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+                  (48) 98848-6827
+                </a>
+              </Button>
 
-              {/* Call to Action */}
-              <Card className="bg-black text-white">
-                <CardContent className="p-6">
-                  <h4 className="text-xl font-bold mb-2">Pronto para começar?</h4>
-                  <p className="mb-4">
-                    Transforme seu ambiente com a qualidade e experiência da Dumar. 
-                    Entre em contato hoje mesmo!
-                  </p>
-                  <Button 
-                    variant="secondary"
-                    className="bg-white text-black hover:bg-gray-100"
-                    asChild
-                  >
-                    <a href="#portfolio">
-                      Ver Mais Projetos
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="flex items-center text-sm">
+                  <MapPin className="h-4 w-4 mr-2 text-green-200" />
+                  <span className="text-green-100">Balneário Arroio do Silva, SC</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Informações adicionais */}
+        <div className="mt-12 sm:mt-16 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+              <div className="bg-blue-100 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <MapPin className="h-6 w-6 text-blue-600" />
+              </div>
+              <h4 className="font-bold text-gray-900 mb-2">Atendimento Local</h4>
+              <p className="text-gray-600 text-sm">Balneário Arroio do Silva e região</p>
+            </div>
+            
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+              <div className="bg-green-100 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Phone className="h-6 w-6 text-green-600" />
+              </div>
+              <h4 className="font-bold text-gray-900 mb-2">Resposta Rápida</h4>
+              <p className="text-gray-600 text-sm">WhatsApp com resposta imediata</p>
+            </div>
+            
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+              <div className="bg-purple-100 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Mail className="h-6 w-6 text-purple-600" />
+              </div>
+              <h4 className="font-bold text-gray-900 mb-2">Orçamento Grátis</h4>
+              <p className="text-gray-600 text-sm">Solicite sem compromisso</p>
             </div>
           </div>
         </div>

@@ -1,0 +1,381 @@
+[
+  {
+    "image": "image_1752932543449.png",
+    "categoria": "outro",
+    "labels": [
+      "symbol",
+      "graphics",
+      "graphic design",
+      "screenshot",
+      "icon"
+    ]
+  },
+  {
+    "image": "image_1752932700884.png",
+    "categoria": "sala",
+    "labels": [
+      "advertising",
+      "living room",
+      "design",
+      "graphic design",
+      "screenshot"
+    ]
+  },
+  {
+    "image": "image_1752933235552.png",
+    "categoria": "outro",
+    "labels": [
+      "font",
+      "advertising",
+      "screenshot",
+      "website",
+      "graphic design",
+      "software",
+      "web page",
+      "multimedia",
+      "display advertising"
+    ]
+  },
+  {
+    "image": "image_1752933424060.png",
+    "categoria": "outro",
+    "labels": [
+      "graphics"
+    ]
+  },
+  {
+    "image": "logo_dumar_1752931725312.png",
+    "categoria": "sala",
+    "labels": [
+      "furniture",
+      "design",
+      "living room",
+      "daybed",
+      "cabinetry"
+    ]
+  },
+  {
+    "image": "logo_dumar_1752933539772.png",
+    "categoria": "sala",
+    "labels": [
+      "furniture",
+      "design",
+      "living room",
+      "daybed",
+      "cabinetry"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.32_1752931725313.jpeg",
+    "categoria": "outro",
+    "labels": [
+      "furniture",
+      "interior design",
+      "shelving",
+      "light fixture",
+      "table",
+      "shelf",
+      "lighting",
+      "desk",
+      "flooring",
+      "chair"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.34_1752931725313.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "wood",
+      "kitchen",
+      "wood stain",
+      "countertop",
+      "hardwood",
+      "home appliance",
+      "kitchen appliance",
+      "plywood",
+      "light fixture",
+      "cabinetry"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.35 (1)_1752931725314.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "interior design",
+      "kitchen",
+      "wood",
+      "furniture",
+      "countertop",
+      "cabinetry",
+      "kitchen appliance",
+      "cupboard",
+      "home appliance",
+      "wood stain"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.35_1752931725314.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "kitchen",
+      "furniture",
+      "interior design",
+      "light fixture",
+      "wood",
+      "ceiling",
+      "countertop",
+      "flooring",
+      "cabinetry",
+      "lighting"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.36_1752931725314.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "kitchen",
+      "interior design",
+      "flooring",
+      "countertop",
+      "wood",
+      "kitchen appliance",
+      "ceiling",
+      "home",
+      "furniture",
+      "light fixture"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.37 (1)_1752931725314.jpeg",
+    "categoria": "outro",
+    "labels": [
+      "furniture",
+      "bed",
+      "bedroom",
+      "interior design",
+      "wood",
+      "floor",
+      "flooring",
+      "room",
+      "bedding",
+      "lighting"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.37_1752931725315.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "furniture",
+      "interior design",
+      "flooring",
+      "wood",
+      "floor",
+      "countertop",
+      "kitchen",
+      "cabinetry",
+      "light fixture",
+      "ceiling"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.38_1752931725315.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "furniture",
+      "interior design",
+      "kitchen",
+      "countertop",
+      "light fixture",
+      "wood",
+      "flooring",
+      "cabinetry",
+      "ceiling",
+      "lighting"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.39 (1)_1752931725315.jpeg",
+    "categoria": "sala",
+    "labels": [
+      "interior design",
+      "furniture",
+      "light fixture",
+      "ceiling",
+      "lighting",
+      "flooring",
+      "home",
+      "living room",
+      "floor",
+      "loudspeaker"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.39_1752933770575.jpeg",
+    "categoria": "sala",
+    "labels": [
+      "interior design",
+      "flooring",
+      "floor",
+      "living room",
+      "ceiling",
+      "furniture",
+      "light fixture",
+      "apartment",
+      "daybed",
+      "natural material"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.40_1752933770576.jpeg",
+    "categoria": "outro",
+    "labels": [
+      "interior design",
+      "wall",
+      "flooring",
+      "floor",
+      "wood",
+      "mirror",
+      "light fixture",
+      "bathroom cabinet",
+      "plumbing fixture",
+      "home"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.41 (1)_1752933770576.jpeg",
+    "categoria": "sala",
+    "labels": [
+      "interior design",
+      "wall",
+      "furniture",
+      "flooring",
+      "wood",
+      "floor",
+      "ceiling",
+      "lighting",
+      "light fixture",
+      "living room"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.41_1752933770576.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "wood",
+      "interior design",
+      "furniture",
+      "kitchen appliance",
+      "home appliance",
+      "flooring",
+      "kitchen",
+      "cabinetry",
+      "major appliance",
+      "ceiling"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.42_1752933770576.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "furniture",
+      "interior design",
+      "kitchen",
+      "wood",
+      "light fixture",
+      "countertop",
+      "ceiling",
+      "chandelier",
+      "wood stain",
+      "kitchen & dining room table"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.43 (1)_1752933770577.jpeg",
+    "categoria": "outro",
+    "labels": [
+      "furniture",
+      "interior design",
+      "bed",
+      "wall",
+      "bedroom",
+      "flooring",
+      "wood",
+      "ceiling",
+      "floor",
+      "room"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.43_1752933770577.jpeg",
+    "categoria": "outro",
+    "labels": [
+      "furniture",
+      "interior design",
+      "flooring",
+      "floor",
+      "wall",
+      "wood",
+      "ceiling",
+      "room",
+      "couch",
+      "light fixture"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.44_1752933770577.jpeg",
+    "categoria": "outro",
+    "labels": [
+      "graphics",
+      "graphic design"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.45_1752933770577.jpeg",
+    "categoria": "cozinha",
+    "labels": [
+      "furniture",
+      "kitchen",
+      "interior design",
+      "countertop",
+      "wood",
+      "cabinetry",
+      "flooring",
+      "home",
+      "ceiling",
+      "cupboard"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.46.jpeg",
+    "categoria": "sala",
+    "labels": [
+      "furniture",
+      "design",
+      "daybed",
+      "living room",
+      "cabinetry"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.46_1752933770578.jpeg",
+    "categoria": "sala",
+    "labels": [
+      "furniture",
+      "design",
+      "daybed",
+      "living room",
+      "cabinetry"
+    ]
+  },
+  {
+    "image": "WhatsApp Image 2025-07-19 at 10.07.48.jpeg",
+    "categoria": "sala",
+    "labels": [
+      "furniture",
+      "design",
+      "living room",
+      "daybed",
+      "cabinetry"
+    ]
+  }
+]

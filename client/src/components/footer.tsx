@@ -1,7 +1,7 @@
 import { MapPin, Instagram, Phone, ExternalLink } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
-import dumarLogo from "@assets/logo_dumar_1752933539772.png";
+import logoDumarWhite from "@/assets/logo1.jpeg";
 
 export default function Footer() {
   return (
@@ -15,7 +15,7 @@ export default function Footer() {
               <div className="flex items-center space-x-4 mb-6">
                 <div className="relative">
                   <img 
-                    src={dumarLogo} 
+                    src={logoDumarWhite} 
                     alt="Dumar Móveis Planejados" 
                     className="h-12 w-auto object-contain"
                   />
@@ -27,9 +27,9 @@ export default function Footer() {
               </div>
               <p className="text-white/80 leading-relaxed text-lg mb-8 max-w-md">
                 Especialistas em móveis planejados de alto padrão, transformando ambientes 
-                com tecnologia exclusiva e atendimento personalizado há mais de 10 anos.
+                com tecnologia exclusiva e atendimento personalizado. Empresa criada em 2025, 
+                mas com especialistas experientes no mercado.
               </p>
-              
               {/* CTA Button */}
               <Button 
                 asChild 
@@ -44,7 +44,6 @@ export default function Footer() {
                 </a>
               </Button>
             </div>
-
             {/* Quick Links */}
             <div>
               <h4 className="text-xl font-bold mb-6 text-white">Navegação</h4>
@@ -75,7 +74,6 @@ export default function Footer() {
                 </a>
               </div>
             </div>
-
             {/* Contact Info */}
             <div>
               <h4 className="text-xl font-bold mb-6 text-white">Contato</h4>
@@ -94,7 +92,6 @@ export default function Footer() {
                     </a>
                   </div>
                 </div>
-                
                 <div className="flex items-center group">
                   <div className="bg-white/10 p-2 rounded-lg mr-4 group-hover:bg-white/20 transition-colors">
                     <MapPin className="h-5 w-5 text-white" />
@@ -104,7 +101,6 @@ export default function Footer() {
                     <p className="text-white/70">Balneário Arroio do Silva</p>
                   </div>
                 </div>
-                
                 <div className="flex items-center group">
                   <div className="bg-white/10 p-2 rounded-lg mr-4 group-hover:bg-white/20 transition-colors">
                     <Instagram className="h-5 w-5 text-white" />
@@ -126,7 +122,6 @@ export default function Footer() {
             </div>
           </div>
         </div>
-
         {/* Bottom Bar */}
         <div className="border-t border-white/20 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between">

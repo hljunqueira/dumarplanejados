@@ -1,12 +1,7 @@
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
-import dumarLogo from "@assets/logo_dumar_1752933539772.png";
-
-import WhatsApp_Image_2025_07_19_at_10_07_46 from "@assets/WhatsApp Image 2025-07-19 at 10.07.46.jpeg";
-
-import WhatsApp_Image_2025_07_19_at_10_07_48 from "@assets/WhatsApp Image 2025-07-19 at 10.07.48.jpeg";
+import { Menu, X } from "lucide-react";
+import logoDumarWhite from "@/assets/logo1.jpeg";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -14,158 +9,135 @@ export default function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
+      setIsScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const handleLinkClick = () => {
-    setIsMobileMenuOpen(false);
-  };
 
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-black/90 backdrop-blur-lg border-b border-gray-700 shadow-lg' 
-          : 'bg-black/70 backdrop-blur-sm'
+          ? 'bg-black/95 backdrop-blur-md shadow-lg' 
+          : 'bg-black/80 backdrop-blur-sm'
       }`}
     >
-      <nav className="container mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
-          <div className="flex items-center space-x-4">
-            <div className="relative">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-lg flex items-center justify-center">
               <img 
-                src={WhatsApp_Image_2025_07_19_at_10_07_48} 
-                alt="Dumar Móveis Planejados" 
-                className="h-12 w-auto object-contain"
+                src={logoDumarWhite} 
+                alt="Dumar Logo" 
+                className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
               />
             </div>
             <div className="hidden sm:block">
-              <div className="text-white font-bold text-xl tracking-tight">Dumar</div>
-              <div className="text-gray-300 text-sm font-medium">Móveis Planejados</div>
+              <div className="text-white font-bold text-lg sm:text-xl">Dumar</div>
+              <div className="text-white/80 text-xs sm:text-sm">Móveis Planejados</div>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-8">
             <a 
               href="#inicio" 
-              className="relative text-gray-300 hover:text-white transition-colors font-medium group"
+              className="text-white/90 hover:text-white font-medium transition-colors duration-200 relative group"
             >
               Início
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-white group-hover:w-full transition-all duration-300"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a 
               href="#sobre" 
-              className="relative text-gray-300 hover:text-white transition-colors font-medium group"
+              className="text-white/90 hover:text-white font-medium transition-colors duration-200 relative group"
             >
               Sobre
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-white group-hover:w-full transition-all duration-300"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a 
               href="#portfolio" 
-              className="relative text-gray-300 hover:text-white transition-colors font-medium group"
+              className="text-white/90 hover:text-white font-medium transition-colors duration-200 relative group"
             >
               Portfólio
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-white group-hover:w-full transition-all duration-300"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a 
               href="#contato" 
-              className="relative text-gray-300 hover:text-white transition-colors font-medium group"
+              className="text-white/90 hover:text-white font-medium transition-colors duration-200 relative group"
             >
               Contato
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-white group-hover:w-full transition-all duration-300"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
-          </div>
+          </nav>
 
-          {/* CTA Button & Mobile Menu */}
-          <div className="flex items-center space-x-4">
+          {/* WhatsApp Button */}
+          <div className="hidden sm:block">
             <Button 
-              asChild 
-              className="hidden sm:flex bg-green-500 text-white hover:bg-green-600 px-6 py-2.5 rounded-lg font-medium transition-all duration-300 hover:shadow-lg"
+              className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 shadow-lg"
+              asChild
             >
-              <a 
-                href="https://wa.me/554898486827?text=Olá! Gostaria de conhecer mais sobre os móveis planejados da Dumar."
-                className="flex items-center space-x-2"
-              >
-                <SiWhatsapp className="h-4 w-4" />
-                <span>WhatsApp</span>
+              <a href="https://wa.me/554898486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
+                WhatsApp
               </a>
             </Button>
-
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden hover:bg-gray-700 rounded-lg"
-              onClick={toggleMobileMenu}
-            >
-              {isMobileMenuOpen ? 
-                <X className="h-6 w-6 text-gray-300" /> : 
-                <Menu className="h-6 w-6 text-gray-300" />
-              }
-            </Button>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden text-white p-2"
+          >
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden bg-black/95 backdrop-blur-lg border-t border-gray-700 absolute left-0 right-0 top-20 shadow-lg">
-            <div className="container mx-auto px-4 py-6">
-              <div className="flex flex-col space-y-4">
-                <a 
-                  href="#inicio" 
-                  className="text-gray-300 hover:text-white transition-colors font-medium py-2 border-b border-gray-700"
-                  onClick={handleLinkClick}
-                >
-                  Início
+          <div className="md:hidden bg-black/95 backdrop-blur-md rounded-lg mt-2 p-4 shadow-xl border border-white/10">
+            <nav className="flex flex-col space-y-4">
+              <a 
+                href="#inicio" 
+                className="text-white/90 hover:text-white font-medium transition-colors duration-200 py-2 border-b border-white/10"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Início
+              </a>
+              <a 
+                href="#sobre" 
+                className="text-white/90 hover:text-white font-medium transition-colors duration-200 py-2 border-b border-white/10"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Sobre
+              </a>
+              <a 
+                href="#portfolio" 
+                className="text-white/90 hover:text-white font-medium transition-colors duration-200 py-2 border-b border-white/10"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Portfólio
+              </a>
+              <a 
+                href="#contato" 
+                className="text-white/90 hover:text-white font-medium transition-colors duration-200 py-2 border-b border-white/10"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Contato
+              </a>
+              <Button 
+                className="bg-green-600 hover:bg-green-700 text-white font-medium mt-4"
+                asChild
+              >
+                <a href="https://wa.me/554898486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
+                  WhatsApp
                 </a>
-                <a 
-                  href="#sobre" 
-                  className="text-gray-300 hover:text-white transition-colors font-medium py-2 border-b border-gray-700"
-                  onClick={handleLinkClick}
-                >
-                  Sobre
-                </a>
-                <a 
-                  href="#portfolio" 
-                  className="text-gray-300 hover:text-white transition-colors font-medium py-2 border-b border-gray-700"
-                  onClick={handleLinkClick}
-                >
-                  Portfólio
-                </a>
-                <a 
-                  href="#contato" 
-                  className="text-gray-300 hover:text-white transition-colors font-medium py-2 border-b border-gray-700"
-                  onClick={handleLinkClick}
-                >
-                  Contato
-                </a>
-                <Button 
-                  asChild 
-                  className="bg-black text-white hover:bg-gray-800 mt-4 w-full rounded-lg font-medium"
-                >
-                  <a 
-                    href="https://wa.me/554898486827?text=Olá! Gostaria de conhecer mais sobre os móveis planejados da Dumar."
-                    className="flex items-center justify-center space-x-2"
-                    onClick={handleLinkClick}
-                  >
-                    <SiWhatsapp className="h-4 w-4" />
-                    <span>Falar no WhatsApp</span>
-                  </a>
-                </Button>
-              </div>
-            </div>
+              </Button>
+            </nav>
           </div>
         )}
-      </nav>
+      </div>
     </header>
   );
 }

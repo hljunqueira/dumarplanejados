@@ -4,15 +4,26 @@ import { Search } from "lucide-react";
 import { portfolioItems, type PortfolioItem } from "@/lib/portfolio-data";
 import PortfolioModal from "./portfolio-modal";
 
+// Adiciona filtro especial para closets/quartos
+function filterItems(items: PortfolioItem[], filter: FilterType) {
+  if (filter === 'all') return items;
+  if (filter === 'closet') {
+    // Mostra todos os quartos e closets
+    return items.filter(item =>
+      item.category === 'closet' ||
+      (item.category === 'outro' && /quarto|closet/i.test(item.title))
+    );
+  }
+  return items.filter(item => item.category === filter);
+}
+
 type FilterType = 'all' | 'cozinha' | 'closet' | 'banheiro' | 'sala';
 
 export default function PortfolioSection() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
 
-  const filteredItems = activeFilter === 'all' 
-    ? portfolioItems 
-    : portfolioItems.filter(item => item.category === activeFilter);
+  const filteredItems = filterItems(portfolioItems, activeFilter);
 
   const handleFilterChange = (filter: FilterType) => {
     setActiveFilter(filter);
@@ -37,11 +48,11 @@ export default function PortfolioSection() {
           </p>
         </div>
 
-        {/* Category Filters */}
-        <div className="flex flex-wrap justify-center gap-4 mb-12">
+        {/* Category Filters - agora horizontal */}
+        <div className="flex flex-wrap flex-row justify-center gap-2 sm:gap-4 mb-8 sm:mb-12 w-full max-w-2xl mx-auto">
           <Button
             onClick={() => handleFilterChange('all')}
-            className={`px-6 py-3 font-medium transition-all ${
+            className={`px-4 py-3 text-base font-medium transition-all ${
               activeFilter === 'all' 
                 ? 'bg-black text-white' 
                 : 'bg-gray-200 text-black hover:bg-black hover:text-white'
@@ -51,7 +62,7 @@ export default function PortfolioSection() {
           </Button>
           <Button
             onClick={() => handleFilterChange('cozinha')}
-            className={`px-6 py-3 font-medium transition-all ${
+            className={`px-4 py-3 text-base font-medium transition-all ${
               activeFilter === 'cozinha' 
                 ? 'bg-black text-white' 
                 : 'bg-gray-200 text-black hover:bg-black hover:text-white'
@@ -61,17 +72,17 @@ export default function PortfolioSection() {
           </Button>
           <Button
             onClick={() => handleFilterChange('closet')}
-            className={`px-6 py-3 font-medium transition-all ${
+            className={`px-4 py-3 text-base font-medium transition-all ${
               activeFilter === 'closet' 
                 ? 'bg-black text-white' 
                 : 'bg-gray-200 text-black hover:bg-black hover:text-white'
             }`}
           >
-            Closets
+            Closets/Quartos
           </Button>
           <Button
             onClick={() => handleFilterChange('banheiro')}
-            className={`px-6 py-3 font-medium transition-all ${
+            className={`px-4 py-3 text-base font-medium transition-all ${
               activeFilter === 'banheiro' 
                 ? 'bg-black text-white' 
                 : 'bg-gray-200 text-black hover:bg-black hover:text-white'
@@ -81,7 +92,7 @@ export default function PortfolioSection() {
           </Button>
           <Button
             onClick={() => handleFilterChange('sala')}
-            className={`px-6 py-3 font-medium transition-all ${
+            className={`px-4 py-3 text-base font-medium transition-all ${
               activeFilter === 'sala' 
                 ? 'bg-black text-white' 
                 : 'bg-gray-200 text-black hover:bg-black hover:text-white'
@@ -91,27 +102,41 @@ export default function PortfolioSection() {
           </Button>
         </div>
 
-        {/* Portfolio Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Portfolio Grid - estilo Aceternity UI */}
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredItems.map((item) => (
             <div 
               key={item.id}
-              className="group cursor-pointer"
+              className="group relative cursor-pointer rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300 bg-gradient-to-br from-gray-100 to-gray-200"
               onClick={() => openModal(item)}
+              tabIndex={0}
+              role="button"
+              aria-label={`Ver detalhes do projeto ${item.title}`}
             >
-              <div className="relative overflow-hidden rounded-2xl bg-gray-100 aspect-square">
-                <img 
-                  src={item.image} 
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
-                  <Search className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <img 
+                src={item.image} 
+                alt={item.title}
+                className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+              />
+              {/* Overlay glassmorphism */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-end">
+                <div className="w-full p-6 pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-md rounded-b-2xl bg-white/20">
+                  <h3 className="text-lg sm:text-xl font-bold text-white drop-shadow mb-1">{item.title}</h3>
+                  <p className="text-sm text-white/80 mb-2">{item.subtitle}</p>
+                  <Button
+                    size="sm"
+                    className="bg-yellow-400 text-black font-bold px-4 py-2 rounded shadow hover:bg-yellow-500 transition"
+                  >
+                    Ver detalhes
+                  </Button>
                 </div>
               </div>
-              <div className="mt-4">
-                <h3 className="text-xl font-bold">{item.title}</h3>
-                <p className="dumar-accent">{item.subtitle}</p>
+              {/* Botão flutuante de lupa */}
+              <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="bg-white/80 rounded-full p-2 shadow-lg backdrop-blur-md">
+                  <Search className="h-6 w-6 text-black" />
+                </div>
               </div>
             </div>
           ))}
@@ -144,3 +169,4 @@ export default function PortfolioSection() {
     </section>
   );
 }
+

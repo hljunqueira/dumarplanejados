@@ -5,17 +5,17 @@ import PortfolioSection from "@/components/portfolio-section";
 import ContactSection from "@/components/contact-section";
 import Footer from "@/components/footer";
 import WhatsAppButton from "@/components/whatsapp-button";
+import ProcessSection from "@/components/process-section";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen w-full">
       <Header />
-      <main>
-        <HeroSection />
-        <AboutSection />
-        <PortfolioSection />
-        <ContactSection />
-      </main>
+      <HeroSection />
+      <AboutSection />
+      <ProcessSection />
+      <PortfolioSection />
+      <ContactSection />
       <Footer />
       <WhatsAppButton />
     </div>
