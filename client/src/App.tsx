@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
-import NotFound from "@/pages/not-found";
 import UnderConstruction from "@/pages/under-construction";
 
 const queryClient = new QueryClient({
@@ -21,7 +20,6 @@ export default function App() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/desenvolvimento" component={UnderConstruction} />
-          <Route component={NotFound} />
         </Switch>
         <Toaster />
       </TooltipProvider>
