@@ -126,7 +126,7 @@ export default function Footer() {
         <div className="border-t border-white/20 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <p className="text-white/60 text-sm mb-4 md:mb-0">
-              © 2024 Dumar Móveis Planejados Ltda. Todos os direitos reservados.
+              © 2025 Dumar Móveis Planejados Ltda. Todos os direitos reservados. Desenvolvedor Henrique Junqueira
             </p>
             <div className="flex items-center space-x-6">
               <a 
