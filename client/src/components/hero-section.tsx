@@ -1,12 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Settings, Award, Sparkles, ArrowRight, CheckCircle, Ruler, Clock } from "lucide-react";
 import "../index.css";
+import fundoPlanejar from "../../assets/fundoplanejar-Ca5UjkM1.png";
 
 export default function HeroSection() {
   return (
     <section 
       id="inicio" 
       className="relative min-h-screen flex items-center justify-center overflow-hidden w-full bg-page-background"
+      style={{
+        backgroundImage: `url(${fundoPlanejar})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
     >
       {/* Overlay mais escuro para melhor legibilidade */}
       <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/80"></div>
