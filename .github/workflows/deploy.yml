@@ -33,10 +33,12 @@ jobs:
       run: npm ci
       
     - name: Build project
-      run: npm run build
+      run: npm run build:client
       
     - name: Setup Pages
       uses: actions/configure-pages@v4
+      with:
+        enablement: true
       
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
