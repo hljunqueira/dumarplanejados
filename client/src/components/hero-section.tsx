@@ -16,8 +16,11 @@ export default function HeroSection() {
         backgroundAttachment: 'fixed'
       }}
     >
-      {/* Overlay otimizado para melhor legibilidade */}
-      <div className="absolute inset-0 bg-page-overlay"></div>
+      {/* Overlay mais escuro para melhor legibilidade */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/80"></div>
+      
+      {/* Fundo semi-transparente para destacar o conteúdo */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40"></div>
       
       {/* Elementos decorativos sutis */}
       <div className="absolute inset-0">
@@ -28,32 +31,32 @@ export default function HeroSection() {
       
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-20">
         <h1 className="text-4xl xs:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 sm:mb-8 leading-tight max-w-6xl mx-auto">
-          <span className="text-white drop-shadow-lg">Transforme seu</span><br />
-          <span className="text-white drop-shadow-lg">ambiente com</span><br />
-          <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent drop-shadow-lg">
-            móveis planejados
+          <span className="text-white drop-shadow-2xl font-extrabold">SEU SONHO</span><br />
+          <span className="text-white drop-shadow-2xl font-extrabold">NOSSA MISSÃO</span><br />
+          <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent drop-shadow-2xl font-extrabold">
+            MÓVEIS PLANEJADOS
           </span><br />
-          <span className="text-white text-3xl xs:text-4xl md:text-5xl drop-shadow-lg">sob medida</span>
+          <span className="text-white text-3xl xs:text-4xl md:text-5xl drop-shadow-2xl font-extrabold">QUE TRANSFORMAM VIDAS</span>
         </h1>
         
-        <p className="text-lg xs:text-xl md:text-2xl text-white/90 mb-8 sm:mb-10 max-w-5xl mx-auto leading-relaxed font-medium drop-shadow-lg">
+        <p className="text-lg xs:text-xl md:text-2xl text-white font-semibold mb-8 sm:mb-10 max-w-5xl mx-auto leading-relaxed drop-shadow-2xl">
           Tecnologia exclusiva, atendimento personalizado e alta qualidade em cada projeto. 
           Especializados em cozinhas, closets, banheiros e ambientes completos.
         </p>
         
         {/* Destaque de qualidade - Melhorado */}
         <div className="flex flex-wrap justify-center gap-4 mb-8 sm:mb-10">
-          <div className="flex items-center bg-white/95 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <Ruler className="h-5 w-5 text-yellow-600 mr-3" />
-            <span className="text-sm font-bold text-gray-800">Precisão Milimétrica</span>
+          <div className="flex items-center bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
+            <Ruler className="h-5 w-5 text-yellow-400 mr-3" />
+            <span className="text-sm font-bold text-white">Precisão Milimétrica</span>
           </div>
-          <div className="flex items-center bg-white/95 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
-            <span className="text-sm font-bold text-gray-800">Garantia Total</span>
+          <div className="flex items-center bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
+            <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
+            <span className="text-sm font-bold text-white">Garantia Total</span>
           </div>
-          <div className="flex items-center bg-white/95 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <Clock className="h-5 w-5 text-blue-600 mr-3" />
-            <span className="text-sm font-bold text-gray-800">Entrega Pontual</span>
+          <div className="flex items-center bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
+            <Clock className="h-5 w-5 text-blue-400 mr-3" />
+            <span className="text-sm font-bold text-white">Entrega Pontual</span>
           </div>
         </div>
         
