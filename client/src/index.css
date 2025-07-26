@@ -23,7 +23,7 @@ html, body {
 
 /* Background principal - nova imagem fundoplanejar.png */
 .bg-page-background {
-  background-image: url('/DumarPlanejados/assets/fundoplanejar-Ca5UjkM1.png');
+  background-image: url('/dumarplanejados/assets/fundoplanejar-Ca5UjkM1.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -36,7 +36,7 @@ html, body {
 
 /* Background alternativo para teste */
 .bg-page-background-alt {
-  background-image: url('/DumarPlanejados/assets/fundo 2-CNzyCpYm.jpg');
+  background-image: url('/dumarplanejados/assets/fundo 2-CNzyCpYm.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
