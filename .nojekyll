@@ -1,2 +1,2 @@
-# Este arquivo força o GitHub Pages a servir arquivos estáticos
-# sem processamento Jekyll 
+# Este arquivo indica ao GitHub Pages para não usar o Jekyll
+# Isso é necessário para projetos que não são sites Jekyll 
