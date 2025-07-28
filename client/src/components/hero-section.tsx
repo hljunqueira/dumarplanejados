@@ -40,7 +40,7 @@ export default function HeroSection() {
         
         <p className="text-lg xs:text-xl md:text-2xl text-white font-semibold mb-8 sm:mb-10 max-w-5xl mx-auto leading-relaxed drop-shadow-2xl">
           Tecnologia exclusiva, atendimento personalizado e alta qualidade em cada projeto. 
-          Especializados em cozinhas, closets, banheiros e ambientes completos.
+          Especializados em cozinhas, closets, banheiros e ambientes comerciais.
         </p>
         
         {/* Destaque de qualidade - Melhorado */}
