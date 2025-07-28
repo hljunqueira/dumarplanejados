@@ -139,15 +139,15 @@ export default function AboutSection() {
           </div>
 
           <div className="order-1 lg:order-2">
-            {/* Missão Card - Design moderno e focado */}
+            {/* Valores Card - Design moderno e focado */}
             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Star className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Nossa Missão</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Nossos Valores</h3>
                 <p className="text-gray-600 font-medium">
-                  Transformar sonhos em realidade
+                  Qualidade e excelência em cada projeto
                 </p>
               </div>
               
@@ -232,27 +232,16 @@ export default function AboutSection() {
               </div>
               
               {/* Informações de contato */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h4 className="font-semibold text-gray-900 mb-3">Informações de Contato</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm">
-                      <Phone className="h-4 w-4 mr-2 text-yellow-500" />
-                      <span className="text-gray-600">(48) 98848-6827</span>
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <MapPin className="h-4 w-4 mr-2 text-yellow-500" />
-                      <span className="text-gray-600">Balneário Arroio do Silva, SC</span>
-                    </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Informações de Contato</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm">
+                    <Phone className="h-4 w-4 mr-2 text-yellow-500" />
+                    <span className="text-gray-600">(48) 98848-6827</span>
                   </div>
-                </div>
-                
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h4 className="font-semibold text-gray-900 mb-3">Horário de Atendimento</h4>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div>Segunda a Sexta: 8h às 18h</div>
-                    <div>Sábado: 8h às 12h</div>
-                    <div>WhatsApp: 24/7</div>
+                  <div className="flex items-center text-sm">
+                    <MapPin className="h-4 w-4 mr-2 text-yellow-500" />
+                    <span className="text-gray-600">Balneário Arroio do Silva, SC</span>
                   </div>
                 </div>
               </div>
