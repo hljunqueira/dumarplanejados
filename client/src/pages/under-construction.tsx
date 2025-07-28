@@ -120,7 +120,7 @@ export default function UnderConstruction() {
             className="border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg font-bold transition-all duration-300"
             asChild
           >
-            <a href="https://wa.me/554898486827?text=Olá! Quero saber mais sobre o desenvolvimento do site.">
+            <a href="https://wa.me/5548988486827?text=Olá! Quero saber mais sobre o desenvolvimento do site.">
               Falar Conosco
             </a>
           </Button>

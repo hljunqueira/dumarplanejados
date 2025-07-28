@@ -152,7 +152,7 @@ export default function PortfolioSection() {
             className="bg-black text-white px-8 py-4 text-lg font-bold hover:bg-gray-700"
             asChild
           >
-            <a href="https://wa.me/554898486827?text=Olá! Vi os projetos no site e gostaria de um orçamento personalizado.">
+            <a href="https://wa.me/5548988486827?text=Olá! Vi os projetos no site e gostaria de um orçamento personalizado.">
               Solicitar Orçamento Personalizado
             </a>
           </Button>

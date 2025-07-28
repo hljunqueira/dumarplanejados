@@ -36,7 +36,7 @@ export default function Footer() {
                 className="bg-[#5dc722] text-white hover:bg-green-600 px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg"
               >
                 <a 
-                  href="https://wa.me/554898486827?text=Olá! Gostaria de um orçamento personalizado para móveis planejados."
+                  href="https://wa.me/5548988486827?text=Olá! Gostaria de um orçamento personalizado para móveis planejados."
                   className="flex items-center space-x-2"
                 >
                   <SiWhatsapp className="h-5 w-5" />
@@ -85,7 +85,7 @@ export default function Footer() {
                   <div>
                     <p className="text-white font-medium">WhatsApp</p>
                     <a 
-                      href="https://wa.me/554898486827"
+                      href="https://wa.me/5548988486827"
                       className="text-white/70 hover:text-white transition-colors"
                     >
                       (48) 98848-6827
@@ -139,7 +139,7 @@ export default function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a 
-                href="https://wa.me/554898486827" 
+                href="https://wa.me/5548988486827" 
                 className="text-white/60 hover:text-white transition-colors"
                 aria-label="WhatsApp"
               >

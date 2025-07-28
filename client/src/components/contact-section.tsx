@@ -114,7 +114,7 @@ export default function ContactSection() {
                 className="w-full bg-white text-green-600 hover:bg-green-50 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group"
                 asChild
               >
-                <a href="https://wa.me/554898486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
+                <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
                   <Phone className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
                   (48) 98848-6827
                 </a>

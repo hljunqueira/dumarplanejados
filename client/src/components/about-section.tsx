@@ -124,7 +124,7 @@ export default function AboutSection() {
                   className="group border-2 border-gray-800 bg-white text-gray-800 hover:bg-gray-900 hover:text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-md"
                 >
                   <a 
-                    href="https://wa.me/554898486827"
+                    href="https://wa.me/5548988486827"
                     className="flex items-center justify-center"
                   >
                     <SiWhatsapp className="h-5 w-5 mr-2" />

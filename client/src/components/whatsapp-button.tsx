@@ -10,7 +10,7 @@ export default function WhatsAppButton() {
         asChild
       >
         <a 
-          href="https://wa.me/554898486827?text=Olá! Gostaria de agendar um atendimento para móveis planejados."
+          href="https://wa.me/5548988486827?text=Olá! Gostaria de agendar um atendimento para móveis planejados."
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Entrar em contato via WhatsApp"

@@ -79,7 +79,7 @@ export default function Header() {
               className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 shadow-lg"
               asChild
             >
-              <a href="https://wa.me/554898486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
+              <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
                 WhatsApp
               </a>
             </Button>
@@ -130,7 +130,7 @@ export default function Header() {
                 className="bg-green-600 hover:bg-green-700 text-white font-medium mt-4"
                 asChild
               >
-                <a href="https://wa.me/554898486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
+                <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
                   WhatsApp
                 </a>
               </Button>

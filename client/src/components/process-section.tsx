@@ -97,7 +97,7 @@ export default function ProcessSection() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
-                href="https://wa.me/554898486827?text=Olá! Gostaria de agendar uma visita técnica gratuita para meu projeto de móveis planejados."
+                href="https://wa.me/5548988486827?text=Olá! Gostaria de agendar uma visita técnica gratuita para meu projeto de móveis planejados."
                 className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 <Phone className="h-5 w-5 mr-2" />
