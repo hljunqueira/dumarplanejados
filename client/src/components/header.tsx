@@ -65,6 +65,13 @@ export default function Header() {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a 
+              href="#videos" 
+              className="text-white/90 hover:text-white font-medium transition-colors duration-200 relative group"
+            >
+              Vídeos
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a 
               href="#contato" 
               className="text-white/90 hover:text-white font-medium transition-colors duration-200 relative group"
             >
@@ -118,6 +125,13 @@ export default function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Portfólio
+              </a>
+              <a 
+                href="#videos" 
+                className="text-white/90 hover:text-white font-medium transition-colors duration-200 py-2 border-b border-white/10"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Vídeos
               </a>
               <a 
                 href="#contato" 
