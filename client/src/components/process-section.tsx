@@ -1,4 +1,5 @@
 import { Phone, Calendar, Truck, CheckSquare, Ruler, Palette, Wrench, Star } from "lucide-react";
+import { Link } from "wouter";
 
 export default function ProcessSection() {
   const steps = [
@@ -96,17 +97,17 @@ export default function ProcessSection() {
               Entre em contato agora mesmo e receba uma visita técnica gratuita para seu projeto sob medida.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a 
-                href="https://wa.me/5548988486827?text=Olá! Gostaria de agendar uma visita técnica gratuita para meu projeto de móveis planejados."
+              <Link 
+                href="/agendamento"
                 className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 <Phone className="h-5 w-5 mr-2" />
                 Agendar Visita Técnica
-              </a>
+              </Link>
             </div>
           </div>
         </div>
       </div>
     </section>
   );
-} 
+}

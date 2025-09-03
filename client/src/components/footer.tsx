@@ -1,6 +1,7 @@
 import { MapPin, Instagram, Phone, ExternalLink } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import logoDumarWhite from "@/assets/logo1.jpeg";
 
 export default function Footer() {
@@ -27,21 +28,21 @@ export default function Footer() {
               </div>
               <p className="text-white/80 leading-relaxed text-lg mb-8 max-w-md">
                 Especialistas em móveis planejados de alto padrão, transformando ambientes 
-                com tecnologia exclusiva e atendimento personalizado. Empresa criada em 2025, 
-                mas com especialistas experientes no mercado.
+                com tecnologia exclusiva e atendimento personalizado. Nossa equipe experiente 
+                garante qualidade e excelência em cada projeto.
               </p>
               {/* CTA Button */}
               <Button 
                 asChild 
                 className="bg-[#5dc722] text-white hover:bg-green-600 px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg"
               >
-                <a 
-                  href="https://wa.me/5548988486827?text=Olá! Gostaria de um orçamento personalizado para móveis planejados."
+                <Link 
+                  href="/orcamento"
                   className="flex items-center space-x-2"
                 >
                   <SiWhatsapp className="h-5 w-5" />
                   <span>Solicitar Orçamento</span>
-                </a>
+                </Link>
               </Button>
             </div>
             {/* Quick Links */}

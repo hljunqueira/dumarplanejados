@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Phone } from "lucide-react";
+import { Link } from "wouter";
 import logoDumarWhite from "@/assets/logo1.jpeg";
 
 export default function Header() {
@@ -80,17 +81,7 @@ export default function Header() {
             </a>
           </nav>
 
-          {/* WhatsApp Button */}
-          <div className="hidden sm:block">
-            <Button 
-              className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 shadow-lg"
-              asChild
-            >
-              <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
-                WhatsApp
-              </a>
-            </Button>
-          </div>
+
 
           {/* Mobile Menu Button */}
           <button
@@ -140,14 +131,7 @@ export default function Header() {
               >
                 Contato
               </a>
-              <Button 
-                className="bg-green-600 hover:bg-green-700 text-white font-medium mt-4"
-                asChild
-              >
-                <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
-                  WhatsApp
-                </a>
-              </Button>
+
             </nav>
           </div>
         )}

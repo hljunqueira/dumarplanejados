@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Settings, Award, Sparkles, ArrowRight, CheckCircle, Ruler, Clock } from "lucide-react";
+import { Link } from "wouter";
 import "../index.css";
-import fundoPlanejar from "../../assets/fundoplanejar-Ca5UjkM1.png";
+import fundoPlanejar from "../../assets/foto-inicial-dumar.jpeg"
 
 export default function HeroSection() {
   return (
@@ -12,7 +13,8 @@ export default function HeroSection() {
         backgroundImage: `url(${fundoPlanejar})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed'
       }}
     >
       {/* Overlay mais escuro para melhor legibilidade */}
@@ -65,10 +67,10 @@ export default function HeroSection() {
             className="group bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-10 py-5 text-xl font-bold transition-all duration-300 hover:shadow-2xl hover:scale-110 shadow-xl border-2 border-yellow-400/30"
             asChild
           >
-            <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida." className="flex items-center">
+            <Link href="/orcamento" className="flex items-center">
               🚀 Solicitar Orçamento Grátis
               <ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-2 transition-transform" />
-            </a>
+            </Link>
           </Button>
           <Button 
             variant="outline"

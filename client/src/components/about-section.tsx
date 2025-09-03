@@ -37,28 +37,31 @@ export default function AboutSection() {
                   Nossa Missão
                 </h3>
                 <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                  Criar ambientes únicos e funcionais que superem as expectativas de nossos clientes, 
-                  oferecendo soluções personalizadas que combinam design, funcionalidade e qualidade.
+                  Transformar espaços em ambientes únicos e funcionais que superem as expectativas, 
+                  oferecendo soluções sob medida que harmonizam design sofisticado, 
+                  máxima funcionalidade e qualidade excepcional.
                 </p>
                 
                 {/* Destaque sobre a empresa */}
                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 mb-6 border border-yellow-200">
                   <h4 className="font-bold text-gray-900 mb-2 flex items-center">
                     <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-sm mr-3">
-                      Nova Empresa
+                      Experiência
                     </span>
-                    Empresa Criada em 2025
+                    Equipe Especializada
                   </h4>
                   <p className="text-gray-700 leading-relaxed">
-                    A Dumar foi criada em 2025, mas nossa equipe é formada por especialistas 
-                    com anos de experiência no mercado de móveis planejados. Combinamos a 
-                    inovação de uma empresa nova com a expertise de profissionais experientes.
+                    A Dumar conta com uma equipe de profissionais altamente qualificados, 
+                    cada um trazendo anos de experiência consolidada no mercado de móveis planejados. 
+                    Nossa expertise técnica garante projetos executados com excelência e 
+                    atenção aos mínimos detalhes.
                   </p>
                 </div>
                 
                 <p className="text-base text-gray-600 leading-relaxed">
-                  Utilizamos tecnologia exclusiva e oferecemos atendimento personalizado para cada projeto, 
-                  garantindo qualidade superior e design inovador em cada detalhe.
+                  Nosso compromisso é entregar projetos que reflitam a personalidade e necessidades 
+                  de cada cliente, utilizando materiais de primeira linha e técnicas avançadas 
+                  de marcenaria para garantir durabilidade e beleza em cada detalhe.
                 </p>
               </div>
               

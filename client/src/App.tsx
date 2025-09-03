@@ -1,31 +1,18 @@
-import Header from "@/components/header";
-import HeroSection from "@/components/hero-section";
-import AboutSection from "@/components/about-section";
-import PortfolioSection from "@/components/portfolio-section";
-import VideosSection from "@/components/videos-section";
-import ContactSection from "@/components/contact-section";
-import Footer from "@/components/footer";
-import WhatsAppButton from "@/components/whatsapp-button";
+import { Router, Route } from "wouter";
+import HomePage from "@/pages/home-page";
+import BudgetPage from "@/pages/budget-page";
+import AppointmentPage from "@/pages/appointment-page";
+import ContactPage from "@/pages/contact-page";
+
+
 
 export default function App() {
   return (
-    <div className="min-h-screen w-full">
-      <Header />
-      <HeroSection />
-      <div id="sobre">
-        <AboutSection />
-      </div>
-      <div id="portfolio">
-        <PortfolioSection />
-      </div>
-      <div id="videos">
-        <VideosSection />
-      </div>
-      <div id="contato">
-        <ContactSection />
-      </div>
-      <Footer />
-      <WhatsAppButton />
-    </div>
+    <Router>
+      <Route path="/" component={HomePage} />
+      <Route path="/orcamento" component={BudgetPage} />
+      <Route path="/agendamento" component={AppointmentPage} />
+      <Route path="/contato" component={ContactPage} />
+    </Router>
   );
 }

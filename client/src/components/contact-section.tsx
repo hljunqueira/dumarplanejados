@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { Phone, Send, MessageCircle, MapPin, Mail } from "lucide-react";
+import { Link } from "wouter";
 
 export default function ContactSection() {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -110,15 +111,27 @@ export default function ContactSection() {
             </p>
 
             <div className="space-y-4">
-              <Button
-                className="w-full bg-white text-green-600 hover:bg-green-50 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group"
-                asChild
-              >
-                <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
-                  <Phone className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                  (48) 98848-6827
-                </a>
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  className="w-full bg-white text-green-600 hover:bg-green-50 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group"
+                  asChild
+                >
+                  <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
+                    <Phone className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+                    (48) 98848-6827
+                  </a>
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="w-full border-white/30 text-white hover:bg-white/10 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300"
+                  asChild
+                >
+                  <Link href="/contato">
+                    <Mail className="mr-2 h-5 w-5" />
+                    Página de Contato
+                  </Link>
+                </Button>
+              </div>
 
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                 <div className="flex items-center text-sm">
