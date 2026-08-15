@@ -23,6 +23,7 @@ export interface Lead {
   lastCustomerMessageAt?: string;
   assembler?: string;
   deliveryDate?: string;
+  aiPaused?: boolean;
 }
 
 export interface WhatsappTemplate {

@@ -37,6 +37,7 @@ export const leads = pgTable("leads", {
   constructionPhotos: text("construction_photos").default("[]"),
   materials: text("materials").default("{}"),
   lastCustomerMessageAt: text("last_customer_message_at").default(""),
+  aiPaused: boolean("ai_paused").default(false),
 });
 
 export const insertLeadSchema = createInsertSchema(leads);

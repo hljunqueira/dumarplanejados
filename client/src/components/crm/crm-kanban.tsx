@@ -280,10 +280,20 @@ export default function CRMKanban({
                         <div className="flex items-center justify-between gap-1">
                           <span className={`text-[8px] font-extrabold border px-1.5 py-0.5 rounded uppercase tracking-wider truncate flex items-center gap-1 ${channelBadge.bg}`}>
                             <span>{channelBadge.icon}</span>
-                            <span className="truncate max-w-[90px]">{channelBadge.label}</span>
+                            <span className="truncate max-w-[80px]">{channelBadge.label}</span>
                           </span>
 
                           <div className="flex items-center gap-1 flex-shrink-0">
+                            {lead.aiPaused ? (
+                              <span className="text-[8px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded-full" title="Intervenção Humana: IA Pausada">
+                                👤 Humano
+                              </span>
+                            ) : (lead.stage === "entrada" || lead.stage === "briefing") ? (
+                              <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded-full" title="IA Comercial Ativa">
+                                🤖 IA
+                              </span>
+                            ) : null}
+
                             {isWaitingReply ? (
                               <span className="flex items-center gap-1 text-[8px] font-black text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded-full animate-pulse" title="Cliente aguarda resposta">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>

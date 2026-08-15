@@ -207,12 +207,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.lastCustomerMessageAt !== undefined) {
         updateData.lastCustomerMessageAt = req.body.lastCustomerMessageAt;
       }
+      if (req.body.aiPaused !== undefined) {
+        updateData.aiPaused = Boolean(req.body.aiPaused);
+      }
 
       const updated = await storage.updateLead(leadId, updateData);
       return res.status(200).json(updated);
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erro ao atualizar lead" });
+    }
+  });
+
+  // Alternar Status da IA para um Lead específico (Intervenção Humana / Hand-off)
+  app.post("/api/leads/:id/toggle-ai", async (req, res) => {
+    const leadId = Number(req.params.id);
+    if (isNaN(leadId)) {
+      return res.status(400).json({ message: "ID do lead inválido" });
+    }
+
+    try {
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead não encontrado" });
+      }
+
+      const nextState = req.body.aiPaused !== undefined ? Boolean(req.body.aiPaused) : !lead.aiPaused;
+      const updated = await storage.updateLead(leadId, { aiPaused: nextState });
+
+      console.log(`IA Comercial Dumar: Status da IA para o Lead ${lead.name} alterado para: ${nextState ? "PAUSADA (Humano no controle)" : "ATIVA"}`);
+      return res.status(200).json({ success: true, aiPaused: nextState, lead: updated });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erro ao alternar IA do lead" });
     }
   });
 
@@ -528,7 +555,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedHistory = [...currentHistory, newMessage];
 
       const updatedLead = await storage.updateLead(lead.id, {
-        chatHistory: JSON.stringify(updatedHistory)
+        chatHistory: JSON.stringify(updatedHistory),
+        aiPaused: true
       });
 
       return res.status(200).json({
@@ -537,7 +565,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         instanceDisconnected,
         lead: {
           ...updatedLead,
-          chatHistory: updatedHistory
+          chatHistory: updatedHistory,
+          aiPaused: true
         }
       });
     } catch (err) {
@@ -619,12 +648,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const updatedHistory = [...currentHistory, newMessage];
-      const updatedLead = await storage.updateLead(lead.id, { chatHistory: JSON.stringify(updatedHistory) });
+      const updatedLead = await storage.updateLead(lead.id, { 
+        chatHistory: JSON.stringify(updatedHistory),
+        aiPaused: true
+      });
 
       return res.status(200).json({
         success: true,
         evoSuccess,
-        lead: { ...updatedLead, chatHistory: updatedHistory }
+        lead: { ...updatedLead, chatHistory: updatedHistory, aiPaused: true }
       });
     } catch (err) {
       console.error(err);
@@ -683,12 +715,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const updatedHistory = [...currentHistory, newMessage];
-      const updatedLead = await storage.updateLead(lead.id, { chatHistory: JSON.stringify(updatedHistory) });
+      const updatedLead = await storage.updateLead(lead.id, { 
+        chatHistory: JSON.stringify(updatedHistory),
+        aiPaused: true
+      });
 
       return res.status(200).json({
         success: true,
         evoSuccess,
-        lead: { ...updatedLead, chatHistory: updatedHistory }
+        lead: { ...updatedLead, chatHistory: updatedHistory, aiPaused: true }
       });
     } catch (err) {
       console.error(err);
@@ -1420,13 +1455,19 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
                 const isResetKeyword = msgContent.trim().toLowerCase() === aiConfig.triggerKeyword.toLowerCase();
                 const history = typeof targetLead.chatHistory === "string" ? JSON.parse(targetLead.chatHistory || "[]") : (targetLead.chatHistory || []);
                 
-                // Hand-off só silencia se um humano assumiu manualmente há menos de 15 minutos e não houve comando de reset
-                const lastHumanMsg = [...history].reverse().find((m: any) => m.sender === "agent" && m.isHuman === true);
-                const fifteenMinAgo = Date.now() - 15 * 60 * 1000;
-                const isRecentHumanActive = lastHumanMsg && lastHumanMsg.sentAt && Number(lastHumanMsg.sentAt) > fifteenMinAgo;
-                const isHandedOff = aiConfig.handoffEnabled && isRecentHumanActive && !isResetKeyword;
+                // Se o cliente enviar o comando de reset (#ia), despausa a IA para ele imediatamente
+                if (isResetKeyword && targetLead.aiPaused) {
+                  console.log(`IA Comercial Dumar: Comando ${aiConfig.triggerKeyword} recebido. Reativando IA para ${targetLead.name}...`);
+                  targetLead = await storage.updateLead(targetLead.id, { aiPaused: false });
+                }
 
-                if (!isHandedOff) {
+                // 1. Hand-off individual (se o lead está sob controle humano/pausado)
+                const isLeadAiPaused = Boolean(targetLead.aiPaused) && !isResetKeyword;
+
+                // 2. Regra de Estágio: IA atende apenas leads em aberto (fases 'entrada' e 'briefing')
+                const isAllowedStage = ["entrada", "briefing"].includes(targetLead.stage || "entrada");
+
+                if (!isLeadAiPaused && isAllowedStage) {
                   try {
                     // Delay para simular digitação humana (máximo 1 segundo para testes ágeis)
                     const actualDelay = Math.min(aiConfig.typingDelay || 1, 2);

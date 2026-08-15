@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Phone, FileText, Upload, Send, CheckCircle2, Trash2, Mic, Paperclip, Smile, File, Image as ImageIcon, Volume2, Square, ExternalLink, CheckCheck } from "lucide-react";
+import { Phone, FileText, Upload, Send, CheckCircle2, Trash2, Mic, Paperclip, Smile, File, Image as ImageIcon, Volume2, Square, ExternalLink, CheckCheck, Bot, AlertCircle, Play, Pause, UserCheck } from "lucide-react";
 import { Lead } from "./types";
 
 interface Stage {
@@ -70,6 +70,30 @@ export default function CRMLeadDrawer({
   const timerRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sendingMedia, setSendingMedia] = useState(false);
+  const [togglingAi, setTogglingAi] = useState(false);
+
+  const handleToggleAi = async () => {
+    if (!selectedLead || togglingAi) return;
+    setTogglingAi(true);
+    try {
+      const res = await fetch(`/api/leads/${selectedLead.id}/toggle-ai`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedLead({
+          ...selectedLead,
+          aiPaused: data.aiPaused
+        });
+        fetchLeads();
+      }
+    } catch (e) {
+      console.error("Erro ao alternar IA do lead:", e);
+    } finally {
+      setTogglingAi(false);
+    }
+  };
 
   const handleSaveLead = async () => {
     setLoadingSave(true);
@@ -482,13 +506,44 @@ export default function CRMLeadDrawer({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                {/* Botão de Controle de IA / Intervenção Humana */}
+                <button
+                  type="button"
+                  onClick={handleToggleAi}
+                  disabled={togglingAi}
+                  className={`text-[10px] border px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-bold transition-all cursor-pointer shadow-sm ${
+                    selectedLead.aiPaused
+                      ? "bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-300"
+                      : "bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/40 text-emerald-300"
+                  }`}
+                  title={
+                    selectedLead.aiPaused
+                      ? "A IA está pausada para este cliente. Clique para reativar o robô."
+                      : "A IA está respondendo este cliente. Clique para pausar e assumir o atendimento manual."
+                  }
+                >
+                  {selectedLead.aiPaused ? (
+                    <>
+                      <UserCheck size={12} className="text-amber-400" />
+                      <span>Humano no Controle</span>
+                      <span className="text-[8px] bg-amber-500/40 px-1 py-0.2 rounded text-white font-medium">IA Pausada</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bot size={12} className="text-emerald-400" />
+                      <span>IA Ativa</span>
+                      <span className="text-[8px] bg-emerald-500/40 px-1 py-0.2 rounded text-white font-medium">Pausar</span>
+                    </>
+                  )}
+                </button>
+
                 {selectedLead.phone && (
                   <a
                     href={`https://wa.me/${selectedLead.phone.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-lg flex items-center gap-1 font-bold transition-all"
+                    className="text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 px-2.5 py-1 rounded-lg flex items-center gap-1 font-bold transition-all"
                     title="Abrir conversa no WhatsApp Web"
                   >
                     <ExternalLink size={11} />
@@ -500,6 +555,25 @@ export default function CRMLeadDrawer({
 
             {/* Histórico do Chat com Balões Estilo WhatsApp Web */}
             <div className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin bg-[#0b141a]/60">
+              {/* Banner de Atendimento Humano em Andamento */}
+              {selectedLead.aiPaused && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 flex items-center justify-between gap-2 text-amber-300 text-xs shadow-inner animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle size={14} className="text-amber-400 flex-shrink-0" />
+                    <span className="text-[11px] leading-tight">
+                      <strong>Atendimento Humano em Andamento:</strong> A IA está pausada para este cliente para você conversar livremente.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleAi}
+                    className="text-[10px] font-bold bg-amber-500 hover:bg-amber-400 text-black px-2.5 py-1 rounded-lg transition-all flex-shrink-0 cursor-pointer shadow"
+                  >
+                    Reativar IA
+                  </button>
+                </div>
+              )}
+
               {/* Separador de Início da Conversa */}
               <div className="flex justify-center my-2">
                 <span className="text-[9px] bg-black/60 border border-white/10 text-gray-400 px-3 py-0.5 rounded-full uppercase tracking-wider font-semibold shadow">
