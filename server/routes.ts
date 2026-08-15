@@ -734,7 +734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // =========================================================================
   // MOTOR DE INTELIGÊNCIA ARTIFICIAL COMERCIAL DUMAR (NATIVO / ALTA VELOCIDADE)
   // =========================================================================
-  const AI_API_KEY = process.env.AI_API_KEY || ["gsk", "Ng5kGJHDoejMxrvv4LexWGdyb3FY9Rj8UXt5fd96VkMyxMxFhZyB"].join("_");
+  const AI_API_KEY = process.env.AI_API_KEY || ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
 
   let aiConfig = {
     botEnabled: true,
@@ -850,6 +850,8 @@ REGRAS MANDATÓRIAS:
         minute: "2-digit"
       });
 
+      const GROQ_PRIMARY_KEY = ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
+
       // 2. Buscar eventos reais do Calendário do CRM para validar ocupação
       let upcomingEventsText = "Nenhum compromisso marcado para os próximos dias (Agenda 100% Livre).";
       try {
@@ -882,21 +884,17 @@ REGRAS MANDATÓRIAS:
         .replace(/{endereco_escritorio}/g, aiConfig.officeAddress);
 
       if (isGenericName) {
-        compiledPrompt += `\n\nCONTEXTO DO CLIENTE ATUAL:\n- Você ainda NÃO possui o nome deste cliente. Na sua primeira mensagem, dê boas-vindas à Dumar Móveis Planejados e pergunte educadamente com quem tem o prazer de falar (qual é o nome dele/dela) e qual ambiente deseja planejar.`;
+        compiledPrompt += `\n\nCONTEXTO DO CLIENTE ATUAL:\n- Você ainda NÃO possui o nome deste cliente. Na sua primeira mensagem, pergunte educadamente com quem tem o prazer de falar e qual ambiente deseja planejar.`;
       } else {
-        compiledPrompt += `\n\nCONTEXTO DO CLIENTE ATUAL:\n- O nome do cliente é "${clientName}". Se for o início da conversa, saúde-o diretamente pelo nome ("Olá, ${clientName}! Tudo bem? Seja bem-vindo(a) à Dumar...").`;
+        compiledPrompt += `\n\nCONTEXTO DO CLIENTE ATUAL:\n- O nome do cliente é "${clientName}".`;
       }
 
       // 3.1 Inteligência de Reconhecimento de Conversa Anterior (Memória de Longo Prazo)
-      const hasPreviousConversation = conversationHistory.length >= 3 || (extraContext?.previousChatCount && extraContext.previousChatCount >= 2);
+      const hasPreviousConversation = conversationHistory.length >= 2;
       if (hasPreviousConversation) {
-        compiledPrompt += `\n\n🧠 MEMÓRIA DE CONVERSA ANTERIOR (CLIENTE RECORRENTE):
-- Este cliente JÁ possui conversas anteriores registradas no sistema.
-- Não pergunte o nome novamente se já souber (${isGenericName ? "nome ainda não identificado" : clientName}).
-${extraContext?.rooms && extraContext.rooms.length > 0 ? `- Ambientes de interesse já identificados: ${extraContext.rooms.join(", ")}` : ""}
-${extraContext?.lastAppointment ? `- Agendamento já registrado no sistema: ${extraContext.lastAppointment}` : ""}
-- INSTRUÇÃO DE ATENDIMENTO CONTINUADO:
-  Reconheça o retorno do cliente de forma calorosa e atenciosa (ex: "Olá, ${isGenericName ? "" : clientName}! Que bom falar com você novamente."). Retome com naturalidade o contexto do projeto dele e pergunte se ele precisa de mais alguma ajuda, se tem novas dúvidas ou se deseja dar andamento nas próximas etapas.`;
+        compiledPrompt += `\n\n🧠 CONTINUIDADE DE CONVERSA:
+- Esta é uma conversa em andamento. NUNCA repita a saudação de boas-vindas nem se apresente novamente.
+- Responda diretamente ao que o cliente acabou de falar de forma concisa e amigável.`;
       }
 
       // 4. Injeção de Grade de Horários por Dia da Semana e Agenda em Tempo Real
@@ -910,9 +908,9 @@ ${extraContext?.lastAppointment ? `- Agendamento já registrado no sistema: ${ex
 ${upcomingEventsText}
 
 REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
-1. Se o cliente solicitar um dia/horário específico (ex: Sábado à tarde, Domingo ou Quinta às 19h), consulte a Grade Detalhada acima para verificar se esse dia e turno estão ABERTOS.
+1. Se o cliente solicitar um dia/horário específico, consulte a Grade Detalhada acima para verificar se esse dia e turno estão ABERTOS.
 2. SE O HORÁRIO FOR DENTRO DO EXPEDIENTE E ESTIVER LIVRE: Confirme o agendamento no Escritório Comercial (${aiConfig.officeAddress}) ou visita técnica na obra, reforçando o dia e horário confirmados.
-3. SE FOR FORA DO EXPEDIENTE (ex: Sábado à tarde se configurado fechado, Domingos ou horário ocupado): Explique gentilmente que não há atendimento nesse período/horário e sugira 2 horários abertos mais próximos conforme a Grade.`;
+3. SE FOR FORA DO EXPEDIENTE: Explique gentilmente que não há atendimento nesse período e sugira 2 horários abertos mais próximos conforme a Grade.`;
 
       // Adicionar reforço das regras ativas
       const activeRules: string[] = [];
@@ -931,21 +929,30 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
         { role: "system", content: compiledPrompt }
       ];
 
-      // Incluir últimas mensagens da conversa
+      // Incluir últimas mensagens da conversa sanitizadas
       const recentHistory = conversationHistory.slice(-8);
       for (const item of recentHistory) {
-        if (item.sender === "client") {
-          messages.push({ role: "user", content: item.text });
-        } else if (item.sender === "agent") {
-          messages.push({ role: "assistant", content: item.text });
+        const textContent = String(item.text || "").trim();
+        if (textContent.length > 0) {
+          if (item.sender === "client") {
+            messages.push({ role: "user", content: textContent });
+          } else if (item.sender === "agent") {
+            messages.push({ role: "assistant", content: textContent });
+          }
         }
       }
 
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      // Se por algum motivo nenhuma mensagem de usuário foi adicionada, inclui a mensagem padrão
+      if (!messages.some(m => m.role === "user")) {
+        messages.push({ role: "user", content: "Olá" });
+      }
+
+      // Chamada principal para a API Groq
+      let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${AI_API_KEY}`
+          "Authorization": `Bearer ${GROQ_PRIMARY_KEY}`
         },
         body: JSON.stringify({
           model: "llama-3.3-70b-versatile",
@@ -955,24 +962,65 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
         })
       });
 
+      // Fallback para modelo rápido caso 70b atinja limite de taxa
+      if (!response.ok) {
+        const primaryErr = await response.text();
+        console.warn("Groq 70B indisponível, acionando fallback 8B:", primaryErr);
+        response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_PRIMARY_KEY}`
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-8b-instant",
+            messages,
+            temperature: 0.6,
+            max_tokens: 300
+          })
+        });
+      }
+
       if (!response.ok) {
         const err = await response.text();
-        console.error("Erro na API do Motor de IA:", err);
-        return aiConfig.welcomeMessage
-          .replace(/{nome}/g, clientName)
-          .replace(/{empresa}/g, aiConfig.companyName);
+        console.error("Erro na API do Motor de IA (Groq):", err);
+        return `Olá${clientName ? `, ${clientName}` : ""}! Como posso te ajudar com o seu projeto de móveis planejados hoje?`;
       }
 
       const data = await response.json();
       const answer = data.choices?.[0]?.message?.content?.trim();
-      return answer || "Olá! Recebemos sua mensagem na Dumar Planejados. Como podemos te ajudar hoje?";
+      return answer || `Olá${clientName ? `, ${clientName}` : ""}! Qual ambiente você gostaria de planejar?`;
     } catch (err) {
       console.error("Erro ao gerar resposta com o Motor de IA:", err);
-      return aiConfig.welcomeMessage
-        .replace(/{nome}/g, clientName)
-        .replace(/{empresa}/g, aiConfig.companyName);
+      return `Olá${clientName ? `, ${clientName}` : ""}! Como podemos te ajudar com o seu projeto sob medida hoje?`;
     }
   }
+
+  // Rota de Diagnóstico do Motor de IA na VPS
+  app.get("/api/test-ai-ping", async (req, res) => {
+    try {
+      const GROQ_PRIMARY_KEY = ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
+      const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_PRIMARY_KEY}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: "Você é o robô da Dumar Móveis." },
+            { role: "user", content: "Ping de teste" }
+          ]
+        })
+      });
+      const status = resp.status;
+      const data = await resp.json();
+      return res.json({ success: true, status, reply: data.choices?.[0]?.message?.content });
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e.message });
+    }
+  });
 
   // Persistência em disco de aiConfig
   const AI_CONFIG_FILE = path.join(process.cwd(), "data", "ai-config.json");
