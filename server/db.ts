@@ -42,7 +42,14 @@ export async function initDbTables() {
         data_json TEXT NOT NULL DEFAULT '{}',
         created_at TEXT DEFAULT ''
       );
+
+      -- Migração automática de novas colunas na tabela leads
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS construction_photos TEXT DEFAULT '[]';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS materials TEXT DEFAULT '{}';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_customer_message_at TEXT DEFAULT '';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS ai_paused BOOLEAN DEFAULT FALSE;
     `);
+    console.log("Banco de Dados Dumar: Tabelas e colunas sincronizadas com sucesso.");
   } catch (err) {
     console.error("Erro ao inicializar tabelas no banco:", err);
   }
