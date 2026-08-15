@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
-  Bot, Sparkles, Zap, Save, CheckCircle2, Check, MessageSquare, Plus, Trash2, 
+  Bot, Zap, Save, CheckCircle2, Check, MessageSquare, Plus, Trash2, 
   Settings2, RefreshCw, Send, Play, MapPin, Building2, Phone, User, Clock
 } from "lucide-react";
 import { WhatsappTemplate } from "./types";
@@ -413,7 +413,7 @@ export default function CRMSettings() {
               activeTab === "ai_assistant" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-gray-400 hover:text-white"
             }`}
           >
-            <Sparkles size={13} />
+            <Bot size={13} />
             Assistente de IA
           </button>
           <button
@@ -481,7 +481,6 @@ export default function CRMSettings() {
             <div className="bg-[#121212] border border-white/10 rounded-2xl p-5 shadow-xl space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-amber-400" />
                   Modelos Prontos de Atendimento (1 Clique)
                 </h4>
               </div>

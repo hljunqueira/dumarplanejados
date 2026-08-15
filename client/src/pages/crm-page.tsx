@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import logoDumar from "@/assets/logo1.jpeg";
-import { Plus, QrCode, Menu, Upload, Sparkles, Box } from "lucide-react";
+import { Plus, QrCode, Menu, Upload, CheckCircle2, Box } from "lucide-react";
 import { parsePromobFile } from "@/lib/promob-parser";
 
 // Subcomponentes importados
@@ -620,7 +620,7 @@ export default function CRMPage() {
               {/* Status feedback */}
               {promobStatusMsg && (
                 <div className="bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl text-[11px] text-emerald-300 font-medium flex items-center gap-2">
-                  <Sparkles size={14} className="text-emerald-400 flex-shrink-0" />
+                  <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" />
                   <span>{promobStatusMsg}</span>
                 </div>
               )}

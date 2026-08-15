@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   FileText, Plus, Edit3, Printer, CheckCircle2, Clock, 
-  Trash2, ShieldCheck, UserCheck, Search, X, Eye, Sparkles, Building, Phone, Mail, MapPin, Layers, DollarSign, AlertCircle, RefreshCw, Image, Upload
+  Trash2, ShieldCheck, UserCheck, Search, X, Eye, Building, Phone, Mail, MapPin, Layers, DollarSign, AlertCircle, RefreshCw, Image, Upload
 } from "lucide-react";
 import { Lead } from "./types";
 import { ContractData, getDefaultContractData } from "@/lib/contract-generator";
