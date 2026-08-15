@@ -228,8 +228,8 @@ railway up
 ## 📞 Contato
 
 - **WhatsApp**: (48) 98848-6827
-- **Localização**: Balneário Arroio do Silva, SC
-- **Email**: contato@dumarplanejados.com.br
+- **Localização**: Av. Santa Catarina, 551 sala 205 - Centro, Balneário Arroio do Silva - SC
+- **Email**: dumarmoveisplanejados@gmail.com
 
 ## 📄 Licença
 

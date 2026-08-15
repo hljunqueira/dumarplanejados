@@ -2,175 +2,179 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
-import { Phone, Send, MessageCircle, MapPin, Mail } from "lucide-react";
-import { Link } from "wouter";
+import { Phone, Send, MapPin, Mail } from "lucide-react";
 
 export default function ContactSection() {
   const { register, handleSubmit, formState: { errors } } = useForm();
 
-  const onSubmit = (data: any) => {
-    console.log(data);
-    // Aqui você pode implementar o envio do formulário
+  const onSubmit = async (data: any) => {
+    // 1. Persistir no banco de dados com UTMs capturadas
+    try {
+      const utmSource = sessionStorage.getItem("utm_source") || "WhatsApp Direto / Site";
+      const utmCampaign = sessionStorage.getItem("utm_campaign") || "Site Direto";
+      
+      const payload = {
+        name: data.name,
+        phone: data.phone,
+        email: "",
+        value: 0,
+        stage: "entrada",
+        rooms: ["Contato Geral"],
+        utmSource,
+        utmCampaign,
+        checklist: {},
+        chatHistory: [],
+        promobFiles: []
+      };
+
+      await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error("Erro ao salvar lead via formulário:", err);
+    }
+
+    // 2. Redirecionar para o WhatsApp
+    const message = `Olá! Meu nome é ${data.name}. Telefone: ${data.phone}. Mensagem: ${data.message || 'Gostaria de solicitar um orçamento.'}`;
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/5548988486827?text=${encoded}`, '_blank');
   };
 
   return (
-    <section id="contato" className="py-16 sm:py-20 bg-gradient-to-br from-gray-50 via-white to-slate-50">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header melhorado */}
-        <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-            Quer um ambiente sob medida?
+    <section id="contato" className="py-24 md:py-32 bg-[#FDFBF7] text-[#1A1A1A] relative border-t border-neutral-200 overflow-hidden">
+      
+      {/* Background Decorativo Sutil */}
+      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+        <div className="absolute top-10 left-10 w-96 h-96 bg-amber-200/30 rounded-full filter blur-3xl"></div>
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-amber-100/40 rounded-full filter blur-3xl"></div>
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 lg:px-8">
+        
+        {/* Cabeçalho */}
+        <div className="text-center mb-20">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1A1A]">
+            Deseja um Orçamento de <br />
+            <span className="text-[#f97316]">Móveis Sob Medida?</span>
           </h2>
-          <p className="text-xl sm:text-2xl text-gray-600 mb-6 font-medium">
-            Fale conosco agora mesmo.
-          </p>
-          <p className="text-gray-500 max-w-2xl mx-auto">
-            Atendemos Balneário Arroio do Silva e região — consulte disponibilidade no WhatsApp
+          <p className="text-neutral-600 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+            Preencha os dados abaixo para iniciar seu atendimento personalizado ou entre em contato diretamente pelo canal móvel.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
-          {/* Formulário - Card melhorado */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 sm:p-10 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center mb-6">
-              <div className="bg-gradient-to-br from-blue-500 to-purple-600 w-12 h-12 rounded-xl flex items-center justify-center mr-4">
-                <MessageCircle className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900">Envie sua mensagem</h3>
-                <p className="text-gray-600">Preencha o formulário abaixo</p>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 max-w-6xl mx-auto items-stretch">
+          
+          {/* LADO ESQUERDO: Formulário Elegante */}
+          <div className="lg:col-span-7 bg-white rounded-3xl p-8 md:p-10 border border-neutral-200 shadow-xl flex flex-col justify-between">
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-[#1A1A1A] mb-2">Falar com Consultor</h3>
+              <p className="text-xs text-neutral-500">Preencha o formulário e seja direcionado para nossa engenharia.</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome completo *
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                  Nome Completo *
                 </label>
                 <Input
                   id="name"
-                  type="text"
                   placeholder="Seu nome completo"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
                   {...register("name", { required: true })}
+                  className="bg-neutral-50 border-neutral-300 text-[#1A1A1A] focus:border-black rounded-xl py-3 px-4 text-sm"
                 />
-                {errors.name && <span className="text-red-500 text-sm">Nome é obrigatório</span>}
+                {errors.name && <span className="text-xs text-red-500">Nome é obrigatório</span>}
               </div>
 
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefone/WhatsApp *
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                  Telefone / WhatsApp *
                 </label>
                 <Input
                   id="phone"
-                  type="tel"
                   placeholder="(48) 99999-9999"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
                   {...register("phone", { required: true })}
+                  className="bg-neutral-50 border-neutral-300 text-[#1A1A1A] focus:border-black rounded-xl py-3 px-4 text-sm"
                 />
-                {errors.phone && <span className="text-red-500 text-sm">Telefone é obrigatório</span>}
+                {errors.phone && <span className="text-xs text-red-500">Telefone é obrigatório</span>}
               </div>
 
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                  Mensagem
+              <div className="space-y-2">
+                <label htmlFor="message" className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                  Resumo do Projeto (Ambiente, Cidade, Prazo)
                 </label>
                 <Textarea
                   id="message"
-                  placeholder="Conte-nos sobre seu projeto..."
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300 min-h-[120px]"
+                  rows={4}
+                  placeholder="Ex: Cozinha e Suíte Master em Balneário Arroio do Silva. Previsão de entrega do imóvel em 60 dias."
                   {...register("message")}
+                  className="bg-neutral-50 border-neutral-300 text-[#1A1A1A] focus:border-black rounded-xl p-4 text-sm"
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group"
+                className="w-full bg-black hover:bg-neutral-800 text-white font-extrabold py-4 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 text-sm shadow-lg cursor-pointer"
               >
-                <Send className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                Enviar Mensagem
+                <span>Enviar Solicitação via WhatsApp</span>
+                <Send className="h-4 w-4 ml-2" />
               </Button>
             </form>
           </div>
 
-          {/* WhatsApp Direto - Card melhorado */}
-          <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-xl p-8 sm:p-10 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center mb-6">
-              <div className="bg-white/20 backdrop-blur-sm w-12 h-12 rounded-xl flex items-center justify-center mr-4">
-                <Phone className="h-6 w-6 text-white" />
-              </div>
+          {/* LADO DIREITO: Informações de Contato Direto */}
+          <div className="lg:col-span-5 bg-neutral-900 text-white rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl flex flex-col justify-between">
+            <div className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold">WhatsApp Direto</h3>
-                <p className="text-green-100 font-medium">Resposta rápida garantida</p>
-              </div>
-            </div>
-
-            <p className="text-green-100 mb-8 leading-relaxed">
-              Para atendimento imediato, fale diretamente conosco pelo WhatsApp. 
-              Nossa equipe está pronta para tirar suas dúvidas e fazer seu orçamento.
-            </p>
-
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <Button
-                  className="w-full bg-white text-green-600 hover:bg-green-50 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group"
-                  asChild
-                >
-                  <a href="https://wa.me/5548988486827?text=Olá! Quero um orçamento para móveis planejados sob medida.">
-                    <Phone className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                    (48) 98848-6827
-                  </a>
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="w-full border-white/30 text-white hover:bg-white/10 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300"
-                  asChild
-                >
-                  <Link href="/contato">
-                    <Mail className="mr-2 h-5 w-5" />
-                    Página de Contato
-                  </Link>
-                </Button>
+                <h3 className="text-xl font-bold text-white mb-2">Canais Diretos</h3>
+                <p className="text-xs text-neutral-400">Atendimento presencial em nosso showroom ou visitas técnicas agendadas.</p>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                <div className="flex items-center text-sm">
-                  <MapPin className="h-4 w-4 mr-2 text-green-200" />
-                  <span className="text-green-100">Balneário Arroio do Silva, SC</span>
+              <div className="space-y-6">
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#f97316] flex-shrink-0">
+                    <Phone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">Telefone & WhatsApp</h4>
+                    <p className="text-sm font-bold text-white">(48) 98848-6827</p>
+                    <p className="text-[11px] text-neutral-400 mt-0.5">Segunda a Sexta, das 08h às 18h</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#f97316] flex-shrink-0">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">Fábrica & Showroom</h4>
+                    <p className="text-sm font-bold text-white">Av. Santa Catarina, 551 sala 205</p>
+                    <p className="text-[11px] text-neutral-400 mt-0.5">Centro - Balneário Arroio do Silva</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#f97316] flex-shrink-0">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">E-mail Comercial</h4>
+                    <p className="text-sm font-bold text-white">dumarmoveisplanejados@gmail.com</p>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <div className="pt-8 border-t border-white/10 mt-8">
+              <p className="text-[11px] text-neutral-400 leading-relaxed">
+                * Todos os dados fornecidos são confidenciais e protegidos conforme a Lei Geral de Proteção de Dados (LGPD).
+              </p>
+            </div>
           </div>
+
         </div>
 
-        {/* Informações adicionais */}
-        <div className="mt-12 sm:mt-16 text-center">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-              <div className="bg-blue-100 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <MapPin className="h-6 w-6 text-blue-600" />
-              </div>
-              <h4 className="font-bold text-gray-900 mb-2">Atendimento Local</h4>
-              <p className="text-gray-600 text-sm">Balneário Arroio do Silva e região</p>
-            </div>
-            
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-              <div className="bg-green-100 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Phone className="h-6 w-6 text-green-600" />
-              </div>
-              <h4 className="font-bold text-gray-900 mb-2">Resposta Rápida</h4>
-              <p className="text-gray-600 text-sm">WhatsApp com resposta imediata</p>
-            </div>
-            
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-              <div className="bg-purple-100 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Mail className="h-6 w-6 text-purple-600" />
-              </div>
-              <h4 className="font-bold text-gray-900 mb-2">Orçamento Grátis</h4>
-              <p className="text-gray-600 text-sm">Solicite sem compromisso</p>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );

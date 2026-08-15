@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Play, Youtube, Instagram, Clock, Eye } from "lucide-react";
-import { videosData, type VideoItem } from "@/lib/videos-data";
+import { Play, Youtube, Instagram, Star } from "lucide-react";
+import { videosData } from "@/lib/videos-data";
 
 export default function VideosSection() {
   const openYouTubeChannel = () => {
@@ -8,29 +8,24 @@ export default function VideosSection() {
   };
 
   return (
-    <section id="videos" className="py-20 bg-gradient-to-br from-gray-50 via-white to-slate-50">
+    <section id="videos" className="py-24 md:py-32 bg-black text-white relative border-t border-white/10">
       <div className="container mx-auto px-4 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-red-100 text-red-800 text-sm font-medium mb-6">
-            <Youtube className="w-4 h-4 mr-2" />
-            Canal do YouTube
-          </div>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900">
-            Vídeos da <span className="bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">Dumar</span>
+        
+        <div className="text-center mb-20">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 text-white">
+            Vídeos da <span className="text-[#f97316]">Dumar no YouTube</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Acompanhe nossos projetos, processos e depoimentos de clientes satisfeitos. 
-            Veja em movimento como transformamos ambientes.
+          <p className="text-neutral-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+            Veja detalhes em vídeo de montagens, projetos finalizados em 3D, e entenda a real qualidade de cada ferragem e material utilizado.
           </p>
         </div>
 
         {/* Vídeos Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
           {videosData.map((video) => (
             <div 
               key={video.id}
-              className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+              className="group relative bg-neutral-900 rounded-2xl border border-white/10 hover:border-[#f97316]/40 transition-all duration-300 overflow-hidden shadow-2xl"
             >
               {/* Thumbnail com overlay */}
               <div 
@@ -40,92 +35,40 @@ export default function VideosSection() {
                 <img 
                   src={video.thumbnail} 
                   alt={video.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 {/* Overlay com botão play */}
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-all duration-300 flex items-center justify-center">
-                  <div className="bg-red-600 hover:bg-red-700 text-white rounded-full p-4 transition-all duration-300 group-hover:scale-110">
-                    <Play className="h-8 w-8 ml-1" />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md border border-white/40 flex items-center justify-center group-hover:bg-[#f97316] group-hover:text-black group-hover:border-[#f97316] transition-all duration-300 text-white shadow-xl">
+                    <Play className="h-6 w-6 fill-current ml-1" />
                   </div>
                 </div>
-                {/* Categoria */}
-                <div className="absolute top-4 left-4">
-                  <span className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-gray-700">
-                    {video.category === 'projetos' && 'Projetos'}
-                    {video.category === 'depoimentos' && 'Depoimentos'}
-                    {video.category === 'processo' && 'Processo'}
-                    {video.category === 'institucional' && 'Institucional'}
-                  </span>
-                </div>
-                {/* Estatísticas do vídeo */}
-                {video.duration && (
-                  <div className="absolute bottom-4 right-4 flex items-center space-x-2">
-                    <div className="flex items-center space-x-1 bg-black/70 text-white px-2 py-1 rounded text-xs">
-                      <Clock className="h-3 w-3" />
-                      <span>{video.duration}</span>
-                    </div>
-                    {video.views && (
-                      <div className="flex items-center space-x-1 bg-black/70 text-white px-2 py-1 rounded text-xs">
-                        <Eye className="h-3 w-3" />
-                        <span>{video.views}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
-              
-              {/* Conteúdo */}
+
+              {/* Informações */}
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-yellow-600 transition-colors">
+                <h3 className="text-white font-bold text-lg mb-2 group-hover:text-[#f97316] transition-colors">
                   {video.title}
                 </h3>
-                <p className="text-gray-600 mb-4 leading-relaxed">
+                <p className="text-neutral-400 text-xs leading-relaxed">
                   {video.description}
                 </p>
-                <Button
-                  variant="outline"
-                  className="w-full border-2 border-gray-200 text-gray-700 hover:border-red-500 hover:text-red-600 transition-all duration-300"
-                  onClick={() => window.open(`https://www.youtube.com/shorts/${video.youtubeId}`, '_blank')}
-                >
-                  <Youtube className="h-4 w-4 mr-2" />
-                  Assistir no YouTube
-                </Button>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Call to Action */}
+        {/* Call to action do canal */}
         <div className="text-center">
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-8 border border-red-200">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Inscreva-se no Nosso Canal
-            </h3>
-            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Fique por dentro de todos os nossos projetos, dicas de decoração e novidades 
-              do mundo dos móveis planejados. Inscreva-se e ative o sininho!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={openYouTubeChannel}
-                className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg"
-              >
-                <Youtube className="h-5 w-5 mr-2" />
-                Ver Canal no YouTube
-              </Button>
-              <Button
-                variant="outline"
-                asChild
-                className="border-2 border-gray-800 bg-white text-gray-800 hover:bg-gray-900 hover:text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300"
-              >
-                <a href="https://www.instagram.com/dumar_moveis_planejados/" target="_blank" rel="noopener noreferrer">
-                  <Instagram className="h-5 w-5 mr-2" />
-                  Siga no Instagram
-                </a>
-              </Button>
-            </div>
-          </div>
+          <Button 
+            onClick={openYouTubeChannel}
+            className="bg-[#FF0000] hover:bg-[#CC0000] text-white font-extrabold px-8 py-6 rounded-xl transition-all duration-300 hover:scale-105 shadow-xl gap-2 cursor-pointer"
+          >
+            <Youtube className="h-5 w-5" />
+            <span>Inscrição no Canal Oficial</span>
+          </Button>
         </div>
+
       </div>
     </section>
   );

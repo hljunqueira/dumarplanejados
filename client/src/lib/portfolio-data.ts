@@ -148,19 +148,19 @@ export const portfolioItems: PortfolioItem[] = [
     description: 'Quarto de casal com móveis planejados.'
   },
   {
-    id: 'quarto1',
-    title: 'Quarto Solteiro',
-    subtitle: 'Praticidade e estilo',
+    id: 'home-office',
+    title: 'Home Office',
+    subtitle: 'Praticidade e sofisticação',
     category: 'outro',
     image: quarto1,
-    description: 'Quarto de solteiro planejado.'
+    description: 'Home Office planejado sob medida, aliando ergonomia, organização e design sofisticado.'
   },
   {
-    id: 'quarto-beliche',
-    title: 'Quarto com Beliche',
-    subtitle: 'Ideal para crianças',
+    id: 'quarto-solteiro',
+    title: 'Quarto Solteiro',
+    subtitle: 'Praticidade e conforto',
     category: 'outro',
     image: quartoBeliche,
-    description: 'Quarto infantil com beliche e móveis sob medida.'
+    description: 'Quarto de solteiro planejado sob medida com excelente aproveitamento de espaço e design acolhedor.'
   }
 ];

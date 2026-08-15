@@ -1,0 +1,87 @@
+{
+  "name": "Automação de Leads - Meta Instagram Lead Ads",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meta-lead",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "node-webhook-meta",
+      "name": "Webhook Meta Lead Ads"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\n\n// Handle lead data from Meta Ads Webhook or direct payload\nconst leadData = body.lead_data || body || {};\n\nlet phone = String(leadData.phone_number || leadData.phone || leadData.telefone || '').replace(/\\D/g, '');\nif (phone && !phone.startsWith('55') && phone.length <= 11) {\n  phone = '55' + phone;\n}\n\nconst name = leadData.full_name || leadData.name || leadData.nome || 'Lead Instagram Ads';\nconst email = leadData.email || '';\nconst stage = 'entrada';\nconst utmSource = 'Instagram Ads';\nconst utmCampaign = leadData.campaign_name || body.campaign_name || 'Campanha Instagram Ads';\n\nreturn {\n  json: {\n    name,\n    phone,\n    email,\n    stage,\n    value: 0,\n    utmSource,\n    utmCampaign,\n    rooms: []\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "node-code-meta-format",
+      "name": "Format Meta Lead Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:5000/api/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $json.name }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"stage\": \"{{ $json.stage }}\",\n  \"value\": {{ $json.value }},\n  \"utmSource\": \"{{ $json.utmSource }}\",\n  \"utmCampaign\": \"{{ $json.utmCampaign }}\",\n  \"rooms\": []\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        440,
+        0
+      ],
+      "id": "node-http-meta-crm",
+      "name": "Post to CRM /api/leads"
+    }
+  ],
+  "connections": {
+    "Webhook Meta Lead Ads": {
+      "main": [
+        [
+          {
+            "node": "Format Meta Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Meta Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Post to CRM /api/leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,253 +1,183 @@
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MapPin, Instagram, Users, Clock, Shield, Star, Phone, Calendar, Truck, CheckSquare, X } from "lucide-react";
+import { MapPin, Instagram, Users, Shield, Phone, X } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useState } from "react";
+import fotoSobre from "@/assets/cozinha2.jpeg";
 
 export default function AboutSection() {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   return (
-    <section id="sobre" className="relative py-20 sm:py-32 bg-gradient-to-br from-gray-50 via-white to-slate-50">
-      {/* Elementos decorativos sutis */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-100 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
+    <section id="sobre" className="relative py-24 md:py-32 bg-[#FDFBF7] text-[#1A1A1A] overflow-hidden border-t border-neutral-200">
+      {/* Elementos de design sutis */}
+      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+        <div className="absolute top-1/2 left-0 w-80 h-80 bg-amber-200/30 rounded-full filter blur-3xl"></div>
       </div>
-      
+
       <div className="relative z-10 container mx-auto px-4 lg:px-8">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium mb-6">
-            <Star className="w-4 h-4 mr-2" />
-            Sobre a Dumar
+        
+        {/* Cabeçalho de Seção Minimalista */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-6">
+          <div className="space-y-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#1A1A1A]">
+              Especialistas em <br />
+              <span className="text-[#f97316]">Móveis de Alto Padrão</span>
+            </h2>
           </div>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900">
-            Especialistas em <span className="bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">Móveis Planejados</span>
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Transformando sonhos em realidade através de móveis sob medida de alto padrão, 
-            com tecnologia exclusiva e atendimento personalizado.
-          </p>
+          <div className="max-w-md">
+            <p className="text-neutral-600 text-base md:text-lg leading-relaxed">
+              Aliamos design contemporâneo, matérias-primas nobres e precisão industrial para dar vida a ambientes residenciais e comerciais inconfundíveis.
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="order-2 lg:order-1">
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-900">
-                  Nossa Missão
-                </h3>
-                <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                  Transformar espaços em ambientes únicos e funcionais que superem as expectativas, 
-                  oferecendo soluções sob medida que harmonizam design sofisticado, 
-                  máxima funcionalidade e qualidade excepcional.
-                </p>
-                
-                {/* Destaque sobre a empresa */}
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 mb-6 border border-yellow-200">
-                  <h4 className="font-bold text-gray-900 mb-2 flex items-center">
-                    <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-sm mr-3">
-                      Experiência
-                    </span>
-                    Equipe Especializada
-                  </h4>
-                  <p className="text-gray-700 leading-relaxed">
-                    A Dumar conta com uma equipe de profissionais altamente qualificados, 
-                    cada um trazendo anos de experiência consolidada no mercado de móveis planejados. 
-                    Nossa expertise técnica garante projetos executados com excelência e 
-                    atenção aos mínimos detalhes.
-                  </p>
-                </div>
-                
-                <p className="text-base text-gray-600 leading-relaxed">
-                  Nosso compromisso é entregar projetos que reflitam a personalidade e necessidades 
-                  de cada cliente, utilizando materiais de primeira linha e técnicas avançadas 
-                  de marcenaria para garantir durabilidade e beleza em cada detalhe.
-                </p>
-              </div>
+        {/* Grade de Conteúdo Assimétrica */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Lado Esquerdo: Imagem Conceitual com Moldura Elegante */}
+          <div className="lg:col-span-5 relative group">
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-neutral-200 aspect-[4/5]">
+              <img 
+                src={fotoSobre} 
+                alt="Detalhe de marcenaria fina da Dumar" 
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"></div>
               
-              {/* Features Grid - Design moderno */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-start space-x-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
-                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Especialistas Experientes</h4>
-                    <p className="text-sm text-gray-600">Equipe com anos de experiência no mercado</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
-                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                    <Shield className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Garantia Total</h4>
-                    <p className="text-sm text-gray-600">Qualidade garantida em todos os projetos</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
-                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Atendimento Regional</h4>
-                    <p className="text-sm text-gray-600">Balneário Arroio do Silva e região</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
-                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                    <Star className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Design Exclusivo</h4>
-                    <p className="text-sm text-gray-600">Projetos únicos para cada cliente</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Social Links - Design moderno */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                <Button 
-                  asChild 
-                  className="group bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg shadow-md"
-                >
-                  <a 
-                    href="https://www.instagram.com/dumar_moveis_planejados/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center"
-                  >
-                    <Instagram className="h-5 w-5 mr-2" />
-                    <span>Siga no Instagram</span>
-                  </a>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  asChild 
-                  className="group border-2 border-gray-800 bg-white text-gray-800 hover:bg-gray-900 hover:text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-md"
-                >
-                  <a 
-                    href="https://wa.me/5548988486827"
-                    className="flex items-center justify-center"
-                  >
-                    <SiWhatsapp className="h-5 w-5 mr-2" />
-                    <span>Falar no WhatsApp</span>
-                  </a>
-                </Button>
+              <div className="absolute bottom-6 left-6 right-6 p-6 bg-white/95 backdrop-blur-md rounded-xl border border-neutral-200 shadow-xl">
+                <span className="text-xs font-bold text-[#f97316] uppercase tracking-widest block mb-1">Qualidade sem concessões</span>
+                <p className="text-xs text-neutral-600">Cada junção, puxador e acabamento é inspecionado sob o mais alto padrão de exigência.</p>
               </div>
             </div>
           </div>
 
-          <div className="order-1 lg:order-2">
-            {/* Valores Card - Design moderno e focado */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Star className="h-8 w-8 text-white" />
+          {/* Lado Direito: Filosofia & Diferenciais */}
+          <div className="lg:col-span-7 space-y-8 lg:pl-6">
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-[#1A1A1A] tracking-tight">Nossa Filosofia</h3>
+              <p className="text-neutral-700 leading-relaxed">
+                Acreditamos que o mobiliário planejado não deve apenas ocupar um espaço, mas sim valorizá-lo. Cada projeto assinado pela Dumar é concebido de forma única, respeitando a ergonomia, a funcionalidade do cotidiano e a estética de alta decoração.
+              </p>
+            </div>
+
+            {/* Grid de Atributos Minimalista */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="p-6 bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center mb-3">
+                  <Users className="h-5 w-5 text-[#f97316]" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Nossos Valores</h3>
-                <p className="text-gray-600 font-medium">
-                  Qualidade e excelência em cada projeto
-                </p>
+                <h4 className="font-bold text-[#1A1A1A] mb-1 text-base">Atendimento Técnico</h4>
+                <p className="text-xs text-neutral-600">Consultores com profundo conhecimento de marcenaria de ponta.</p>
               </div>
-              
-              {/* Valores da empresa */}
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 font-medium">Qualidade Superior</span>
+
+              <div className="p-6 bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center mb-3">
+                  <Shield className="h-5 w-5 text-[#f97316]" />
                 </div>
-                <div className="flex items-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 font-medium">Design Exclusivo</span>
-                </div>
-                <div className="flex items-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 font-medium">Atendimento Personalizado</span>
-                </div>
+                <h4 className="font-bold text-[#1A1A1A] mb-1 text-base">Garantia Assistida</h4>
+                <p className="text-xs text-neutral-600">Suporte pós-venda completo para garantir sua total satisfação.</p>
               </div>
-              
-              {/* Botão discreto para localização */}
+            </div>
+
+            {/* Ações e Links */}
+            <div className="flex flex-wrap gap-4 pt-4 border-t border-neutral-200">
+              <Button 
+                asChild 
+                className="bg-black hover:bg-neutral-800 text-white font-extrabold px-6 py-5 rounded-xl transition-all duration-300 shadow-lg"
+              >
+                <a 
+                  href="https://www.instagram.com/dumar_moveis_planejados/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center"
+                >
+                  <Instagram className="h-4 w-4 mr-2" />
+                  <span>Instagram</span>
+                </a>
+              </Button>
+              <Button 
+                variant="outline" 
+                asChild 
+                className="border-neutral-300 bg-white text-[#1A1A1A] hover:bg-neutral-100 font-bold px-6 py-5 rounded-xl transition-all duration-300"
+              >
+                <a 
+                  href="https://wa.me/5548988486827"
+                  className="flex items-center"
+                >
+                  <SiWhatsapp className="h-4 w-4 mr-2" />
+                  <span>WhatsApp</span>
+                </a>
+              </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => setIsLocationModalOpen(true)}
-                className="w-full border-2 border-gray-200 text-gray-600 hover:border-yellow-400 hover:text-yellow-600 py-3 rounded-xl font-medium transition-all duration-300"
+                className="text-neutral-700 hover:text-black font-semibold transition-colors duration-300"
               >
                 <MapPin className="h-4 w-4 mr-2" />
-                Ver Nossa Localização
+                Ver Showroom
               </Button>
-              
-              {/* Informações adicionais */}
-              <div className="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
-                <h4 className="font-semibold text-gray-900 mb-2">Atendimento Personalizado</h4>
-                <p className="text-sm text-gray-600">
-                  Visita técnica gratuita para análise do seu espaço e elaboração do projeto sob medida.
-                </p>
-              </div>
             </div>
+
           </div>
+
         </div>
       </div>
 
       {/* Modal de Localização */}
       {isLocationModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-neutral-200 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto text-[#1A1A1A]">
+            <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center mr-4">
-                    <MapPin className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mr-4 border border-amber-500/20">
+                    <MapPin className="h-6 w-6 text-[#f97316]" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900">Nossa Localização</h3>
-                    <p className="text-gray-600">Balneário Arroio do Silva e região</p>
+                    <h3 className="text-xl font-bold text-[#1A1A1A]">Nossa Localização</h3>
+                    <p className="text-xs text-neutral-500">Balneário Arroio do Silva, Santa Catarina</p>
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsLocationModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-neutral-500 hover:text-black"
                 >
                   <X className="h-6 w-6" />
                 </Button>
               </div>
             </div>
-            
-            <div className="p-6">
-              {/* Google Maps Embed */}
-              <div className="rounded-xl overflow-hidden shadow-lg mb-6">
+
+            <div className="p-6 space-y-6">
+              <div className="bg-neutral-100 p-4 rounded-xl border border-neutral-200 space-y-2">
+                <h4 className="font-bold text-sm text-[#1A1A1A]">Endereço Showroom & Fábrica:</h4>
+                <p className="text-sm text-neutral-700">
+                  Av. Santa Catarina, 551 sala 205<br />
+                  Centro - Balneário Arroio do Silva - SC
+                </p>
+              </div>
+
+              <div className="w-full h-80 rounded-2xl overflow-hidden border border-neutral-200 shadow-inner">
                 <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3598.9810786!2d-49.4223242!3d-28.9810786!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x952233f170c4dd17%3A0xbace300c22b9a705!2sDumar%20M%C3%B3veis%20Planejados%20Ltda!5e0!3m2!1spt!2sbr!4v1642789123456!5m2!1spt!2sbr" 
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3488.223842183204!2d-49.421689!3d-28.983796!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95222e8964722883%3A0xb36b5ec632551a02!2sR.%20Manuel%20Teodoro%20de%20In%C3%A1cio%2C%20477%20-%20Centro%2C%20Balne%C3%A1rio%20Arroio%20do%20Silva%20-%20SC%2C%2088914-000!5e0!3m2!1spt-BR!2sbr!4v1700000000000!5m2!1spt-BR!2sbr" 
                   width="100%" 
-                  height="400" 
+                  height="100%" 
                   style={{ border: 0 }} 
-                  allowFullScreen 
+                  allowFullScreen={false} 
                   loading="lazy" 
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="Localização da Dumar Móveis Planejados"
-                  className="rounded-xl"
-                />
+                ></iframe>
               </div>
-              
-              {/* Informações de contato */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Informações de Contato</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <Phone className="h-4 w-4 mr-2 text-yellow-500" />
-                    <span className="text-gray-600">(48) 98848-6827</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <MapPin className="h-4 w-4 mr-2 text-yellow-500" />
-                    <span className="text-gray-600">Balneário Arroio do Silva, SC</span>
-                  </div>
-                </div>
-              </div>
+            </div>
+
+            <div className="p-6 border-t border-neutral-200 bg-neutral-50 flex justify-end">
+              <Button 
+                onClick={() => setIsLocationModalOpen(false)}
+                className="bg-black hover:bg-neutral-800 text-white font-bold px-6"
+              >
+                Fechar
+              </Button>
             </div>
           </div>
         </div>

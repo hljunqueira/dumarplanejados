@@ -1,0 +1,87 @@
+{
+  "name": "Automação de Leads - Campanhas Index & Site",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "campaign-lead",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "node-webhook-campaign",
+      "name": "Webhook Campaign Lead"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\n\n// Format phone number to clean string\nlet phone = String(body.phone || body.telefone || body.whatsapp || '').replace(/\\D/g, '');\nif (phone && !phone.startsWith('55') && phone.length <= 11) {\n  phone = '55' + phone;\n}\n\n// Normalize name\nconst name = body.name || body.nome || 'Lead de Campanha';\nconst email = body.email || '';\nconst stage = body.stage || 'entrada';\nconst value = Number(body.value || body.valor) || 0;\nconst utmSource = body.utmSource || body.utm_source || 'Instagram Ads';\nconst utmCampaign = body.utmCampaign || body.utm_campaign || 'Campanha Index';\nconst rooms = Array.isArray(body.rooms) ? body.rooms : [];\n\nreturn {\n  json: {\n    name,\n    phone,\n    email,\n    stage,\n    value,\n    utmSource,\n    utmCampaign,\n    rooms\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "node-code-sanitize",
+      "name": "Sanitize & Format Lead"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:5000/api/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $json.name }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"stage\": \"{{ $json.stage }}\",\n  \"value\": {{ $json.value }},\n  \"utmSource\": \"{{ $json.utmSource }}\",\n  \"utmCampaign\": \"{{ $json.utmCampaign }}\",\n  \"rooms\": {{ JSON.stringify($json.rooms) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        440,
+        0
+      ],
+      "id": "node-http-crm-lead",
+      "name": "Post to CRM /api/leads"
+    }
+  ],
+  "connections": {
+    "Webhook Campaign Lead": {
+      "main": [
+        [
+          {
+            "node": "Sanitize & Format Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize & Format Lead": {
+      "main": [
+        [
+          {
+            "node": "Post to CRM /api/leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

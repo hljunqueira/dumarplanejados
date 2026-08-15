@@ -1,0 +1,241 @@
+version: '3.8'
+
+services:
+  # --- Reverse Proxy ---
+  caddy:
+    image: caddy:latest
+    restart: always
+    ports:
+      - 8090:80
+      - 8091:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./frontend/dist:/srv/frontend
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - crm-network
+      - supabase_default
+
+  # --- Dumar Express API Backend ---
+  backend:
+    image: node:20-alpine
+    restart: always
+    working_dir: /app
+    environment:
+      - PORT=5000
+      - TZ=America/Sao_Paulo
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://dumar_user:DUMAR_DB_PASS_2026@db:5432/infra_db?schema=public
+    volumes:
+      - ./backend:/app
+    command: sh -c "npm install --include=dev && node index.js"
+    depends_on:
+      - db
+    networks:
+      - crm-network
+
+  # --- n8n ---
+  n8n:
+    image: n8nio/n8n:latest
+    restart: always
+    environment:
+      - N8N_HOST=n8n.dumarplanejados.com.br
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      - WEBHOOK_URL=https://n8n.dumarplanejados.com.br/
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - crm-network
+
+  # --- Redis ---
+  redis:
+    image: redis:alpine
+    restart: always
+    networks:
+      - crm-network
+
+  # --- Evolution API ---
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.6
+    restart: always
+    environment:
+      - SERVER_TYPE=http
+      - SERVER_PORT=8080
+      - TZ=America/Sao_Paulo
+      - SERVER_URL=https://whatsapp.dumarplanejados.com.br
+      - CORS_ORIGIN=*
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=DUMAR_SECRET_TOKEN_2026
+      - MANAGER_TOKEN=DUMAR_SECRET_TOKEN_2026
+      - AUTH_TOKEN=DUMAR_SECRET_TOKEN_2026
+      - DEL_INSTANCE_ON_DISCONNECT=false
+      - DATABASE_ENABLED=true
+      - DATABASE_CONNECTION_URI=postgresql://dumar_user:DUMAR_DB_PASS_2026@db:5432/infra_db?schema=public
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_CLIENT=postgresql
+      - DATABASE_SAVE_DATA_HISTORY_MESSAGES=false
+      - DATABASE_SAVE_DATA_MESSAGES=true
+      - DATABASE_SAVE_MESSAGES=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - REDIS_ENABLED=true
+      - REDIS_URI=redis://redis:6379
+      - REDIS_PREFIX=EVO
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379
+      - CACHE_REDIS_PREFIX=EVO_CACHE
+      - WEBHOOK_GLOBAL_URL=http://backend:5000/api/evolution/webhook
+      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+      - WEBHOOK_EVENTS_MESSAGES_UPDATE=true
+      - CHATWOOT_ENABLED=true
+      - CHATWOOT_MESSAGE_READ=true
+      - CHATWOOT_MESSAGE_MEDIA=true
+      - CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=postgresql://dumar_user:DUMAR_DB_PASS_2026@db:5432/chatwoot_production?schema=public&sslmode=disable
+      - CONFIG_SESSION_PHONE_VERSION=2.3000.1032750324
+      - WA_VERSION=2.3000.1032750324
+    volumes:
+      - evolution_data:/evolution/instances
+    depends_on:
+      - db
+      - redis
+    networks:
+      - crm-network
+
+  # --- Postgres (Banco Infra do Chatwoot, Evolution e Typebot) ---
+  db:
+    image: pgvector/pgvector:pg15
+    restart: always
+    ports:
+      - 5435:5432
+    environment:
+      - POSTGRES_PASSWORD=DUMAR_DB_PASS_2026
+      - POSTGRES_USER=dumar_user
+      - POSTGRES_DB=infra_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - crm-network
+
+  # --- Chatwoot Web ---
+  chatwoot-web:
+    image: chatwoot/chatwoot:v4.12.1
+    restart: always
+    entrypoint: docker/entrypoints/rails.sh
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+      - PORT=3000
+      - FRONTEND_URL=https://chat.dumarplanejados.com.br
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=chatwoot_production
+      - POSTGRES_USERNAME=dumar_user
+      - POSTGRES_PASSWORD=DUMAR_DB_PASS_2026
+      - REDIS_URL=redis://redis:6379/1
+      - SECRET_KEY_BASE=dumar_secret_key_base_rails_crm_2026_dumar_key_random_value
+      - ACTIVE_STORAGE_SERVICE=local
+      - ENABLE_RACK_ATTACK=false
+    volumes:
+      - chatwoot_storage:/app/storage
+    depends_on:
+      - db
+      - redis
+    networks:
+      - crm-network
+
+  # --- Chatwoot Worker ---
+  chatwoot-worker:
+    image: chatwoot/chatwoot:v4.12.1
+    restart: always
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+      - FRONTEND_URL=https://chat.dumarplanejados.com.br
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=chatwoot_production
+      - POSTGRES_USERNAME=dumar_user
+      - POSTGRES_PASSWORD=DUMAR_DB_PASS_2026
+      - REDIS_URL=redis://redis:6379/1
+      - SECRET_KEY_BASE=dumar_secret_key_base_rails_crm_2026_dumar_key_random_value
+      - ACTIVE_STORAGE_SERVICE=local
+      - ENABLE_RACK_ATTACK=false
+    volumes:
+      - chatwoot_storage:/app/storage
+    depends_on:
+      - db
+      - redis
+    networks:
+      - crm-network
+
+  # --- Typebot Builder ---
+  typebot-builder:
+    image: baptistearno/typebot-builder:latest
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://dumar_user:DUMAR_DB_PASS_2026@db:5432/infra_db?schema=typebot
+      - NEXTAUTH_URL=https://bot.dumarplanejados.com.br
+      - NEXT_PUBLIC_VIEWER_URL=https://bot.dumarplanejados.com.br
+      - ENCRYPTION_SECRET=DUMAR_TYPEBOT_SECRET_KEY_32_CHAR
+    depends_on:
+      - db
+    networks:
+      - crm-network
+
+  # --- Typebot Viewer ---
+  typebot-viewer:
+    image: baptistearno/typebot-viewer:latest
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://dumar_user:DUMAR_DB_PASS_2026@db:5432/infra_db?schema=typebot
+      - NEXT_PUBLIC_VIEWER_URL=https://bot.dumarplanejados.com.br
+      - ENCRYPTION_SECRET=DUMAR_TYPEBOT_SECRET_KEY_32_CHAR
+    depends_on:
+      - db
+    networks:
+      - crm-network
+
+  # --- ZernFlow (ManyChat Open Source) ---
+  zernflow:
+    build:
+      context: ./zernflow
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_SUPABASE_URL=https://supabase.dumarplanejados.com.br
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg0NjY2NTk5LCJleHAiOjIxMDAwMjY1OTl9.cRwlMomxRoudKURSWeO5E_39-wQDctb1nwSq4vETnIo
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODQ2NjY1OTksImV4cCI6MjEwMDAyNjU5OX0.XjHcqjP9DBWSsFYWQ3LTDLao3qy8rSEXiuo122I6URk
+      - CRON_SECRET=dumar_zernflow_cron_secret_2026
+      - NEXT_PUBLIC_APP_URL=https://bot.dumarplanejados.com.br
+    networks:
+      - crm-network
+      - supabase_default
+
+networks:
+  crm-network:
+    driver: bridge
+  supabase_default:
+    external: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+  n8n_data:
+  evolution_data:
+  db_data:
+  chatwoot_storage:

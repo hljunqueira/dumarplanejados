@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, Calendar, Phone, Send, CheckCircle, Clock, MapPin, User } from "lucide-react";
+import { ArrowLeft, Phone, Send, CheckCircle, Clock, MapPin } from "lucide-react";
 import { Link } from "wouter";
+import logoDumar from "@/assets/logo1.jpeg";
+
+import { getStoredUtm, trackGoogleAdsConversion } from "@/lib/utm-tracker";
 
 interface AppointmentFormData {
   name: string;
@@ -23,10 +26,41 @@ export default function AppointmentPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<AppointmentFormData>();
 
-  const onSubmit = (data: AppointmentFormData) => {
-    console.log(data);
-    
-    // Criar mensagem para WhatsApp
+  const onSubmit = async (data: AppointmentFormData) => {
+    // 0. Disparar Conversão Google Ads AW-17444188651
+    trackGoogleAdsConversion("appointment_form_submission");
+
+    // 1. Persistir no banco de dados com UTMs capturadas
+    try {
+      const { utmSource, utmCampaign } = getStoredUtm();
+      
+      const payload = {
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        value: 0,
+        stage: "briefing", // Etapa do Funil para agendamentos de visita/medição
+        rooms: [data.serviceType || "Visita Técnica"],
+        utmSource,
+        utmCampaign,
+        checklist: {
+          dataAgendamento: `${data.preferredDate} ${data.preferredTime}`,
+          enderecoObra: data.address
+        },
+        chatHistory: [],
+        promobFiles: []
+      };
+
+      await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error("Erro ao salvar lead no banco de dados:", err);
+    }
+
+    // 2. Criar mensagem para WhatsApp
     const message = `📅 *AGENDAMENTO DE ATENDIMENTO*\n\n` +
       `👤 *Nome:* ${data.name}\n` +
       `📱 *Telefone:* ${data.phone}\n` +
@@ -49,50 +83,39 @@ export default function AppointmentPage() {
   const serviceTypes = [
     { value: "visita-tecnica", label: "Visita Técnica Gratuita" },
     { value: "medicao", label: "Medição do Ambiente" },
-    { value: "apresentacao-projeto", label: "Apresentação de Projeto" },
-    { value: "instalacao", label: "Instalação de Móveis" },
-    { value: "manutencao", label: "Manutenção/Reparo" },
-    { value: "consultoria", label: "Consultoria de Design" }
+    { value: "apresentacao-projeto", label: "Apresentação de Projeto 3D" },
+    { value: "consultoria", label: "Consultoria de Design & Cores" }
   ];
 
   const timeSlots = [
-    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-    "11:00", "11:30", "13:00", "13:30", "14:00", "14:30",
-    "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
+    "08:00", "09:00", "10:00", "11:00", "13:30", "14:30",
+    "15:30", "16:30", "17:30"
   ];
 
-  // Função para obter data mínima (hoje)
   const getMinDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   };
 
-  // Função para obter data máxima (3 meses à frente)
-  const getMaxDate = () => {
-    const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 3);
-    return maxDate.toISOString().split('T')[0];
-  };
-
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-gray-900 rounded-2xl shadow-2xl p-8 text-center border border-gray-700">
-          <div className="bg-green-900 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="h-10 w-10 text-green-400" />
+      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center border border-[#1A1A1A]/5">
+          <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-200">
+            <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-4">Agendamento Enviado!</h2>
-          <p className="text-gray-300 mb-6">
-            Sua solicitação de agendamento foi enviada com sucesso. Nossa equipe entrará em contato para confirmar o horário.
+          <h2 className="text-2xl font-bold text-[#1A1A1A] mb-4">Agendamento Solicitado!</h2>
+          <p className="text-neutral-500 text-sm leading-relaxed mb-6">
+            Sua solicitação de agendamento foi criada. Se não tiver aberto automaticamente, use o botão abaixo para nos enviar os detalhes por WhatsApp.
           </p>
           <div className="space-y-3">
-            <Button className="w-full bg-green-600 hover:bg-green-700" asChild>
+            <Button className="w-full bg-[#1A1A1A] hover:bg-yellow-600 hover:text-black text-white py-5 rounded-xl font-bold transition-all duration-300" asChild>
               <a href="https://wa.me/5548988486827">
                 <Phone className="mr-2 h-4 w-4" />
                 Falar no WhatsApp
               </a>
             </Button>
-            <Button variant="outline" className="w-full" asChild>
+            <Button variant="outline" className="w-full border-neutral-200 py-5 rounded-xl text-neutral-600" asChild>
               <Link href="/">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar ao Início
@@ -105,227 +128,207 @@ export default function AppointmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black py-12">
+    <div className="min-h-screen bg-[#FDFBF7] py-16 text-[#1A1A1A]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+        
         {/* Header */}
         <div className="text-center mb-12">
-          <Link href="/" className="inline-flex items-center text-orange-400 hover:text-orange-300 mb-6 transition-colors">
+          <Link href="/" className="inline-flex items-center text-neutral-500 hover:text-[#1A1A1A] mb-6 transition-colors text-sm font-semibold">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar ao início
+            Voltar para a Home
           </Link>
-          <div className="bg-gradient-to-r from-orange-500 to-yellow-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Calendar className="h-8 w-8 text-white" />
+          
+          <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mx-auto mb-4 border border-[#1A1A1A]/10">
+            <img 
+              src={logoDumar} 
+              alt="Dumar Logo" 
+              className="w-9 h-9 object-contain rounded-lg"
+            />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            Agendar Atendimento
+          
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
+            Agendar <span className="bg-gradient-to-r from-yellow-600 to-amber-500 bg-clip-text text-transparent">Visita Técnica</span>
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Agende uma visita técnica gratuita ou outro tipo de atendimento. Nossa equipe irá até você!
+          <p className="text-neutral-500 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+            Selecione uma data e período desejados para a consultoria ou medição física dos seus ambientes.
           </p>
         </div>
 
         {/* Formulário */}
-        <div className="bg-gray-900 rounded-2xl shadow-2xl border border-gray-700 p-8 sm:p-12">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            {/* Dados Pessoais */}
-            <div>
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <div className="bg-orange-900 w-8 h-8 rounded-lg flex items-center justify-center mr-3">
-                  <User className="h-4 w-4 text-orange-400" />
-                </div>
-                Seus Dados
+        <div className="bg-white rounded-3xl shadow-xl border border-[#1A1A1A]/5 p-8 sm:p-12">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+            
+            {/* Passo 1 */}
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-[#1A1A1A] flex items-center">
+                <span className="w-6 h-6 rounded-full bg-yellow-600/10 text-yellow-700 flex items-center justify-center text-xs font-extrabold mr-3">1</span>
+                Dados Básicos
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Nome Completo *</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Nome Completo *</label>
                   <Input
                     {...register("name", { required: "Nome é obrigatório" })}
-                    placeholder="Seu nome completo"
-                    className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white placeholder-gray-400"
+                    placeholder="Ex: Paulo Vargas"
+                    className="w-full bg-[#FAF8F5]/50 border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] px-4 py-6"
                   />
-                  {errors.name && <span className="text-red-400 text-sm mt-1">{errors.name.message}</span>}
+                  {errors.name && <span className="text-red-500 text-[11px] block mt-1">{errors.name.message}</span>}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Telefone/WhatsApp *</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Telefone / WhatsApp *</label>
                   <Input
                     type="tel"
                     {...register("phone", { required: "Telefone é obrigatório" })}
-                    placeholder="(48) 99999-9999"
-                    className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white placeholder-gray-400"
+                    placeholder="(48) 98848-6827"
+                    className="w-full bg-[#FAF8F5]/50 border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] px-4 py-6"
                   />
-                  {errors.phone && <span className="text-red-400 text-sm mt-1">{errors.phone.message}</span>}
+                  {errors.phone && <span className="text-red-500 text-[11px] block mt-1">{errors.phone.message}</span>}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Email *</label>
                   <Input
                     type="email"
-                    {...register("email")}
-                    placeholder="seu@email.com"
-                    className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white placeholder-gray-400"
+                    {...register("email", { required: "Email é obrigatório" })}
+                    placeholder="seuemail@exemplo.com"
+                    className="w-full bg-[#FAF8F5]/50 border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] px-4 py-6"
                   />
+                  {errors.email && <span className="text-red-500 text-[11px] block mt-1">{errors.email.message}</span>}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Endereço Completo *</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Endereço da Visita *</label>
                   <Input
                     {...register("address", { required: "Endereço é obrigatório" })}
-                    placeholder="Rua, número, bairro, cidade"
-                    className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white placeholder-gray-400"
+                    placeholder="Ex: Rua das Flores, 123 - Centro"
+                    className="w-full bg-[#FAF8F5]/50 border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] px-4 py-6"
                   />
-                  {errors.address && <span className="text-red-400 text-sm mt-1">{errors.address.message}</span>}
+                  {errors.address && <span className="text-red-500 text-[11px] block mt-1">{errors.address.message}</span>}
                 </div>
               </div>
             </div>
 
-            {/* Tipo de Serviço */}
-            <div>
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <div className="bg-yellow-900 w-8 h-8 rounded-lg flex items-center justify-center mr-3">
-                  <MapPin className="h-4 w-4 text-yellow-400" />
-                </div>
-                Tipo de Atendimento
-              </h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Selecione o tipo de serviço *</label>
-                <select
-                  {...register("serviceType", { required: "Tipo de serviço é obrigatório" })}
-                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white"
-                >
-                  <option value="" className="bg-gray-800 text-gray-400">Escolha o tipo de atendimento</option>
-                  {serviceTypes.map((service) => (
-                    <option key={service.value} value={service.label} className="bg-gray-800 text-white">
-                      {service.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.serviceType && <span className="text-red-400 text-sm mt-1">{errors.serviceType.message}</span>}
-              </div>
-            </div>
-
-            {/* Agendamento */}
-            <div>
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <div className="bg-blue-900 w-8 h-8 rounded-lg flex items-center justify-center mr-3">
-                  <Clock className="h-4 w-4 text-blue-400" />
-                </div>
-                Data e Horário
+            {/* Passo 2 */}
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-[#1A1A1A] flex items-center">
+                <span className="w-6 h-6 rounded-full bg-yellow-600/10 text-yellow-700 flex items-center justify-center text-xs font-extrabold mr-3">2</span>
+                Data & Horário
               </h3>
               
-              <div className="space-y-6">
-                <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                  <h4 className="font-semibold text-white mb-4">Opção Preferencial *</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Data Preferencial *</label>
-                      <Input
-                        type="date"
-                        min={getMinDate()}
-                        max={getMaxDate()}
-                        {...register("preferredDate", { required: "Data preferencial é obrigatória" })}
-                        className="w-full px-4 py-3 bg-gray-600 border-2 border-gray-500 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white [color-scheme:dark]"
-                      />
-                      {errors.preferredDate && <span className="text-red-400 text-sm mt-1">{errors.preferredDate.message}</span>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Horário Preferencial *</label>
-                      <select
-                        {...register("preferredTime", { required: "Horário preferencial é obrigatório" })}
-                        className="w-full px-4 py-3 bg-gray-600 border-2 border-gray-500 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white"
-                      >
-                        <option value="" className="bg-gray-600 text-gray-300">Selecione um horário</option>
-                        {timeSlots.map((time) => (
-                          <option key={time} value={time} className="bg-gray-600 text-white">
-                            {time}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.preferredTime && <span className="text-red-400 text-sm mt-1">{errors.preferredTime.message}</span>}
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Serviço Desejado *</label>
+                  <select
+                    {...register("serviceType", { required: "Selecione o serviço" })}
+                    className="w-full px-4 py-3 bg-[#FAF8F5]/50 border border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] text-sm h-12"
+                  >
+                    <option value="">Selecione...</option>
+                    {serviceTypes.map(s => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                  {errors.serviceType && <span className="text-red-500 text-[11px] block mt-1">{errors.serviceType.message}</span>}
                 </div>
 
-                <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                  <h4 className="font-semibold text-white mb-4">Opção Alternativa (opcional)</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Data Alternativa</label>
-                      <Input
-                        type="date"
-                        min={getMinDate()}
-                        max={getMaxDate()}
-                        {...register("alternativeDate")}
-                        className="w-full px-4 py-3 bg-gray-600 border-2 border-gray-500 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white [color-scheme:dark]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Horário Alternativo</label>
-                      <select
-                        {...register("alternativeTime")}
-                        className="w-full px-4 py-3 bg-gray-600 border-2 border-gray-500 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-white"
-                      >
-                        <option value="" className="bg-gray-600 text-gray-300">Selecione um horário</option>
-                        {timeSlots.map((time) => (
-                          <option key={time} value={time} className="bg-gray-600 text-white">
-                            {time}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Data Preferencial *</label>
+                  <input
+                    type="date"
+                    min={getMinDate()}
+                    {...register("preferredDate", { required: "Data é obrigatória" })}
+                    className="w-full px-4 py-3 bg-[#FAF8F5]/50 border border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] text-sm h-12"
+                  />
+                  {errors.preferredDate && <span className="text-red-500 text-[11px] block mt-1">{errors.preferredDate.message}</span>}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Observações</label>
-                  <Textarea
-                    {...register("notes")}
-                    placeholder="Informações adicionais, instruções de acesso, preferências de horário..."
-                    className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all min-h-[100px] text-white placeholder-gray-400"
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Horário Preferencial *</label>
+                  <select
+                    {...register("preferredTime", { required: "Selecione o horário" })}
+                    className="w-full px-4 py-3 bg-[#FAF8F5]/50 border border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] text-sm h-12"
+                  >
+                    <option value="">Selecione...</option>
+                    {timeSlots.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                  {errors.preferredTime && <span className="text-red-500 text-[11px] block mt-1">{errors.preferredTime.message}</span>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Data Alternativa</label>
+                  <input
+                    type="date"
+                    min={getMinDate()}
+                    {...register("alternativeDate")}
+                    className="w-full px-4 py-3 bg-[#FAF8F5]/50 border border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] text-sm h-12"
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Horário Alternativo</label>
+                  <select
+                    {...register("alternativeTime")}
+                    className="w-full px-4 py-3 bg-[#FAF8F5]/50 border border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] text-sm h-12"
+                  >
+                    <option value="">Selecione...</option>
+                    {timeSlots.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Notas / Observações Adicionais</label>
+                <Textarea
+                  {...register("notes")}
+                  placeholder="Se houver alguma restrição de condomínio, melhor forma de acesso ou particularidades, descreva aqui..."
+                  className="w-full bg-[#FAF8F5]/50 border-[#1A1A1A]/10 rounded-xl focus:border-yellow-600/50 text-[#1A1A1A] px-4 py-3 min-h-[120px]"
+                />
               </div>
             </div>
 
-            {/* Botão de Envio */}
-            <div className="pt-6 border-t border-gray-700">
+            {/* Envio */}
+            <div className="pt-6 border-t border-[#1A1A1A]/5">
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white py-4 px-8 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group"
+                className="w-full bg-[#1A1A1A] text-white hover:bg-yellow-600 hover:text-black font-extrabold py-6 rounded-xl transition-all duration-300 hover:scale-[1.01] shadow-md flex items-center justify-center text-base"
               >
-                <Send className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                Solicitar Agendamento
+                <Send className="mr-3 h-5 w-5" />
+                Agendar e Enviar via WhatsApp
               </Button>
-              <p className="text-center text-sm text-gray-400 mt-4">
-                Ao enviar, você será redirecionado para o WhatsApp para confirmação do agendamento.
+              <p className="text-center text-xs text-neutral-400 mt-4 leading-relaxed">
+                Você será direcionado para o WhatsApp com todos os horários e informações solicitadas estruturadas.
               </p>
             </div>
           </form>
         </div>
 
-        {/* Informações Adicionais */}
+        {/* Informações */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-700 text-center">
-            <div className="bg-green-900 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="h-6 w-6 text-green-400" />
+          <div className="bg-white rounded-2xl p-6 border border-[#1A1A1A]/5 text-center shadow-sm flex items-center space-x-4">
+            <Clock className="h-5 w-5 text-yellow-600" />
+            <div className="text-left">
+              <h4 className="font-bold text-[#1A1A1A] text-xs">Pontualidade</h4>
+              <p className="text-[10px] text-neutral-400">Respeito rigoroso aos horários agendados.</p>
             </div>
-            <h4 className="font-bold text-white mb-2">Atendimento Gratuito</h4>
-            <p className="text-gray-300 text-sm">Visita técnica sem custo algum</p>
           </div>
-          
-          <div className="bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-700 text-center">
-            <div className="bg-orange-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Clock className="h-6 w-6 text-white" />
+          <div className="bg-white rounded-2xl p-6 border border-[#1A1A1A]/5 text-center shadow-sm flex items-center space-x-4">
+            <MapPin className="h-5 w-5 text-yellow-600" />
+            <div className="text-left">
+              <h4 className="font-bold text-[#1A1A1A] text-xs">Frota Própria</h4>
+              <p className="text-[10px] text-neutral-400">Atendimento em toda a microrregião litorânea.</p>
             </div>
-            <h4 className="font-bold text-white mb-2">Horário Flexível</h4>
-            <p className="text-gray-300 text-sm">Atendemos de segunda a sábado</p>
           </div>
-          
-          <div className="bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-700 text-center">
-            <div className="bg-blue-900 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <MapPin className="h-6 w-6 text-blue-400" />
+          <div className="bg-white rounded-2xl p-6 border border-[#1A1A1A]/5 text-center shadow-sm flex items-center space-x-4">
+            <CheckCircle className="h-5 w-5 text-yellow-600" />
+            <div className="text-left">
+              <h4 className="font-bold text-[#1A1A1A] text-xs">Sem Custos</h4>
+              <p className="text-[10px] text-neutral-400">O estudo preliminar e medição inicial são cortesia.</p>
             </div>
-            <h4 className="font-bold text-white mb-2">Atendimento Local</h4>
-            <p className="text-gray-300 text-sm">Balneário Arroio do Silva e região</p>
           </div>
         </div>
+
       </div>
     </div>
   );

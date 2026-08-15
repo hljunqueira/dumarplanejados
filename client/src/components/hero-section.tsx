@@ -1,114 +1,107 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Settings, Award, Sparkles, ArrowRight, CheckCircle, Ruler, Clock } from "lucide-react";
 import { Link } from "wouter";
-import "../index.css";
-import fundoPlanejar from "../../assets/foto-inicial-dumar.jpeg"
+
+// Importando fotos do portfólio para a vitrine animada
+import fotoCozinha1 from "@/assets/cozinha1.jpeg";
+import fotoCozinha3 from "@/assets/cozinha3.jpeg";
+import fotoSala1 from "@/assets/sala1.jpeg";
+import fotoQuarto from "@/assets/quarto.jpeg";
+import fotoBanheiro from "@/assets/banheiro.jpeg";
+
+const SLIDE_IMAGES = [
+  { url: fotoCozinha1, title: "Cozinha Integrada Premium" },
+  { url: fotoSala1, title: "Home Theater Sofisticado" },
+  { url: fotoCozinha3, title: "Cozinha Gourmet Luxo" },
+  { url: fotoQuarto, title: "Quarto de Casal Confort" },
+  { url: fotoBanheiro, title: "Sala de Banho Contemporânea" }
+];
 
 export default function HeroSection() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % SLIDE_IMAGES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <section 
       id="inicio" 
-      className="relative min-h-screen flex items-center justify-center overflow-hidden w-full bg-page-background"
-      style={{
-        backgroundImage: `url(${fundoPlanejar})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed'
-      }}
+      className="relative h-[calc(100vh-80px)] lg:h-[calc(100vh-96px)] mt-20 lg:mt-24 w-full overflow-hidden bg-black text-white"
     >
-      {/* Overlay mais escuro para melhor legibilidade */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/80"></div>
-      
-      {/* Fundo semi-transparente para destacar o conteúdo */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40"></div>
-      
-      {/* Elementos decorativos sutis */}
-      <div className="absolute inset-0">
-        {/* Círculos decorativos - mais sutis */}
-        <div className="absolute top-20 left-10 w-32 h-32 bg-yellow-200 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-blob"></div>
-        <div className="absolute bottom-20 right-10 w-40 h-40 bg-blue-200 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-blob animation-delay-2000"></div>
-      </div>
-      
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-20">
-        <h1 className="text-4xl xs:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 sm:mb-8 leading-tight max-w-6xl mx-auto">
-          <span className="text-white drop-shadow-2xl font-extrabold">SEU SONHO</span><br />
-          <span className="text-white drop-shadow-2xl font-extrabold">NOSSA MISSÃO</span><br />
-          <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent drop-shadow-2xl font-extrabold">
-            MÓVEIS PLANEJADOS
-          </span><br />
-          <span className="text-white text-3xl xs:text-4xl md:text-5xl drop-shadow-2xl font-extrabold">QUE TRANSFORMAM VIDAS</span>
-        </h1>
-        
-        <p className="text-lg xs:text-xl md:text-2xl text-white font-semibold mb-8 sm:mb-10 max-w-5xl mx-auto leading-relaxed drop-shadow-2xl">
-          Tecnologia exclusiva, atendimento personalizado e alta qualidade em cada projeto. 
-          Especializados em cozinhas, closets, banheiros e ambientes comerciais.
-        </p>
-        
-        {/* Destaque de qualidade - Melhorado */}
-        <div className="flex flex-wrap justify-center gap-4 mb-8 sm:mb-10">
-          <div className="flex items-center bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
-            <Ruler className="h-5 w-5 text-yellow-400 mr-3" />
-            <span className="text-sm font-bold text-white">Precisão Milimétrica</span>
-          </div>
-          <div className="flex items-center bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
-            <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
-            <span className="text-sm font-bold text-white">Garantia Total</span>
-          </div>
-          <div className="flex items-center bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
-            <Clock className="h-5 w-5 text-blue-400 mr-3" />
-            <span className="text-sm font-bold text-white">Entrega Pontual</span>
+      <div className="w-full h-full flex flex-col lg:flex-row">
+        {/* LADO ESQUERDO: Vitrine de Fotos (Nitidez máxima, sem zoom) */}
+        <div className="w-full lg:w-3/5 h-[350px] lg:h-full relative overflow-hidden">
+          {SLIDE_IMAGES.map((slide, index) => (
+            <div
+              key={slide.title}
+              className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
+                index === currentSlide ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <div 
+                className="w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${slide.url})` }}
+              >
+                <div className="absolute inset-0 bg-black/10"></div>
+              </div>
+            </div>
+          ))}
+          
+          {/* Marcadores de Slide Minimalistas */}
+          <div className="absolute bottom-6 left-6 z-20 flex space-x-2">
+            {SLIDE_IMAGES.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  index === currentSlide ? "w-6 bg-white" : "w-1.5 bg-white/40"
+                }`}
+              />
+            ))}
           </div>
         </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mb-12 sm:mb-16">
-          <Button 
-            size="lg"
-            className="group bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-10 py-5 text-xl font-bold transition-all duration-300 hover:shadow-2xl hover:scale-110 shadow-xl border-2 border-yellow-400/30"
-            asChild
-          >
-            <Link href="/orcamento" className="flex items-center">
-              🚀 Solicitar Orçamento Grátis
-              <ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-2 transition-transform" />
-            </Link>
-          </Button>
-          <Button 
-            variant="outline"
-            size="lg"
-            className="group border-3 border-white bg-white/20 backdrop-blur-sm text-white hover:bg-white hover:text-gray-900 px-8 py-5 text-lg font-bold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
-            asChild
-          >
-            <a href="#portfolio" className="flex items-center">
-              📋 Ver Nossos Projetos
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </a>
-          </Button>
-        </div>
-        
-        {/* Key Features - Design moderno */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto">
-          <div className="group bg-white/95 backdrop-blur-sm rounded-2xl p-6 sm:p-8 text-center border border-white/30 hover:border-yellow-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 shadow-lg">
-            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-              <Settings className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
-            </div>
-            <h3 className="font-bold text-xl sm:text-2xl mb-2 text-gray-900">Tecnologia Exclusiva</h3>
-            <p className="text-gray-600 leading-relaxed">Equipamentos de última geração para precisão milimétrica</p>
-          </div>
+
+        {/* LADO DIREITO: Texto Centralizado e Formatado (Estilo Bartz com fundo preto) */}
+        <div className="w-full lg:w-2/5 bg-black flex flex-col items-center justify-center text-center p-8 sm:p-12 lg:p-16 space-y-8 border-l border-white/5">
           
-          <div className="group bg-white/95 backdrop-blur-sm rounded-2xl p-6 sm:p-8 text-center border border-white/30 hover:border-yellow-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 shadow-lg">
-            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-              <Award className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
-            </div>
-            <h3 className="font-bold text-xl sm:text-2xl mb-2 text-gray-900">Especialistas Experientes</h3>
-            <p className="text-gray-600 leading-relaxed">Equipe com anos de experiência em móveis planejados</p>
-          </div>
-          
-          <div className="group bg-white/95 backdrop-blur-sm rounded-2xl p-6 sm:p-8 text-center border border-white/30 hover:border-yellow-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 shadow-lg">
-            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-              <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
-            </div>
-            <h3 className="font-bold text-xl sm:text-2xl mb-2 text-gray-900">Design Exclusivo</h3>
-            <p className="text-gray-600 leading-relaxed">Projetos únicos para cada cliente</p>
+          {/* Título Centralizado com Delays de Animação e Espaçamento Apropriado */}
+          <h1 className="text-3xl sm:text-4xl lg:text-4xl xl:text-[2.6rem] font-black tracking-tight uppercase leading-[1.25] text-white flex flex-col gap-1 sm:gap-2">
+            <span className="block opacity-0 animate-fade-in-up [animation-delay:150ms]">SEU SONHO</span>
+            <span className="block opacity-0 animate-fade-in-up [animation-delay:350ms]">NOSSA MISSÃO</span>
+            <span className="block opacity-0 animate-fade-in-up [animation-delay:550ms] text-[#f97316] bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 bg-clip-text text-transparent">MÓVEIS PLANEJADOS</span>
+            <span className="block opacity-0 animate-fade-in-up [animation-delay:750ms]">QUE TRANSFORMAM VIDAS</span>
+          </h1>
+
+          {/* Descrição Formatada com Margem para melhor leitura */}
+          <p className="text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed max-w-md mx-auto opacity-0 animate-fade-in-up [animation-delay:950ms]">
+            Tecnologia exclusiva, atendimento personalizado e alta qualidade em cada projeto. Especializados em cozinhas, closets, banheiros e ambientes comerciais.
+          </p>
+
+          {/* Botões de Ação Centralizados */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full pt-2 opacity-0 animate-fade-in-up [animation-delay:1150ms]">
+            <Button 
+              size="lg"
+              className="w-full sm:w-auto bg-white hover:bg-neutral-200 text-black font-extrabold px-8 py-4 rounded-lg transition-all duration-300 shadow-md hover:scale-[1.02] h-auto text-xs"
+              asChild
+            >
+              <Link href="/orcamento" className="flex items-center justify-center gap-2">
+                Simular meu Projeto 3D
+              </Link>
+            </Button>
+            <Button 
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto border-white/20 bg-transparent text-white hover:bg-white hover:text-black font-bold px-8 py-4 rounded-lg transition-all duration-300 hover:scale-[1.02] h-auto text-xs"
+              asChild
+            >
+              <a href="#portfolio" className="flex items-center justify-center">
+                Explorar Portfólio
+              </a>
+            </Button>
           </div>
         </div>
       </div>
