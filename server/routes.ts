@@ -743,7 +743,10 @@ REGRAS MANDATÓRIAS:
     },
     handoffEnabled: true,
     triggerKeyword: "#ia",
-    typingDelay: 2
+    typingDelay: 2,
+    notifyOwnerOnAppointment: true,
+    ownerPhone: "555196682257",
+    ownerName: "Paulo Vargas"
   };
 
   // Helper para formatar a grade detalhada por dia da semana para o prompt da IA
@@ -1520,6 +1523,43 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
                         });
 
                         console.log(`IA Comercial Dumar: Compromisso salvo na Agenda (${targetAppointmentDate} às ${extractedTime}) e Lead ${targetLead.name} movido para Briefing & Medição.`);
+
+                        // NOTIFICAR O PAULO (DIRETORIA) NO WHATSAPP COM DADOS DO AGENDAMENTO E DICA LOGÍSTICA
+                        if (aiConfig.notifyOwnerOnAppointment !== false) {
+                          try {
+                            const ownerPhone = aiConfig.ownerPhone || "555196682257";
+                            
+                            // Extrair cidade das mensagens
+                            const allText = history.map((m: any) => m.text).join(" ") + " " + msgContent;
+                            const cityMatch = allText.match(/(?:ararangu[aá]|crici[uú]ma|balne[aá]rio\s+arroio\s+do\s+silva|tubar[aã]o|i[cç]ara|sombrio|turvo|morro\s+da\s+fuma[cç]a|urussanga|forquilhinha|maracaj[aá]|meleiro|santa\s+rosa\s+do\s+sul|passo\s+de\s+torres|praia\s+grande|florian[oó]polis|porto\s+alegre)/i);
+                            const locationStr = cityMatch ? cityMatch[0].toUpperCase() : "A definir";
+
+                            const propMatch = allText.match(/\b(casa|apartamento|apto|cobertura|sala\s+comercial)\b/i);
+                            const propertyTypeStr = propMatch ? propMatch[0].toUpperCase() : "Não informado";
+
+                            const roomsStr = (targetRooms && targetRooms.length > 0) ? targetRooms.join(", ") : "Móveis Planejados";
+
+                            const notifyMsg = `🚨 *NOVO AGENDAMENTO CONFIRMADO PELA IA!* 📅✨
+
+👤 *Cliente:* ${targetLead.name}
+📱 *WhatsApp:* ${targetLead.phone}
+📍 *Cidade / Região:* ${locationStr}
+🏠 *Tipo de Imóvel:* ${propertyTypeStr}
+🛋️ *Ambientes:* ${roomsStr}
+
+📅 *Data Agendada:* ${targetAppointmentDate}
+⏰ *Horário:* ${extractedTime}
+
+💡 *DICA LOGÍSTICA (PAULO):* Você pode conciliar este atendimento em *${locationStr}* com outros clientes da mesma região no mesmo turno para otimizar seus deslocamentos!
+
+🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
+
+                            console.log(`IA Comercial Dumar: Notificando Paulo (${ownerPhone}) via WhatsApp sobre agendamento em ${locationStr}...`);
+                            await sendWhatsAppMessageViaEvolution(ownerPhone, notifyMsg, "dumar_comercial");
+                          } catch (notifyErr) {
+                            console.error("Erro ao enviar notificação de agendamento para o Paulo:", notifyErr);
+                          }
+                        }
                       } catch (calErr) {
                         console.error("Erro ao salvar evento de agendamento da IA:", calErr);
                       }

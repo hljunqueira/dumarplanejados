@@ -66,6 +66,9 @@ interface AIConfig {
   handoffEnabled: boolean;
   triggerKeyword: string;
   typingDelay: number;
+  notifyOwnerOnAppointment?: boolean;
+  ownerPhone?: string;
+  ownerName?: string;
 }
 
 const PRESETS = {
@@ -162,7 +165,10 @@ export default function CRMSettings() {
     rules: PRESETS.qualificador.rules,
     handoffEnabled: true,
     triggerKeyword: "#ia",
-    typingDelay: 2
+    typingDelay: 2,
+    notifyOwnerOnAppointment: true,
+    ownerPhone: "555196682257",
+    ownerName: "Paulo Vargas"
   });
 
   const [loadingConfig, setLoadingConfig] = useState(false);
@@ -863,6 +869,74 @@ export default function CRMSettings() {
                     <option value={24}>Apenas para o dia seguinte (24h)</option>
                   </select>
                 </div>
+              </div>
+            </div>
+
+            {/* Notificação Instantânea de Agendamentos no WhatsApp (Diretoria - Paulo) */}
+            <div className="bg-[#121212] border border-amber-500/30 bg-amber-500/[0.02] rounded-2xl p-5 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 font-bold text-xs">
+                    <Phone size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Notificação de Agendamentos no WhatsApp (Diretoria)
+                    </h4>
+                    <p className="text-[10px] text-gray-400">
+                      Receba no WhatsApp os dados do cliente, cidade, ambientes e dica logística de rota
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setConfig(prev => ({ ...prev, notifyOwnerOnAppointment: !(prev.notifyOwnerOnAppointment ?? true) }))}
+                  className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    (config.notifyOwnerOnAppointment ?? true)
+                      ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+                      : "bg-white/10 text-gray-400"
+                  }`}
+                >
+                  {(config.notifyOwnerOnAppointment ?? true) ? "NOTIFICAÇÃO ATIVA" : "DESATIVADA"}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                    Nome do Responsável / Diretor:
+                  </label>
+                  <input
+                    type="text"
+                    value={config.ownerName || "Paulo Vargas"}
+                    onChange={e => setConfig(prev => ({ ...prev, ownerName: e.target.value }))}
+                    placeholder="Paulo Vargas"
+                    className="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                    WhatsApp do Paulo (com DDD):
+                  </label>
+                  <input
+                    type="text"
+                    value={config.ownerPhone || "555196682257"}
+                    onChange={e => setConfig(prev => ({ ...prev, ownerPhone: e.target.value }))}
+                    placeholder="555196682257"
+                    className="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:border-amber-400 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-black/40 border border-white/5 rounded-xl p-3 text-[11px] text-gray-300 space-y-1">
+                <p className="font-bold text-amber-400 flex items-center gap-1.5">
+                  💡 Conciliação Inteligente de Deslocamentos:
+                </p>
+                <p className="text-gray-400 leading-relaxed text-[10px]">
+                  Ao agendar (ex: cliente em <strong className="text-white">Criciúma</strong>), o Paulo receberá um WhatsApp com o resumo completo e lembrete para encaixar outros atendimentos na mesma cidade/região no mesmo turno.
+                </p>
               </div>
             </div>
 
