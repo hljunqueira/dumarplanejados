@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Filter, GripVertical, CheckSquare, Phone, Download, FileText, Box, MessageSquare, CheckCheck, Clock, Trash2, Plus } from "lucide-react";
+import { Search, Filter, GripVertical, CheckSquare, Phone, Download, FileText, Box, MessageSquare, CheckCheck, Clock, Trash2, Plus, RotateCw, Sparkles } from "lucide-react";
 import { Lead } from "./types";
 
 interface Stage {
@@ -24,6 +24,7 @@ interface CRMKanbanProps {
   handleMouseUp: () => void;
   handleMouseMove: (e: React.MouseEvent) => void;
   setShowNewLeadModal?: (val: boolean) => void;
+  fetchLeads?: () => void;
 }
 
 export default function CRMKanban({
@@ -41,11 +42,41 @@ export default function CRMKanban({
   handleMouseLeave,
   handleMouseUp,
   handleMouseMove,
-  setShowNewLeadModal
+  setShowNewLeadModal,
+  fetchLeads
 }: CRMKanbanProps) {
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
   const [selectedStageTab, setSelectedStageTab] = useState<string>("all");
+  const [syncingWhatsapp, setSyncingWhatsapp] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  const handleSyncWhatsapp = async () => {
+    if (syncingWhatsapp) return;
+    setSyncingWhatsapp(true);
+    setSyncFeedback(null);
+    try {
+      const res = await fetch("/api/evolution/sync-recent-chats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instanceName: "dumar_comercial" })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncFeedback(data.message || "Conversas sincronizadas com sucesso!");
+        if (fetchLeads) {
+          await fetchLeads();
+        }
+      } else {
+        setSyncFeedback(data.error || "Erro ao sincronizar conversas.");
+      }
+    } catch (e) {
+      setSyncFeedback("Erro de conexão ao sincronizar com a Evolution API.");
+    } finally {
+      setSyncingWhatsapp(false);
+      setTimeout(() => setSyncFeedback(null), 7000);
+    }
+  };
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.setData("text/plain", leadId);
@@ -172,16 +203,50 @@ export default function CRMKanban({
           </div>
         </div>
 
-        {setShowNewLeadModal && (
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
-            onClick={() => setShowNewLeadModal(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-lg shadow-amber-500/20"
+            type="button"
+            onClick={handleSyncWhatsapp}
+            disabled={syncingWhatsapp}
+            className={`text-xs py-1.5 px-3 rounded-lg flex items-center gap-1.5 font-bold transition-all border shadow-sm cursor-pointer ${
+              syncingWhatsapp
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:border-emerald-500/50"
+            }`}
+            title="Importar conversas e contatos do WhatsApp que ainda não subiram para o funil"
           >
-            <Plus size={13} />
-            Novo Lead
+            <RotateCw size={13} className={syncingWhatsapp ? "animate-spin text-emerald-400" : ""} />
+            <span>{syncingWhatsapp ? "Sincronizando..." : "Sincronizar WhatsApp"}</span>
           </button>
-        )}
+
+          {setShowNewLeadModal && (
+            <button
+              onClick={() => setShowNewLeadModal(true)}
+              className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-lg shadow-amber-500/20"
+            >
+              <Plus size={13} />
+              Novo Lead
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* BANNER FLUTUANTE DE FEEDBACK DA SINCRONIZAÇÃO */}
+      {syncFeedback && (
+        <div className="bg-emerald-950/80 border-b border-emerald-500/30 px-4 py-2 flex items-center justify-between text-xs text-emerald-300 animate-fade-in shadow-inner z-20">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="text-emerald-400 flex-shrink-0" />
+            <span>{syncFeedback}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSyncFeedback(null)}
+            className="text-gray-400 hover:text-white text-[10px] uppercase font-bold"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
 
       {/* BARRA DE ABAS DE ETAPAS MOBILE */}
       <div className="md:hidden flex overflow-x-auto gap-1.5 p-2 bg-black/60 border-b border-white/10 scrollbar-none flex-shrink-0">
@@ -285,14 +350,14 @@ export default function CRMKanban({
 
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {lead.aiPaused ? (
-                              <span className="text-[8px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded-full" title="Intervenção Humana: IA Pausada">
-                                👤 Humano
+                              <span className="text-[8px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded-full" title="Atendimento Manual: IA em espera">
+                                👤 Manual
                               </span>
-                            ) : (lead.stage === "entrada" || lead.stage === "briefing") ? (
-                              <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded-full" title="IA Comercial Ativa">
-                                🤖 IA
+                            ) : (
+                              <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded-full animate-pulse" title="IA Comercial Habilitada para este lead">
+                                🤖 IA Ativa
                               </span>
-                            ) : null}
+                            )}
 
                             {isWaitingReply ? (
                               <span className="flex items-center gap-1 text-[8px] font-black text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded-full animate-pulse" title="Cliente aguarda resposta">

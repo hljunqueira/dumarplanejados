@@ -48,6 +48,16 @@ export async function initDbTables() {
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS materials TEXT DEFAULT '{}';
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_customer_message_at TEXT DEFAULT '';
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS ai_paused BOOLEAN DEFAULT FALSE;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS appointment_status TEXT DEFAULT 'none';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS appointment_details TEXT DEFAULT '{}';
+
+      -- Migração automática de novas colunas na tabela users
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'vendedor';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT DEFAULT '["kanban", "agenda"]';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TEXT DEFAULT '';
     `);
     console.log("Banco de Dados Dumar: Tabelas e colunas sincronizadas com sucesso.");
   } catch (err) {

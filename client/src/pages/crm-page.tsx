@@ -16,6 +16,7 @@ import CRMConnections from "@/components/crm/crm-connections";
 import CRMPerfil from "@/components/crm/crm-perfil";
 import CRMFinanceiro from "@/components/crm/crm-financeiro";
 import CRMSettings from "@/components/crm/crm-settings";
+import CRMConfiguracoes from "@/components/crm/crm-configuracoes";
 
 // --- COLUNAS DO FUNIL OPERACIONAL ---
 const STAGES = [
@@ -41,8 +42,19 @@ export default function CRMPage() {
   });
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [currentUser, setCurrentUser] = useState<{ username: string }>({
-    username: localStorage.getItem("crm_username") || "Paulo Admin"
+  const [currentUser, setCurrentUser] = useState<{ 
+    id?: number; 
+    username: string; 
+    name?: string; 
+    email?: string; 
+    role?: string; 
+    permissions?: string[]; 
+  }>(() => {
+    try {
+      const saved = localStorage.getItem("crm_user_data");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return { username: localStorage.getItem("crm_username") || "admin", role: "admin" };
   });
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -65,21 +77,41 @@ export default function CRMPage() {
   const [promobStatusMsg, setPromobStatusMsg] = useState("");
 
 
-  // Sincronizar aba ativa com a URL do navegador
+  // Sincronizar aba ativa com a URL do navegador e validar RBAC
   useEffect(() => {
+    const userPerms = Array.isArray(currentUser.permissions) ? currentUser.permissions : [];
+    const isAdmin = currentUser.role === "admin" || currentUser.username === "admin" || currentUser.username === "paulo@dumarplanejados.com.br";
+
+    const canAccess = (sec: string) => {
+      if (isAdmin) return true;
+      if (sec === "configuracoes" || sec === "mensagens") {
+        return userPerms.includes("configuracoes") || userPerms.includes("usuarios") || userPerms.includes("mensagens");
+      }
+      return userPerms.includes(sec);
+    };
+
     if (matchRoute && paramsRoute?.section) {
       const s = paramsRoute.section.toLowerCase();
-      if (s === "funil" || s === "kanban") setActiveSection("kanban");
-      else if (s === "conexoes" || s === "configuracoes" || s === "whatsapp") setActiveSection("configuracoes");
-      else if (s === "agenda") setActiveSection("agenda");
-      else if (s === "financeiro" || s === "contratos") setActiveSection("financeiro");
-      else if (s === "mensagens") setActiveSection("mensagens");
-      else if (s === "perfil") setActiveSection("perfil");
-      else setActiveSection("dashboard");
+      let targetSec: "dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro" = "dashboard";
+
+      if (s === "funil" || s === "kanban") targetSec = "kanban";
+      else if (s === "conexoes" || s === "configuracoes" || s === "whatsapp" || s === "usuarios") targetSec = "configuracoes";
+      else if (s === "agenda") targetSec = "agenda";
+      else if (s === "financeiro" || s === "contratos") targetSec = "financeiro";
+      else if (s === "mensagens") targetSec = "mensagens";
+      else if (s === "perfil") targetSec = "perfil";
+
+      if (targetSec === "perfil" || canAccess(targetSec)) {
+        setActiveSection(targetSec);
+      } else {
+        // Redireciona para o primeiro acesso disponível
+        const fallback = userPerms.includes("kanban") ? "kanban" : userPerms.includes("agenda") ? "agenda" : "dashboard";
+        setActiveSection(fallback as any);
+      }
     } else {
-      setActiveSection("dashboard");
+      setActiveSection(canAccess("dashboard") ? "dashboard" : "kanban");
     }
-  }, [matchRoute, paramsRoute?.section]);
+  }, [matchRoute, paramsRoute?.section, currentUser]);
 
   // --- CONTROLE DE DRAG HORIZONTAL (GRAB-TO-SCROLL) ---
   const boardRef = React.useRef<HTMLDivElement>(null);
@@ -176,16 +208,20 @@ export default function CRMPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        const rawName = data.username || username;
-        let formattedName = rawName;
-        if (rawName.toLowerCase().includes("paulo")) formattedName = "Paulo";
-        else if (rawName.toLowerCase() === "admin") formattedName = "Admin";
+        const userData = data.user || {
+          username: data.username || username,
+          name: data.username || username,
+          role: "admin",
+          permissions: ["dashboard", "kanban", "agenda", "financeiro", "mensagens", "configuracoes", "usuarios"]
+        };
 
         setIsAuthenticated(true);
-        setCurrentUser({ username: formattedName });
-        localStorage.setItem("crm_username", formattedName);
+        setCurrentUser(userData);
+        localStorage.setItem("crm_username", userData.username);
+        localStorage.setItem("crm_user_data", JSON.stringify(userData));
       } else {
-        alert("Credenciais inválidas!");
+        const err = await res.json().catch(() => ({ message: "Credenciais inválidas!" }));
+        alert(err.message || "Credenciais inválidas!");
       }
     } catch (err) {
       console.error(err);
@@ -515,6 +551,7 @@ export default function CRMPage() {
             handleMouseUp={handleMouseUp}
             handleMouseMove={handleMouseMove}
             setShowNewLeadModal={setShowNewLeadModal}
+            fetchLeads={fetchLeads}
           />
         )}
 
@@ -537,7 +574,7 @@ export default function CRMPage() {
         )}
 
         {activeSection === "configuracoes" && (
-          <CRMConnections />
+          <CRMConfiguracoes currentUser={currentUser} setCurrentUser={setCurrentUser} />
         )}
       </main>
 

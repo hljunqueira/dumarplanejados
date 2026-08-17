@@ -507,7 +507,7 @@ export default function CRMLeadDrawer({
               </div>
 
               <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                {/* Botão de Controle de IA / Intervenção Humana */}
+                {/* Botão de Controle de IA / Habilitar sob demanda */}
                 <button
                   type="button"
                   onClick={handleToggleAi}
@@ -515,25 +515,25 @@ export default function CRMLeadDrawer({
                   className={`text-[10px] border px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-bold transition-all cursor-pointer shadow-sm ${
                     selectedLead.aiPaused
                       ? "bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-300"
-                      : "bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/40 text-emerald-300"
+                      : "bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/40 text-emerald-300 animate-pulse"
                   }`}
                   title={
                     selectedLead.aiPaused
-                      ? "A IA está pausada para este cliente. Clique para reativar o robô."
-                      : "A IA está respondendo este cliente. Clique para pausar e assumir o atendimento manual."
+                      ? "A IA não está intervindo nesta conversa. Clique para habilitar o robô de IA comercial para este lead."
+                      : "A IA está respondendo este cliente. Clique para pausar e assumir o controle manual."
                   }
                 >
                   {selectedLead.aiPaused ? (
                     <>
                       <UserCheck size={12} className="text-amber-400" />
-                      <span>Humano no Controle</span>
-                      <span className="text-[8px] bg-amber-500/40 px-1 py-0.2 rounded text-white font-medium">IA Pausada</span>
+                      <span>Atendimento Manual</span>
+                      <span className="text-[8px] bg-amber-500/40 px-1.5 py-0.5 rounded text-white font-medium hover:bg-amber-500/60">Habilitar IA</span>
                     </>
                   ) : (
                     <>
                       <Bot size={12} className="text-emerald-400" />
-                      <span>IA Ativa</span>
-                      <span className="text-[8px] bg-emerald-500/40 px-1 py-0.2 rounded text-white font-medium">Pausar</span>
+                      <span>IA Habilitada</span>
+                      <span className="text-[8px] bg-emerald-500/40 px-1.5 py-0.5 rounded text-white font-medium hover:bg-emerald-500/60">Pausar</span>
                     </>
                   )}
                 </button>
@@ -555,13 +555,13 @@ export default function CRMLeadDrawer({
 
             {/* Histórico do Chat com Balões Estilo WhatsApp Web */}
             <div className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin bg-[#0b141a]/60">
-              {/* Banner de Atendimento Humano em Andamento */}
+              {/* Banner de Atendimento Manual em Andamento */}
               {selectedLead.aiPaused && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 flex items-center justify-between gap-2 text-amber-300 text-xs shadow-inner animate-fade-in">
                   <div className="flex items-center gap-2">
                     <AlertCircle size={14} className="text-amber-400 flex-shrink-0" />
                     <span className="text-[11px] leading-tight">
-                      <strong>Atendimento Humano em Andamento:</strong> A IA está pausada para este cliente para você conversar livremente.
+                      <strong>Atendimento Manual (WhatsApp):</strong> A IA está em espera. Você pode conversar diretamente ou habilitar o robô de IA quando desejar.
                     </span>
                   </div>
                   <button
@@ -569,7 +569,7 @@ export default function CRMLeadDrawer({
                     onClick={handleToggleAi}
                     className="text-[10px] font-bold bg-amber-500 hover:bg-amber-400 text-black px-2.5 py-1 rounded-lg transition-all flex-shrink-0 cursor-pointer shadow"
                   >
-                    Reativar IA
+                    Habilitar IA
                   </button>
                 </div>
               )}

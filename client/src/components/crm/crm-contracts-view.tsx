@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { 
   FileText, Plus, Edit3, Printer, CheckCircle2, Clock, 
-  Trash2, ShieldCheck, UserCheck, Search, X, Eye, Building, Phone, Mail, MapPin, Layers, DollarSign, AlertCircle, RefreshCw, Image, Upload
+  Trash2, ShieldCheck, UserCheck, Search, X, Eye, Building, Phone, Mail, MapPin, Layers, DollarSign, AlertCircle, RefreshCw, Image, Upload,
+  CreditCard, BookOpen, Check, ChevronRight, Calculator
 } from "lucide-react";
 import { Lead } from "./types";
-import { ContractData, getDefaultContractData } from "@/lib/contract-generator";
+import { ContractData, getDefaultContractData, buildClause3PaymentText, PaymentPlanType } from "@/lib/contract-generator";
+import CRMMateriaisModal from "./crm-materiais-modal";
 import logoDumar from "@/assets/logo1.jpeg";
 
 interface CRMContractsViewProps {
@@ -27,6 +29,10 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string>("");
   const [newImageUrl, setNewImageUrl] = useState("");
 
+  // Modal de Catálogo de Materiais
+  const [isMaterialsModalOpen, setIsMaterialsModalOpen] = useState(false);
+  const [targetMaterialCategory, setTargetMaterialCategory] = useState<string>("all");
+
   // Buscar contratos da API REST (com fallback localStorage)
   const fetchContracts = async () => {
     setLoading(true);
@@ -35,12 +41,13 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
+          const OFFICIAL_ADDRESS = "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC";
           const parsed = data.map((item: any) => {
-            let jsonDetails = {};
+            let jsonDetails: any = {};
             try {
               jsonDetails = typeof item.dataJson === "string" ? JSON.parse(item.dataJson) : (item.dataJson || {});
             } catch (e) {}
-            return {
+            const merged = {
               ...getDefaultContractData(),
               ...jsonDetails,
               id: item.id,
@@ -55,6 +62,13 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
               totalValue: item.totalValue,
               downPayment: item.downPayment,
             };
+
+            // Sanitização de endereço da empresa
+            if (!merged.companyAddress || merged.companyAddress.includes("Pereira")) {
+              merged.companyAddress = OFFICIAL_ADDRESS;
+            }
+
+            return merged;
           });
           setContracts(parsed);
           setLoading(false);
@@ -69,7 +83,11 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
     try {
       const saved = localStorage.getItem("dumar_contracts_db");
       if (saved) {
-        setContracts(JSON.parse(saved));
+        const parsedSaved = JSON.parse(saved).map((c: any) => ({
+          ...c,
+          companyAddress: (!c.companyAddress || c.companyAddress.includes("Pereira")) ? "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC" : c.companyAddress
+        }));
+        setContracts(parsedSaved);
       } else if (leads.length > 0) {
         setContracts([getDefaultContractData(leads[0])]);
       } else {
@@ -104,10 +122,59 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
 
   // Abrir Contrato Existente para Editar ou Imprimir
   const handleOpenContract = (contract: ContractData, mode: "edit" | "preview" = "preview") => {
-    setCurrentContract(contract);
-    setSelectedLeadId(contract.leadId ? contract.leadId.toString() : "");
+    const sanitizedContract = {
+      ...contract,
+      companyAddress: (!contract.companyAddress || contract.companyAddress.includes("Pereira")) 
+        ? "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC" 
+        : contract.companyAddress
+    };
+    setCurrentContract(sanitizedContract);
+    setSelectedLeadId(sanitizedContract.leadId ? sanitizedContract.leadId.toString() : "");
     setActiveTab(mode);
     setIsModalOpen(true);
+  };
+
+  // Atualização reativa de valores, cálculo de saldo e recálculo da Cláusula 3 de Pagamento
+  const updateContractFinance = (updates: Partial<ContractData>) => {
+    setCurrentContract(prev => {
+      const merged = { ...prev, ...updates };
+      const total = Number(merged.totalValue) || 0;
+      const plan = merged.paymentPlanType || "entrada_saldo";
+      let down = Number(merged.downPayment) || 0;
+      let comp = Number(merged.downPaymentComplement) || 0;
+      let remaining = Math.max(0, total - down);
+
+      if (plan === "a_vista") {
+        down = total;
+        remaining = 0;
+        comp = 0;
+      } else if (plan === "entrada_saldo" || plan === "entrada_parcelado") {
+        comp = 0;
+        remaining = Math.max(0, total - down);
+      } else if (plan === "tres_etapas") {
+        remaining = Math.max(0, total - (down + comp));
+      } else if (plan === "parcelado_cartao") {
+        down = 0;
+        comp = 0;
+        remaining = total;
+      }
+
+      const cardCount = Number(merged.cardInstallmentsCount) || 10;
+      const cardVal = cardCount > 0 ? Math.round(remaining / cardCount) : 0;
+
+      const nextObj: ContractData = {
+        ...merged,
+        downPayment: down,
+        downPaymentComplement: comp,
+        remainingBalance: remaining,
+        assemblyPayment: remaining,
+        cardInstallmentsCount: cardCount,
+        cardInstallmentValue: cardVal,
+      };
+
+      nextObj.clause3Payment = buildClause3PaymentText(nextObj);
+      return nextObj;
+    });
   };
 
   // Preenchimento automático ao selecionar Lead no dropdown
@@ -117,22 +184,19 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
 
     const foundLead = leads.find(l => String(l.id) === leadIdStr);
     if (foundLead) {
-      const updated = getDefaultContractData(foundLead);
-      setCurrentContract(prev => ({
-        ...prev,
-        ...updated,
-        id: prev.id,
-        contractNumber: prev.contractNumber,
+      const defaultData = getDefaultContractData(foundLead);
+      updateContractFinance({
+        ...defaultData,
+        id: currentContract.id,
+        contractNumber: currentContract.contractNumber,
         leadId: foundLead.id,
         clientName: foundLead.name,
-        clientPhone: foundLead.phone || prev.clientPhone,
-        clientEmail: foundLead.email || prev.clientEmail,
-        rooms: foundLead.rooms || prev.rooms,
-        totalValue: foundLead.value || prev.totalValue,
-        downPayment: Math.round((foundLead.value || prev.totalValue) * 0.4),
-        downPaymentComplement: Math.round((foundLead.value || prev.totalValue) * 0.1),
-        assemblyPayment: (foundLead.value || prev.totalValue) - (Math.round((foundLead.value || prev.totalValue) * 0.4) + Math.round((foundLead.value || prev.totalValue) * 0.1)),
-      }));
+        clientPhone: foundLead.phone || currentContract.clientPhone,
+        clientEmail: foundLead.email || currentContract.clientEmail,
+        rooms: foundLead.rooms || currentContract.rooms,
+        totalValue: Number(foundLead.value) || currentContract.totalValue,
+        downPayment: Math.round((Number(foundLead.value) || currentContract.totalValue) * 0.4),
+      });
     }
   };
 
@@ -749,77 +813,314 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                       </div>
                     </div>
 
-                    {/* VALORES E PAGAMENTO */}
-                    <div className="bg-black/30 border border-white/5 rounded-xl p-4 space-y-4">
-                      <h4 className="font-bold text-amber-400 uppercase tracking-wider text-[11px] border-b border-white/10 pb-2">
-                        Valores, Sinal e Forma de Pagamento
+                    {/* DADOS DA CONTRATADA (DUMAR) */}
+                    <div className="bg-black/30 border border-white/5 rounded-xl p-4 space-y-3">
+                      <h4 className="font-bold text-amber-400 uppercase tracking-wider text-[11px] border-b border-white/10 pb-2 flex items-center justify-between">
+                        <span>Dados da Contratada (Dumar Móveis Planejados)</span>
+                        <span className="text-[10px] text-gray-400 font-normal">Endereço e dados legais impressos no contrato</span>
                       </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-gray-400 mb-1 font-bold">Valor Total Contratado (R$)</label>
-                          <input
-                            type="number"
-                            value={currentContract.totalValue}
-                            onChange={e => {
-                              const val = Number(e.target.value) || 0;
-                              const downVal = Math.round(val * 0.4);
-                              const compVal = Math.round(val * 0.1);
-                              setCurrentContract({
-                                ...currentContract,
-                                totalValue: val,
-                                downPayment: downVal,
-                                downPaymentComplement: compVal,
-                                assemblyPayment: val - (downVal + compVal)
-                              });
-                            }}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-green-400 font-bold focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-400 mb-1 font-bold">Sinal / Entrada 1 (R$)</label>
-                          <input
-                            type="number"
-                            value={currentContract.downPayment}
-                            onChange={e => setCurrentContract({ ...currentContract, downPayment: Number(e.target.value) })}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-400 mb-1 font-bold">Complemento de Entrada (R$)</label>
-                          <input
-                            type="number"
-                            value={currentContract.downPaymentComplement}
-                            onChange={e => setCurrentContract({ ...currentContract, downPaymentComplement: Number(e.target.value) })}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-400 mb-1 font-bold">Saldo na Montagem (R$)</label>
-                          <input
-                            type="number"
-                            value={currentContract.assemblyPayment}
-                            onChange={e => setCurrentContract({ ...currentContract, assemblyPayment: Number(e.target.value) })}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-400 mb-1 font-bold">Forma de Pagamento</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="block text-gray-400 mb-1 font-bold text-xs">Endereço Institucional da Empresa</label>
                           <input
                             type="text"
-                            value={currentContract.paymentMethod}
-                            onChange={e => setCurrentContract({ ...currentContract, paymentMethod: e.target.value })}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                            value={currentContract.companyAddress}
+                            onChange={e => setCurrentContract({ ...currentContract, companyAddress: e.target.value })}
+                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
                           />
                         </div>
                         <div>
-                          <label className="block text-gray-400 mb-1 font-bold">Ambientes Contratados</label>
+                          <label className="block text-gray-400 mb-1 font-bold text-xs">Telefone / WhatsApp</label>
                           <input
                             type="text"
-                            value={Array.isArray(currentContract.rooms) ? currentContract.rooms.join(", ") : currentContract.rooms}
-                            onChange={e => setCurrentContract({ ...currentContract, rooms: e.target.value.split(",").map(s => s.trim()) })}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                            value={currentContract.companyPhone}
+                            onChange={e => setCurrentContract({ ...currentContract, companyPhone: e.target.value })}
+                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
                           />
                         </div>
+                      </div>
+                    </div>
+
+                    {/* VALORES E CALCULADORA DE PAGAMENTO */}
+                    <div className="bg-black/30 border border-amber-500/20 rounded-xl p-5 space-y-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Calculator size={16} className="text-amber-400" />
+                          <h4 className="font-bold text-amber-400 uppercase tracking-wider text-xs">
+                            Calculadora e Condições de Pagamento
+                          </h4>
+                        </div>
+                        <span className="text-[11px] text-gray-400">
+                          Recálculo dinâmico da Cláusula 3 e parcelas em tempo real
+                        </span>
+                      </div>
+
+                      {/* VALOR TOTAL DO PEDIDO */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-neutral-950/60 p-4 rounded-xl border border-white/5">
+                        <div className="md:col-span-2">
+                          <label className="block text-gray-300 mb-1 font-bold text-xs">
+                            Valor Total do Pedido Contratado (R$):
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-2.5 text-green-400 font-bold text-sm">R$</span>
+                            <input
+                              type="number"
+                              value={currentContract.totalValue}
+                              onChange={e => {
+                                const val = Number(e.target.value) || 0;
+                                updateContractFinance({ totalValue: val });
+                              }}
+                              className="w-full bg-neutral-900 border border-green-500/40 rounded-lg p-2.5 pl-10 text-green-400 text-lg font-black focus:outline-none focus:border-green-400"
+                              placeholder="0,00"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-gray-300 mb-1 font-bold text-xs">Prazo de Fabricação (Dias Úteis)</label>
+                          <input
+                            type="number"
+                            value={currentContract.productionDays || 45}
+                            onChange={e => setCurrentContract({ ...currentContract, productionDays: Number(e.target.value) })}
+                            className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
+
+                      {/* SELEÇÃO DA MODALIDADE DE PAGAMENTO */}
+                      <div className="space-y-2">
+                        <label className="block text-gray-300 font-bold text-xs">
+                          Escolha a Modalidade de Pagamento Acordada:
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                          {[
+                            { id: "a_vista", label: "À Vista", sub: "PIX / Dinheiro", icon: DollarSign },
+                            { id: "entrada_saldo", label: "1 + 1 (Entrada + Saldo)", sub: "Saldo na Montagem", icon: CheckCircle2 },
+                            { id: "entrada_parcelado", label: "Entrada + Cartão", sub: "Saldo Parcelado", icon: CreditCard },
+                            { id: "tres_etapas", label: "3 Etapas", sub: "Sinal / Obra / Fim", icon: Layers },
+                            { id: "parcelado_cartao", label: "100% Cartão", sub: "Até 18x no Cartão", icon: CreditCard },
+                          ].map(plan => {
+                            const isSelected = (currentContract.paymentPlanType || "entrada_saldo") === plan.id;
+                            const Icon = plan.icon;
+                            return (
+                              <button
+                                key={plan.id}
+                                type="button"
+                                onClick={() => updateContractFinance({ paymentPlanType: plan.id as PaymentPlanType })}
+                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                                  isSelected 
+                                    ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow-md shadow-amber-500/10" 
+                                    : "bg-neutral-900/80 border-white/10 text-gray-400 hover:text-white hover:bg-neutral-800"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <Icon size={16} className={isSelected ? "text-amber-400" : "text-gray-400"} />
+                                  {isSelected && <span className="w-2 h-2 rounded-full bg-amber-400"></span>}
+                                </div>
+                                <div>
+                                  <div className="font-bold text-xs text-white">{plan.label}</div>
+                                  <div className="text-[10px] text-gray-400">{plan.sub}</div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* CAMPOS DINÂMICOS CONFORME A MODALIDADE ESCOLHIDA */}
+                      <div className="bg-neutral-950/80 p-4 rounded-xl border border-white/10 space-y-4">
+                        {/* 1. MODO À VISTA */}
+                        {currentContract.paymentPlanType === "a_vista" && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-gray-400 mb-1 font-bold text-xs">Forma de Pagamento À Vista</label>
+                              <select
+                                value={currentContract.paymentMethod}
+                                onChange={e => updateContractFinance({ paymentMethod: e.target.value })}
+                                className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                              >
+                                <option value="PIX / Transferência">PIX / Transferência Instantânea</option>
+                                <option value="Dinheiro em Espécie">Dinheiro em Espécie</option>
+                                <option value="Cartão de Débito">Cartão de Débito</option>
+                                <option value="TED / DOC">TED / Transferência Bancária</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-gray-400 mb-1 font-bold text-xs">Data Prevista para Quitação</label>
+                              <input
+                                type="text"
+                                value={currentContract.downPaymentDate}
+                                onChange={e => updateContractFinance({ downPaymentDate: e.target.value })}
+                                className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2. MODO 1+1 (ENTRADA + SALDO NA MONTAGEM) */}
+                        {currentContract.paymentPlanType === "entrada_saldo" && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <label className="block text-gray-400 mb-1 font-bold text-xs">Valor da Entrada (R$)</label>
+                                <input
+                                  type="number"
+                                  value={currentContract.downPayment}
+                                  onChange={e => updateContractFinance({ downPayment: Number(e.target.value) || 0 })}
+                                  className="w-full bg-neutral-900 border border-amber-500/40 rounded-lg p-2.5 text-amber-300 font-bold text-xs focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 mb-1 font-bold text-xs">Forma de Pagamento da Entrada</label>
+                                <input
+                                  type="text"
+                                  value={currentContract.downPaymentMethod || "PIX"}
+                                  onChange={e => updateContractFinance({ downPaymentMethod: e.target.value })}
+                                  className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 mb-1 font-bold text-xs">Data da Entrada</label>
+                                <input
+                                  type="text"
+                                  value={currentContract.downPaymentDate}
+                                  onChange={e => updateContractFinance({ downPaymentDate: e.target.value })}
+                                  className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            {/* SALDO RESTANTE CALCULADO AUTOMATICAMENTE */}
+                            <div className="p-3 bg-neutral-900 rounded-xl border border-green-500/30 flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <div className="text-[11px] text-gray-400 font-semibold">Saldo Restante Calculado:</div>
+                                <div className="text-base font-black text-green-400">
+                                  {Math.max(0, currentContract.totalValue - currentContract.downPayment).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                </div>
+                              </div>
+                              <div className="flex-1 max-w-sm">
+                                <label className="block text-gray-400 mb-1 font-bold text-[11px]">Como será pago o saldo?</label>
+                                <input
+                                  type="text"
+                                  value={currentContract.remainingPaymentMethod || "PIX na conclusão da montagem"}
+                                  onChange={e => updateContractFinance({ remainingPaymentMethod: e.target.value })}
+                                  placeholder="Ex: PIX na conclusão da montagem ou Cartão"
+                                  className="w-full bg-black/60 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. MODO ENTRADA + SALDO PARCELADO NO CARTÃO */}
+                        {currentContract.paymentPlanType === "entrada_parcelado" && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-gray-400 mb-1 font-bold text-xs">Valor da Entrada no PIX/Dinheiro (R$)</label>
+                                <input
+                                  type="number"
+                                  value={currentContract.downPayment}
+                                  onChange={e => updateContractFinance({ downPayment: Number(e.target.value) || 0 })}
+                                  className="w-full bg-neutral-900 border border-amber-500/40 rounded-lg p-2.5 text-amber-300 font-bold text-xs focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 mb-1 font-bold text-xs">Saldo a Parcelar no Cartão</label>
+                                <div className="p-2.5 bg-neutral-900 border border-white/10 rounded-lg text-green-400 font-bold text-xs">
+                                  {Math.max(0, currentContract.totalValue - currentContract.downPayment).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-gray-400 mb-1 font-bold text-xs">Quantidade de Parcelas no Cartão</label>
+                                <select
+                                  value={currentContract.cardInstallmentsCount || 10}
+                                  onChange={e => updateContractFinance({ cardInstallmentsCount: Number(e.target.value) })}
+                                  className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none cursor-pointer"
+                                >
+                                  {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18].map(n => (
+                                    <option key={n} value={n}>{n}x parcelas no Cartão</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 mb-1 font-bold text-xs">Valor Estimado por Parcela</label>
+                                <div className="p-2.5 bg-neutral-900 border border-amber-500/30 rounded-lg text-amber-300 font-black text-xs">
+                                  {currentContract.cardInstallmentsCount || 10}x de {((Math.max(0, currentContract.totalValue - currentContract.downPayment)) / (currentContract.cardInstallmentsCount || 10)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 4. MODO 3 ETAPAS */}
+                        {currentContract.paymentPlanType === "tres_etapas" && (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-gray-400 mb-1 font-bold text-xs">1. Sinal no Contrato (R$)</label>
+                              <input
+                                type="number"
+                                value={currentContract.downPayment}
+                                onChange={e => updateContractFinance({ downPayment: Number(e.target.value) || 0 })}
+                                className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-gray-400 mb-1 font-bold text-xs">2. Complemento na Entrega dos Módulos (R$)</label>
+                              <input
+                                type="number"
+                                value={currentContract.downPaymentComplement}
+                                onChange={e => updateContractFinance({ downPaymentComplement: Number(e.target.value) || 0 })}
+                                className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-gray-400 mb-1 font-bold text-xs">3. Saldo no Fim da Montagem (R$)</label>
+                              <div className="p-2.5 bg-neutral-900 border border-green-500/40 rounded-lg text-green-400 font-bold text-xs">
+                                {Math.max(0, currentContract.totalValue - (currentContract.downPayment + currentContract.downPaymentComplement)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 5. MODO 100% PARCELADO NO CARTÃO */}
+                        {currentContract.paymentPlanType === "parcelado_cartao" && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-gray-400 mb-1 font-bold text-xs">Número de Parcelas</label>
+                              <select
+                                value={currentContract.cardInstallmentsCount || 12}
+                                onChange={e => updateContractFinance({ cardInstallmentsCount: Number(e.target.value) })}
+                                className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none cursor-pointer"
+                              >
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18].map(n => (
+                                  <option key={n} value={n}>{n}x parcelas</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-gray-400 mb-1 font-bold text-xs">Valor por Parcela no Cartão</label>
+                              <div className="p-2.5 bg-neutral-900 border border-amber-500/30 rounded-lg text-amber-300 font-black text-xs">
+                                {currentContract.cardInstallmentsCount || 12}x de {(currentContract.totalValue / (currentContract.cardInstallmentsCount || 12)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AMBIENTES CONTRATADOS */}
+                      <div>
+                        <label className="block text-gray-300 mb-1 font-bold text-xs">Ambientes Inclusos no Contrato (separados por vírgula):</label>
+                        <input
+                          type="text"
+                          value={Array.isArray(currentContract.rooms) ? currentContract.rooms.join(", ") : currentContract.rooms}
+                          onChange={e => setCurrentContract({ ...currentContract, rooms: e.target.value.split(",").map(s => s.trim()) })}
+                          placeholder="Ex: Cozinha Planejada, Dormitório Casal, Painel de TV"
+                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1004,8 +1305,30 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                       )}
                     </div>
 
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+                      <div>
+                        <h4 className="font-bold text-amber-400 uppercase tracking-wider text-xs">
+                          Especificações Técnicas e Materiais do Projeto
+                        </h4>
+                        <p className="text-[11px] text-gray-400">
+                          Preencha manualmente ou clique no botão para selecionar os padrões do catálogo da Dumar.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetMaterialCategory("all");
+                          setIsMaterialsModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+                      >
+                        <BookOpen size={14} />
+                        Catálogo de Materiais
+                      </button>
+                    </div>
+
                     <div>
-                      <label className="block text-gray-300 font-bold mb-1">Termo de Instruções e Aprovação do Projeto 3D</label>
+                      <label className="block text-gray-300 font-bold mb-1 text-xs">Termo de Instruções e Aprovação do Projeto 3D</label>
                       <textarea
                         rows={4}
                         value={currentContract.memorial.instrucoesProjeto}
@@ -1013,13 +1336,26 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                           ...currentContract,
                           memorial: { ...currentContract.memorial, instrucoesProjeto: e.target.value }
                         })}
-                        className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                        className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* ESTRUTURA */}
                       <div>
-                        <label className="block text-gray-300 font-bold mb-1">Estrutura do Móvel (MDF / BP)</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-gray-300 font-bold text-xs">Estrutura do Móvel (Caixaria / MDF)</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetMaterialCategory("estrutura");
+                              setIsMaterialsModalOpen(true);
+                            }}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <BookOpen size={11} /> Escolher do Catálogo
+                          </button>
+                        </div>
                         <textarea
                           rows={2}
                           value={currentContract.memorial.estruturaMdf}
@@ -1027,11 +1363,25 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                             ...currentContract,
                             memorial: { ...currentContract.memorial, estruturaMdf: e.target.value }
                           })}
-                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
                         />
                       </div>
+
+                      {/* FRENTES */}
                       <div>
-                        <label className="block text-gray-300 font-bold mb-1">Frentes de Portas e Gavetas</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-gray-300 font-bold text-xs">Frentes de Portas e Gavetas</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetMaterialCategory("frentes");
+                              setIsMaterialsModalOpen(true);
+                            }}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <BookOpen size={11} /> Escolher do Catálogo
+                          </button>
+                        </div>
                         <textarea
                           rows={2}
                           value={currentContract.memorial.frentesMdf}
@@ -1039,11 +1389,25 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                             ...currentContract,
                             memorial: { ...currentContract.memorial, frentesMdf: e.target.value }
                           })}
-                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
                         />
                       </div>
+
+                      {/* TAMPONAMENTOS */}
                       <div>
-                        <label className="block text-gray-300 font-bold mb-1">Tamponamentos e Painéis Lineares</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-gray-300 font-bold text-xs">Tamponamentos e Painéis Lineares</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetMaterialCategory("tamponamento");
+                              setIsMaterialsModalOpen(true);
+                            }}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <BookOpen size={11} /> Escolher do Catálogo
+                          </button>
+                        </div>
                         <textarea
                           rows={2}
                           value={currentContract.memorial.tamponamentosMdf}
@@ -1051,11 +1415,55 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                             ...currentContract,
                             memorial: { ...currentContract.memorial, tamponamentosMdf: e.target.value }
                           })}
-                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
                         />
                       </div>
+
+                      {/* VIDROS E ALUMÍNIO (NOVO!) */}
                       <div>
-                        <label className="block text-gray-300 font-bold mb-1">Puxadores</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="font-bold text-xs flex items-center gap-1.5 text-amber-300">
+                            <Eye size={13} className="text-amber-400" />
+                            Vidros & Perfis de Alumínio (Portas/Cristaleira)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetMaterialCategory("vidros");
+                              setIsMaterialsModalOpen(true);
+                            }}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <BookOpen size={11} /> Escolher do Catálogo
+                          </button>
+                        </div>
+                        <textarea
+                          rows={2}
+                          placeholder="Ex: Portas em vidro Reflecta Fumê 4mm com perfil de alumínio Slim preto fosco."
+                          value={currentContract.memorial.vidros || ""}
+                          onChange={e => setCurrentContract({
+                            ...currentContract,
+                            memorial: { ...currentContract.memorial, vidros: e.target.value }
+                          })}
+                          className="w-full bg-black/50 border border-amber-500/30 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      {/* PUXADORES */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-gray-300 font-bold text-xs">Puxadores</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetMaterialCategory("puxadores");
+                              setIsMaterialsModalOpen(true);
+                            }}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <BookOpen size={11} /> Escolher do Catálogo
+                          </button>
+                        </div>
                         <textarea
                           rows={2}
                           value={currentContract.memorial.puxadores}
@@ -1063,11 +1471,25 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                             ...currentContract,
                             memorial: { ...currentContract.memorial, puxadores: e.target.value }
                           })}
-                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
                         />
                       </div>
+
+                      {/* DOBRADIÇAS */}
                       <div>
-                        <label className="block text-gray-300 font-bold mb-1">Dobradiças e Sistemas de Giro</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-gray-300 font-bold text-xs">Dobradiças e Sistemas de Giro</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetMaterialCategory("dobradicas");
+                              setIsMaterialsModalOpen(true);
+                            }}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <BookOpen size={11} /> Escolher do Catálogo
+                          </button>
+                        </div>
                         <textarea
                           rows={2}
                           value={currentContract.memorial.dobradicas}
@@ -1075,11 +1497,25 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                             ...currentContract,
                             memorial: { ...currentContract.memorial, dobradicas: e.target.value }
                           })}
-                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
                         />
                       </div>
+
+                      {/* CORREDIÇAS */}
                       <div>
-                        <label className="block text-gray-300 font-bold mb-1">Corrediças</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-gray-300 font-bold text-xs">Corrediças</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetMaterialCategory("corredicas");
+                              setIsMaterialsModalOpen(true);
+                            }}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <BookOpen size={11} /> Escolher do Catálogo
+                          </button>
+                        </div>
                         <textarea
                           rows={2}
                           value={currentContract.memorial.corredicas}
@@ -1087,22 +1523,35 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                             ...currentContract,
                             memorial: { ...currentContract.memorial, corredicas: e.target.value }
                           })}
-                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
+                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-gray-300 font-bold mb-1">Itens Extras (ex: Iluminação LED, Cristaleira, etc.)</label>
-                      <input
-                        type="text"
-                        value={currentContract.memorial.itensExtras}
-                        onChange={e => setCurrentContract({
-                          ...currentContract,
-                          memorial: { ...currentContract.memorial, itensExtras: e.target.value }
-                        })}
-                        className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none"
-                      />
+                      {/* ITENS EXTRAS */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-gray-300 font-bold text-xs">Itens Extras (ex: Iluminação LED, etc.)</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetMaterialCategory("extras");
+                              setIsMaterialsModalOpen(true);
+                            }}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <BookOpen size={11} /> Escolher do Catálogo
+                          </button>
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={currentContract.memorial.itensExtras}
+                          onChange={e => setCurrentContract({
+                            ...currentContract,
+                            memorial: { ...currentContract.memorial, itensExtras: e.target.value }
+                          })}
+                          className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1369,14 +1818,18 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
                               <td className="p-2.5">{currentContract.memorial.tamponamentosMdf}</td>
                             </tr>
                             <tr className="border-b border-gray-300">
+                              <td className="p-2.5 font-bold border-r border-gray-300">Vidros & Perfis de Alumínio</td>
+                              <td className="p-2.5">{currentContract.memorial.vidros || "Não aplicável / Conforme projeto"}</td>
+                            </tr>
+                            <tr className="border-b border-gray-300 bg-gray-100">
                               <td className="p-2.5 font-bold border-r border-gray-300">Puxadores</td>
                               <td className="p-2.5">{currentContract.memorial.puxadores}</td>
                             </tr>
-                            <tr className="border-b border-gray-300 bg-gray-100">
+                            <tr className="border-b border-gray-300">
                               <td className="p-2.5 font-bold border-r border-gray-300">Dobradiças / Giro</td>
                               <td className="p-2.5">{currentContract.memorial.dobradicas}</td>
                             </tr>
-                            <tr className="border-b border-gray-300">
+                            <tr className="border-b border-gray-300 bg-gray-100">
                               <td className="p-2.5 font-bold border-r border-gray-300">Corrediças</td>
                               <td className="p-2.5">{currentContract.memorial.corredicas}</td>
                             </tr>
@@ -1514,6 +1967,30 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
           </div>
         </div>
       )}
+
+      {/* MODAL DE CATÁLOGO DE MATERIAIS, VIDROS E FERRAGENS */}
+      <CRMMateriaisModal
+        isOpen={isMaterialsModalOpen}
+        onClose={() => setIsMaterialsModalOpen(false)}
+        targetCategory={targetMaterialCategory}
+        onSelectMaterial={(category, description) => {
+          setCurrentContract(prev => {
+            const updatedMemorial = { ...prev.memorial };
+            if (category === "estrutura") updatedMemorial.estruturaMdf = description;
+            else if (category === "frentes") updatedMemorial.frentesMdf = description;
+            else if (category === "tamponamento") updatedMemorial.tamponamentosMdf = description;
+            else if (category === "vidros") updatedMemorial.vidros = description;
+            else if (category === "puxadores") updatedMemorial.puxadores = description;
+            else if (category === "dobradicas") updatedMemorial.dobradicas = description;
+            else if (category === "corredicas") updatedMemorial.corredicas = description;
+            else if (category === "extras") updatedMemorial.itensExtras = description;
+            return {
+              ...prev,
+              memorial: updatedMemorial
+            };
+          });
+        }}
+      />
     </div>
   );
 }

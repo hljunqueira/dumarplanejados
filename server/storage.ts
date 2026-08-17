@@ -1,18 +1,22 @@
 import { db } from "./db";
 import { 
-  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts,
+  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog,
   type User, type InsertUser, type Lead, type InsertLead, 
   type WhatsappTemplate, type InsertWhatsappTemplate, 
   type CalendarEventItem, type InsertCalendarEvent,
   type FinancialTransaction, type InsertFinancialTransaction,
-  type ContractItem, type InsertContract
+  type ContractItem, type InsertContract,
+  type MaterialCatalogItem, type InsertMaterialCatalog
 } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
+  getUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
+  deleteUser(id: number): Promise<boolean>;
 
   getLeads(): Promise<Lead[]>;
   getLead(id: number): Promise<Lead | undefined>;
@@ -32,6 +36,7 @@ export interface IStorage {
   getFinancialTransactions(): Promise<FinancialTransaction[]>;
   getFinancialTransaction(id: number): Promise<FinancialTransaction | undefined>;
   createFinancialTransaction(tx: InsertFinancialTransaction): Promise<FinancialTransaction>;
+  createRecurringTransactions(transactions: InsertFinancialTransaction[]): Promise<FinancialTransaction[]>;
   updateFinancialTransaction(id: number, updates: Partial<InsertFinancialTransaction>): Promise<FinancialTransaction>;
   deleteFinancialTransaction(id: number): Promise<boolean>;
 
@@ -40,9 +45,18 @@ export interface IStorage {
   createContract(contract: InsertContract): Promise<ContractItem>;
   updateContract(id: number, updates: Partial<InsertContract>): Promise<ContractItem>;
   deleteContract(id: number): Promise<boolean>;
+
+  getMaterialsCatalog(): Promise<MaterialCatalogItem[]>;
+  createMaterialItem(material: InsertMaterialCatalog): Promise<MaterialCatalogItem>;
+  updateMaterialItem(id: number, updates: Partial<InsertMaterialCatalog>): Promise<MaterialCatalogItem>;
+  deleteMaterialItem(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -56,6 +70,16 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    const [updated] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return updated;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getLeads(): Promise<Lead[]> {
@@ -131,6 +155,11 @@ export class DatabaseStorage implements IStorage {
     return tx;
   }
 
+  async createRecurringTransactions(transactions: InsertFinancialTransaction[]): Promise<FinancialTransaction[]> {
+    if (transactions.length === 0) return [];
+    return await db.insert(financialTransactions).values(transactions).returning();
+  }
+
   async updateFinancialTransaction(id: number, updates: Partial<InsertFinancialTransaction>): Promise<FinancialTransaction> {
     const [tx] = await db.update(financialTransactions).set(updates).where(eq(financialTransactions.id, id)).returning();
     if (!tx) throw new Error("Transação financeira não encontrada");
@@ -164,6 +193,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteContract(id: number): Promise<boolean> {
     const result = await db.delete(contracts).where(eq(contracts.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getMaterialsCatalog(): Promise<MaterialCatalogItem[]> {
+    return await db.select().from(materialsCatalog);
+  }
+
+  async createMaterialItem(material: InsertMaterialCatalog): Promise<MaterialCatalogItem> {
+    const [item] = await db.insert(materialsCatalog).values(material).returning();
+    return item;
+  }
+
+  async updateMaterialItem(id: number, updates: Partial<InsertMaterialCatalog>): Promise<MaterialCatalogItem> {
+    const [item] = await db.update(materialsCatalog).set(updates).where(eq(materialsCatalog.id, id)).returning();
+    if (!item) throw new Error("Material não encontrado");
+    return item;
+  }
+
+  async deleteMaterialItem(id: number): Promise<boolean> {
+    const result = await db.delete(materialsCatalog).where(eq(materialsCatalog.id, id)).returning();
     return result.length > 0;
   }
 }

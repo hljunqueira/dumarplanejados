@@ -6,13 +6,15 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  name: text("name").notNull().default(""),
+  email: text("email").default(""),
+  role: text("role").notNull().default("vendedor"), // 'admin' | 'gerente' | 'vendedor' | 'projetista' | 'financeiro' | 'montador' | 'custom'
+  permissions: text("permissions").default('["kanban", "agenda"]'), // JSON string array de seções permitidas
+  active: boolean("active").default(true),
+  createdAt: text("created_at").default(""),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
+export const insertUserSchema = createInsertSchema(users);
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -38,6 +40,8 @@ export const leads = pgTable("leads", {
   materials: text("materials").default("{}"),
   lastCustomerMessageAt: text("last_customer_message_at").default(""),
   aiPaused: boolean("ai_paused").default(false),
+  appointmentStatus: text("appointment_status").default("none"), // 'none' | 'pending_approval' | 'confirmed' | 'rejected'
+  appointmentDetails: text("appointment_details").default("{}"), // JSON string com detalhes de agendamento e estimativa
 });
 
 export const insertLeadSchema = createInsertSchema(leads);
@@ -83,6 +87,9 @@ export const financialTransactions = pgTable("financial_transactions", {
   paymentMethod: text("payment_method").default("PIX"),
   leadId: integer("lead_id"),
   notes: text("notes").default(""),
+  isRecurring: boolean("is_recurring").default(false),
+  recurrenceGroup: text("recurrence_group").default(""),
+  installmentIndex: integer("installment_index").default(1),
   createdAt: text("created_at").default(""),
 });
 
@@ -109,5 +116,18 @@ export const contracts = pgTable("contracts", {
 export const insertContractSchema = createInsertSchema(contracts);
 export type InsertContract = z.infer<typeof insertContractSchema>;
 export type ContractItem = typeof contracts.$inferSelect;
+
+export const materialsCatalog = pgTable("materials_catalog", {
+  id: serial("id").primaryKey(),
+  category: text("category").notNull(), // "estrutura" | "frentes" | "tamponamento" | "vidros" | "puxadores" | "dobradicas" | "corredicas" | "extras"
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  isDefault: boolean("is_default").default(false),
+  createdAt: text("created_at").default(""),
+});
+
+export const insertMaterialCatalogSchema = createInsertSchema(materialsCatalog);
+export type InsertMaterialCatalog = z.infer<typeof insertMaterialCatalogSchema>;
+export type MaterialCatalogItem = typeof materialsCatalog.$inferSelect;
 
 

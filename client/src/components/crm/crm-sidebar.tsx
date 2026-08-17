@@ -3,15 +3,25 @@ import { useLocation } from "wouter";
 import { 
   BarChart2, Users, Calendar as CalendarIcon, Settings, User, 
   LogOut, MessageSquare, FileText, X, ChevronLeft, ChevronRight,
-  PanelLeftClose, PanelLeftOpen, Bot
+  ShieldCheck, Bot
 } from "lucide-react";
 import logoDumar from "@/assets/logo1.jpeg";
+
+export interface CurrentUserType {
+  id?: number;
+  username: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  permissions?: string[];
+  active?: boolean;
+}
 
 interface CRMSidebarProps {
   activeSection: "dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro";
   setActiveSection?: (section: "dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro") => void;
   setIsAuthenticated: (val: boolean) => void;
-  currentUser: { username: string };
+  currentUser: CurrentUserType;
   isMobileOpen?: boolean;
   setIsMobileOpen?: (val: boolean) => void;
 }
@@ -37,7 +47,7 @@ export default function CRMSidebar({
     });
   };
 
-  const nameDisplay = currentUser?.username || "Administrador";
+  const nameDisplay = currentUser?.name || currentUser?.username || "Administrador";
   const firstLetter = nameDisplay.charAt(0).toUpperCase();
 
   const handleNavigate = (section: "dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro", path: string) => {
@@ -46,14 +56,26 @@ export default function CRMSidebar({
     if (setIsMobileOpen) setIsMobileOpen(false);
   };
 
-  const navItems = [
+  // Itens Globais do Sidebar
+  const allNavItems = [
     { id: "dashboard", label: "VISÃO GERAL", icon: BarChart2, path: "/crm/dashboard" },
     { id: "kanban", label: "FUNIL DE VENDAS", icon: Users, path: "/crm/funil" },
     { id: "agenda", label: "AGENDA DE MEDIÇÕES", icon: CalendarIcon, path: "/crm/agenda" },
     { id: "financeiro", label: "FINANCEIRO & CONTRATOS", icon: FileText, path: "/crm/financeiro" },
-    { id: "mensagens", label: "AUTOMAÇÃO & IA", icon: Bot, path: "/crm/mensagens" },
-    { id: "configuracoes", label: "CONEXÕES / WHATSAPP", icon: Settings, path: "/crm/conexoes" },
+    { id: "configuracoes", label: "CONFIGURAÇÕES & EQUIPE", icon: Settings, path: "/crm/configuracoes" },
   ];
+
+  // Filtragem RBAC Dinâmica
+  const userPermissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const isAdmin = currentUser?.role === "admin" || currentUser?.username === "admin" || currentUser?.username === "paulo@dumarplanejados.com.br";
+
+  const navItems = allNavItems.filter(item => {
+    if (isAdmin) return true;
+    if (item.id === "configuracoes") {
+      return userPermissions.includes("configuracoes") || userPermissions.includes("usuarios") || userPermissions.includes("mensagens");
+    }
+    return userPermissions.includes(item.id);
+  });
 
   return (
     <>
@@ -119,7 +141,7 @@ export default function CRMSidebar({
           <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activeSection === item.id;
+              const isActive = activeSection === item.id || (item.id === "configuracoes" && activeSection === "mensagens");
               return (
                 <button
                   key={item.id}
@@ -160,7 +182,7 @@ export default function CRMSidebar({
             {!isCollapsed && (
               <div className="overflow-hidden">
                 <p className="text-xs font-bold text-white truncate group-hover:text-amber-400 transition-colors">{nameDisplay}</p>
-                <p className="text-[10px] text-gray-400">Meu Perfil</p>
+                <p className="text-[10px] text-gray-400 capitalize">{currentUser?.role || "Administrador"}</p>
               </div>
             )}
           </button>
@@ -169,6 +191,7 @@ export default function CRMSidebar({
             onClick={() => {
               setIsAuthenticated(false);
               localStorage.removeItem("crm_username");
+              localStorage.removeItem("crm_user_data");
             }}
             title={isCollapsed ? "Sair do Portal" : undefined}
             className={`w-full flex items-center justify-center bg-white/5 hover:bg-red-500/10 hover:text-red-400 rounded-xl text-xs font-bold border border-white/10 hover:border-red-500/20 transition-all cursor-pointer ${
@@ -181,47 +204,24 @@ export default function CRMSidebar({
         </div>
       </aside>
 
-      {/* BOTTOM NAVIGATION BAR MOBILE (Fixo no rodapé em smartphones) */}
+      {/* BOTTOM NAVIGATION BAR MOBILE (Fixo no rodapé em smartphones com RBAC) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[90] bg-[#0c0c0c]/95 backdrop-blur-lg border-t border-white/10 px-2 py-1.5 flex items-center justify-around shadow-2xl">
-        <button
-          onClick={() => handleNavigate("dashboard", "/crm/dashboard")}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
-            activeSection === "dashboard" ? "text-amber-400 scale-105" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <BarChart2 size={18} />
-          <span>Início</span>
-        </button>
-
-        <button
-          onClick={() => handleNavigate("kanban", "/crm/funil")}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
-            activeSection === "kanban" ? "text-amber-400 scale-105" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Users size={18} />
-          <span>Funil</span>
-        </button>
-
-        <button
-          onClick={() => handleNavigate("agenda", "/crm/agenda")}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
-            activeSection === "agenda" ? "text-amber-400 scale-105" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <CalendarIcon size={18} />
-          <span>Agenda</span>
-        </button>
-
-        <button
-          onClick={() => handleNavigate("financeiro", "/crm/financeiro")}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
-            activeSection === "financeiro" ? "text-amber-400 scale-105" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <FileText size={18} />
-          <span>Caixa</span>
-        </button>
+        {navItems.slice(0, 4).map(item => {
+          const Icon = item.icon;
+          const isActive = activeSection === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNavigate(item.id as any, item.path)}
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
+                isActive ? "text-amber-400 scale-105" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Icon size={18} />
+              <span className="truncate max-w-[60px]">{item.label.split(" ")[0]}</span>
+            </button>
+          );
+        })}
       </nav>
     </>
   );

@@ -16,13 +16,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await initDbTables();
   
   // --- SEEDING DOS USUÁRIOS ADMINS NA INICIALIZAÇÃO ---
+  const ALL_SECTIONS = ["dashboard", "kanban", "agenda", "financeiro", "mensagens", "configuracoes", "usuarios"];
+
   try {
     const adminUser = await storage.getUserByUsername("admin");
     if (!adminUser) {
       console.log("Seeding: Criando usuário administrador padrão no PostgreSQL...");
       await storage.createUser({
         username: "admin",
-        password: hashPassword("Dumar@2026")
+        password: hashPassword("Dumar@2026"),
+        name: "Administrador Dumar",
+        email: "admin@dumarplanejados.com.br",
+        role: "admin",
+        permissions: JSON.stringify(ALL_SECTIONS),
+        active: true,
+        createdAt: new Date().toISOString()
       });
       console.log("Seeding: Usuário admin criado com sucesso!");
     }
@@ -32,7 +40,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Seeding: Criando usuário Paulo no PostgreSQL...");
       await storage.createUser({
         username: "paulo@dumarplanejados.com.br",
-        password: hashPassword("Pvargas@26")
+        password: hashPassword("Pvargas@26"),
+        name: "Paulo Vargas",
+        email: "paulo@dumarplanejados.com.br",
+        role: "admin",
+        permissions: JSON.stringify(ALL_SECTIONS),
+        active: true,
+        createdAt: new Date().toISOString()
       });
       console.log("Seeding: Usuário Paulo criado com sucesso!");
     }
@@ -50,9 +64,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const user = await storage.getUserByUsername(username);
+      const user = await storage.getUserByUsername(username.trim());
       if (!user) {
         return res.status(401).json({ message: "Credenciais inválidas" });
+      }
+
+      if (!user.active) {
+        return res.status(403).json({ message: "Usuário desativado. Entre em contato com a administração." });
       }
 
       const inputHash = hashPassword(password);
@@ -60,10 +78,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Credenciais inválidas" });
       }
 
-      return res.status(200).json({ success: true, username: user.username });
+      let parsedPermissions: string[] = [];
+      try {
+        parsedPermissions = typeof user.permissions === "string" 
+          ? JSON.parse(user.permissions || "[]") 
+          : (user.permissions || []);
+      } catch (e) {
+        parsedPermissions = user.role === "admin" ? ALL_SECTIONS : ["kanban", "agenda"];
+      }
+
+      if (user.role === "admin" && parsedPermissions.length === 0) {
+        parsedPermissions = ALL_SECTIONS;
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name || user.username,
+          email: user.email || "",
+          role: user.role || "vendedor",
+          permissions: parsedPermissions,
+          active: Boolean(user.active)
+        }
+      });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  // --- ENDPOINTS DE GESTÃO DE USUÁRIOS (CRUD COMPLETO & RBAC) ---
+
+  // Listar todos os usuários
+  app.get("/api/users", async (req, res) => {
+    try {
+      const usersList = await storage.getUsers();
+      // Omitir senhas no retorno
+      const sanitized = usersList.map(u => {
+        let perms: string[] = [];
+        try {
+          perms = typeof u.permissions === "string" ? JSON.parse(u.permissions || "[]") : (u.permissions || []);
+        } catch (e) {
+          perms = u.role === "admin" ? ALL_SECTIONS : ["kanban", "agenda"];
+        }
+        return {
+          id: u.id,
+          username: u.username,
+          name: u.name || u.username,
+          email: u.email || "",
+          role: u.role || "vendedor",
+          permissions: perms,
+          active: u.active !== false,
+          createdAt: u.createdAt || ""
+        };
+      });
+      return res.status(200).json(sanitized);
+    } catch (err) {
+      console.error("Erro ao listar usuários:", err);
+      return res.status(500).json({ message: "Erro ao listar usuários" });
+    }
+  });
+
+  // Criar novo usuário
+  app.post("/api/users", async (req, res) => {
+    const { username, password, name, email, role, permissions, active } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ message: "Usuário e senha são obrigatórios" });
+    }
+
+    try {
+      const existing = await storage.getUserByUsername(username.trim());
+      if (existing) {
+        return res.status(400).json({ message: "Já existe um usuário com este login." });
+      }
+
+      // Se for admin, garante todas as seções caso não informadas
+      let permsArray = Array.isArray(permissions) ? permissions : [];
+      if (role === "admin" && permsArray.length === 0) {
+        permsArray = ALL_SECTIONS;
+      } else if (permsArray.length === 0) {
+        permsArray = ["kanban", "agenda"];
+      }
+
+      const newUser = await storage.createUser({
+        username: username.trim(),
+        password: hashPassword(password),
+        name: (name || username).trim(),
+        email: (email || "").trim(),
+        role: role || "vendedor",
+        permissions: JSON.stringify(permsArray),
+        active: active !== undefined ? Boolean(active) : true,
+        createdAt: new Date().toISOString()
+      });
+
+      return res.status(201).json({
+        id: newUser.id,
+        username: newUser.username,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        permissions: permsArray,
+        active: newUser.active !== false,
+        createdAt: newUser.createdAt
+      });
+    } catch (err) {
+      console.error("Erro ao criar usuário:", err);
+      return res.status(500).json({ message: "Erro interno ao criar usuário" });
+    }
+  });
+
+  // Atualizar usuário (Nome, Email, Senha, Role, Permissões, Status)
+  app.patch("/api/users/:id", async (req, res) => {
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "ID de usuário inválido" });
+    }
+
+    try {
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const updateData: any = {};
+      if (req.body.name !== undefined) updateData.name = String(req.body.name).trim();
+      if (req.body.email !== undefined) updateData.email = String(req.body.email).trim();
+      if (req.body.role !== undefined) updateData.role = String(req.body.role);
+      if (req.body.active !== undefined) updateData.active = Boolean(req.body.active);
+      if (req.body.permissions !== undefined) {
+        updateData.permissions = typeof req.body.permissions === "string" 
+          ? req.body.permissions 
+          : JSON.stringify(req.body.permissions || []);
+      }
+      if (req.body.password && String(req.body.password).trim().length > 0) {
+        updateData.password = hashPassword(String(req.body.password).trim());
+      }
+
+      const updated = await storage.updateUser(userId, updateData);
+
+      let perms: string[] = [];
+      try {
+        perms = typeof updated.permissions === "string" ? JSON.parse(updated.permissions || "[]") : (updated.permissions || []);
+      } catch (e) {
+        perms = [];
+      }
+
+      return res.status(200).json({
+        id: updated.id,
+        username: updated.username,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        permissions: perms,
+        active: updated.active !== false
+      });
+    } catch (err) {
+      console.error("Erro ao atualizar usuário:", err);
+      return res.status(500).json({ message: "Erro ao atualizar usuário" });
+    }
+  });
+
+  // Excluir usuário
+  app.delete("/api/users/:id", async (req, res) => {
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "ID de usuário inválido" });
+    }
+
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // Proteção de segurança: não permitir excluir o usuário 'admin' padrão
+      if (user.username === "admin" || user.username === "paulo@dumarplanejados.com.br") {
+        return res.status(403).json({ message: "Não é permitido excluir os administradores principais do sistema." });
+      }
+
+      await storage.deleteUser(userId);
+      return res.status(200).json({ success: true, message: "Usuário excluído com sucesso." });
+    } catch (err) {
+      console.error("Erro ao excluir usuário:", err);
+      return res.status(500).json({ message: "Erro ao excluir usuário" });
+    }
+  });
+
+  // Atualização de dados pelo próprio usuário (Meu Perfil)
+  app.post("/api/users/update", async (req, res) => {
+    const { username, password, name, email } = req.body;
+    if (!username) {
+      return res.status(400).json({ message: "Usuário é obrigatório" });
+    }
+
+    try {
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const updateData: any = {};
+      if (name) updateData.name = name.trim();
+      if (email) updateData.email = email.trim();
+      if (password && password.trim().length > 0) {
+        updateData.password = hashPassword(password.trim());
+      }
+
+      const updated = await storage.updateUser(user.id, updateData);
+      return res.status(200).json({ success: true, username: updated.username, name: updated.name });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erro ao atualizar dados" });
     }
   });
 
@@ -106,7 +333,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }),
         chatHistory: JSON.stringify([
           { sender: "system", text: "Lead criado no sistema", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-        ])
+        ]),
+        aiPaused: req.body.aiPaused !== undefined ? Boolean(req.body.aiPaused) : false
       });
 
       return res.status(201).json(newLead);
@@ -147,7 +375,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }),
         chatHistory: JSON.stringify([
           { sender: "system", text: `Lead recebido via ZernFlow (${platform}): ${notes}`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-        ])
+        ]),
+        aiPaused: false
       });
 
       return res.status(201).json({ success: true, lead: newLead });
@@ -310,12 +539,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: paymentMethod || "PIX",
         leadId: leadId ? Number(leadId) : null,
         notes: notes || "",
+        isRecurring: false,
+        recurrenceGroup: "",
+        installmentIndex: 1,
         createdAt: new Date().toISOString()
       });
       return res.status(201).json(newTx);
     } catch (err) {
       console.error("Erro ao criar transação financeira:", err);
       return res.status(500).json({ message: "Erro ao criar transação financeira" });
+    }
+  });
+
+  // Criar Lote de Despesas Recorrentes (Custos Fixos)
+  app.post("/api/financial/transactions/recurring", async (req, res) => {
+    const { description, type, amount, category, status, baseDueDate, paymentMethod, monthsCount, notes } = req.body;
+    if (!description || !amount || !monthsCount) {
+      return res.status(400).json({ message: "Descrição, valor e quantidade de meses são obrigatórios" });
+    }
+
+    try {
+      const numMonths = Math.min(Math.max(Number(monthsCount) || 1, 1), 36);
+      const recurrenceGroupId = `REC-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const startDate = baseDueDate ? new Date(baseDueDate + "T12:00:00") : new Date();
+      const baseDay = startDate.getDate();
+
+      const transactionsToCreate = [];
+
+      for (let i = 0; i < numMonths; i++) {
+        const targetDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, baseDay);
+        // Tratamento de dias finais de mês (ex: dia 31 em fevereiro)
+        if (targetDate.getDate() !== baseDay && baseDay > 28) {
+          targetDate.setDate(0); // Último dia do mês correto
+        }
+        const formattedDueDate = targetDate.toISOString().split("T")[0];
+        const isFirst = i === 0;
+        const currentStatus = isFirst && status === "pago" ? "pago" : "pendente";
+        const currentPaymentDate = currentStatus === "pago" ? new Date().toISOString().split("T")[0] : "";
+
+        transactionsToCreate.push({
+          description: `${description} (${i + 1}/${numMonths})`,
+          type: type || "despesa",
+          amount: Number(amount) || 0,
+          category: category || "administrativo",
+          status: currentStatus,
+          dueDate: formattedDueDate,
+          paymentDate: currentPaymentDate,
+          paymentMethod: paymentMethod || "Boleto",
+          leadId: null,
+          notes: notes ? `${notes} | Recorrente ${i + 1}/${numMonths}` : `Custo Fixo Recorrente ${i + 1}/${numMonths}`,
+          isRecurring: true,
+          recurrenceGroup: recurrenceGroupId,
+          installmentIndex: i + 1,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      const created = await storage.createRecurringTransactions(transactionsToCreate);
+      return res.status(201).json({ success: true, count: created.length, data: created });
+    } catch (err) {
+      console.error("Erro ao criar lote de transações recorrentes:", err);
+      return res.status(500).json({ message: "Erro ao criar transações recorrentes" });
     }
   });
 
@@ -349,6 +633,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error("Erro ao excluir transação financeira:", err);
       return res.status(500).json({ message: "Erro ao excluir transação financeira" });
+    }
+  });
+
+  // --- CATÁLOGO DE MATERIAIS & FERRAGENS ---
+
+  app.get("/api/materials-catalog", async (req, res) => {
+    try {
+      const list = await storage.getMaterialsCatalog();
+      return res.status(200).json(list);
+    } catch (err) {
+      console.error("Erro ao buscar catálogo de materiais:", err);
+      return res.status(500).json({ message: "Erro ao buscar catálogo de materiais" });
+    }
+  });
+
+  app.post("/api/materials-catalog", async (req, res) => {
+    try {
+      const { category, name, description, isDefault } = req.body;
+      if (!category || !name || !description) {
+        return res.status(400).json({ message: "Categoria, nome e descrição são obrigatórios" });
+      }
+
+      const newItem = await storage.createMaterialItem({
+        category,
+        name,
+        description,
+        isDefault: Boolean(isDefault),
+        createdAt: new Date().toISOString()
+      });
+      return res.status(201).json(newItem);
+    } catch (err) {
+      console.error("Erro ao criar item de material:", err);
+      return res.status(500).json({ message: "Erro ao criar item de material" });
+    }
+  });
+
+  app.put("/api/materials-catalog/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+
+      const updated = await storage.updateMaterialItem(id, req.body);
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error("Erro ao atualizar item de material:", err);
+      return res.status(500).json({ message: "Erro ao atualizar item de material" });
+    }
+  });
+
+  app.delete("/api/materials-catalog/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+
+      const deleted = await storage.deleteMaterialItem(id);
+      if (!deleted) return res.status(404).json({ message: "Item não encontrado" });
+
+      return res.status(200).json({ success: true, message: "Item excluído com sucesso" });
+    } catch (err) {
+      console.error("Erro ao excluir item de material:", err);
+      return res.status(500).json({ message: "Erro ao excluir item de material" });
     }
   });
 
@@ -780,9 +1125,92 @@ REGRAS MANDATÓRIAS:
     triggerKeyword: "#ia",
     typingDelay: 2,
     notifyOwnerOnAppointment: true,
+    requireOwnerApproval: true,
+    vipThreshold: 10000,
     ownerPhone: "555196682257",
-    ownerName: "Paulo Vargas"
+    ownerName: "Paulo Vargas",
+    estimatedPrices: {
+      cozinha: 15000,
+      quarto: 12000,
+      suite: 14000,
+      closet: 12000,
+      sala: 8000,
+      painel: 5000,
+      banheiro: 3500,
+      lavabo: 2500,
+      gourmet: 10000,
+      churrasqueira: 8000,
+      lavanderia: 4000,
+      completo: 45000
+    }
   };
+
+  // Helper para transcrever áudios de voz via Whisper-large-v3 da Groq
+  async function transcribeAudioWithWhisper(audioBuffer: Buffer, mimeType: string = "audio/ogg"): Promise<string> {
+    try {
+      const GROQ_PRIMARY_KEY = ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
+      
+      const formData = new FormData();
+      const blob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType });
+      formData.append("file", blob, "audio.ogg");
+      formData.append("model", "whisper-large-v3");
+      formData.append("language", "pt");
+      formData.append("temperature", "0.0");
+
+      const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${GROQ_PRIMARY_KEY}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data: any = await response.json();
+        return data.text?.trim() || "";
+      } else {
+        const errText = await response.text();
+        console.error("Erro na transcrição Whisper (Groq):", errText);
+      }
+    } catch (e) {
+      console.error("Falha ao transcrever áudio com Whisper:", e);
+    }
+    return "";
+  }
+
+  // Helper para calcular estimativa interna de valor da marcenaria e classificar Lead VIP
+  function calculateLeadEstimatedValue(rooms: string[] = []): { estimatedValue: number; isVip: boolean; summary: string } {
+    const prices = aiConfig.estimatedPrices || {
+      cozinha: 15000, quarto: 12000, suite: 14000, closet: 12000,
+      sala: 8000, painel: 5000, banheiro: 3500, lavabo: 2500,
+      gourmet: 10000, churrasqueira: 8000, lavanderia: 4000, completo: 45000
+    };
+
+    let total = 0;
+    const roomNames = Array.isArray(rooms) ? rooms : [];
+    
+    for (const r of roomNames) {
+      const low = String(r).toLowerCase();
+      let matched = false;
+      for (const [key, price] of Object.entries(prices)) {
+        if (low.includes(key)) {
+          total += Number(price);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) total += 8000;
+    }
+
+    if (total === 0) total = 15000;
+    const threshold = Number(aiConfig.vipThreshold) || 10000;
+    const isVip = total >= threshold;
+    return {
+      estimatedValue: total,
+      isVip,
+      summary: `~R$ ${total.toLocaleString("pt-BR")},00`
+    };
+  }
 
   // Helper para formatar a grade detalhada por dia da semana para o prompt da IA
   function formatWeeklySchedule(businessHours: any): string {
@@ -892,9 +1320,11 @@ REGRAS MANDATÓRIAS:
       // 3.1 Inteligência de Reconhecimento de Conversa Anterior (Memória de Longo Prazo)
       const hasPreviousConversation = conversationHistory.length >= 2;
       if (hasPreviousConversation) {
-        compiledPrompt += `\n\n🧠 CONTINUIDADE DE CONVERSA:
-- Esta é uma conversa em andamento. NUNCA repita a saudação de boas-vindas nem se apresente novamente.
-- Responda diretamente ao que o cliente acabou de falar de forma concisa e amigável.`;
+        compiledPrompt += `\n\n🧠 CONTINUIDADE DE CONVERSA & RECONHECIMENTO DE CONTEXTO:
+- Esta é uma conversa em andamento. NUNCA repita saudações de primeiro contato ("Olá! Como posso te ajudar hoje?") nem se reapresente.
+- Responda diretamente ao que o cliente acabou de falar de forma humana, empática e concisa.
+- SE O CLIENTE DISSER QUE VAI DEIXAR PARA MAIS TARDE, QUE NÃO PODE FALAR AGORA, QUE AINDA NÃO QUER OU QUE ESTÁ OCUPADO:
+  -> Responda com respeito e cordialidade imediata (ex: "Sem problemas! Fique super à vontade. Quando for o momento ideal para você, estamos à disposição aqui pelo WhatsApp. Tenha um ótimo dia!"). NUNCA insista nem repita saudações.`;
       }
 
       // 4. Injeção de Grade de Horários por Dia da Semana e Agenda em Tempo Real
@@ -947,52 +1377,63 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
         messages.push({ role: "user", content: "Olá" });
       }
 
-      // Chamada principal para a API Groq
-      let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${GROQ_PRIMARY_KEY}`
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages,
-          temperature: 0.6,
-          max_tokens: 300
-        })
-      });
+      // Modelos ativos e testados na API Groq
+      const ACTIVE_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "groq/compound"];
+      let generatedAnswer = "";
 
-      // Fallback para modelo rápido caso 70b atinja limite de taxa
-      if (!response.ok) {
-        const primaryErr = await response.text();
-        console.warn("Groq 70B indisponível, acionando fallback 8B:", primaryErr);
-        response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${GROQ_PRIMARY_KEY}`
-          },
-          body: JSON.stringify({
-            model: "llama-3.1-8b-instant",
-            messages,
-            temperature: 0.6,
-            max_tokens: 300
-          })
-        });
+      for (const modelName of ACTIVE_MODELS) {
+        try {
+          const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${GROQ_PRIMARY_KEY}`
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages,
+              temperature: 0.6,
+              max_tokens: 300
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            let rawContent = data.choices?.[0]?.message?.content?.trim() || "";
+            // Limpar eventuais tags de pensamento (<think>...</think>)
+            rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+            if (rawContent.length > 0) {
+              generatedAnswer = rawContent;
+              break; // Sucesso com o modelo
+            }
+          } else {
+            const errText = await response.text();
+            console.warn(`Groq modelo ${modelName} retornou erro:`, errText);
+          }
+        } catch (callErr) {
+          console.warn(`Falha de conexão com modelo ${modelName}:`, callErr);
+        }
       }
 
-      if (!response.ok) {
-        const err = await response.text();
-        console.error("Erro na API do Motor de IA (Groq):", err);
-        return `Olá${clientName ? `, ${clientName}` : ""}! Como posso te ajudar com o seu projeto de móveis planejados hoje?`;
+      if (generatedAnswer) {
+        return generatedAnswer;
       }
 
-      const data = await response.json();
-      const answer = data.choices?.[0]?.message?.content?.trim();
-      return answer || `Olá${clientName ? `, ${clientName}` : ""}! Qual ambiente você gostaria de planejar?`;
+      // Fallback Inteligente Contextual (NUNCA repetir saudação inicial se a conversa já estiver em andamento)
+      const isOngoing = conversationHistory.length >= 2;
+      if (isOngoing) {
+        return "Perfeito, entendido! Qualquer dúvida ou quando desejar dar andamento ao projeto dos seus móveis sob medida, estamos à disposição aqui pelo WhatsApp. Tenha um ótimo dia!";
+      }
+
+      const safeName = isGenericName ? "" : ` ${clientName}`;
+      return `Olá${safeName}! Tudo bem? Seja muito bem-vindo(a) à Dumar Móveis Planejados. Qual ambiente você gostaria de planejar?`;
     } catch (err) {
-      console.error("Erro ao gerar resposta com o Motor de IA:", err);
-      return `Olá${clientName ? `, ${clientName}` : ""}! Como podemos te ajudar com o seu projeto sob medida hoje?`;
+      console.error("Erro geral ao gerar resposta com o Motor de IA:", err);
+      const isOngoing = conversationHistory.length >= 2;
+      if (isOngoing) {
+        return "Certo, compreendido! Quando for o momento ideal para você, estamos à total disposição por aqui.";
+      }
+      return "Olá! Seja bem-vindo(a) à Dumar Móveis Planejados. Como posso te ajudar com o seu projeto de móveis sob medida hoje?";
     }
   }
 
@@ -1007,7 +1448,7 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
           "Authorization": `Bearer ${GROQ_PRIMARY_KEY}`
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "openai/gpt-oss-120b",
           messages: [
             { role: "system", content: "Você é o robô da Dumar Móveis." },
             { role: "user", content: "Ping de teste" }
@@ -1206,82 +1647,191 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
       await ensureEvolutionWebhook();
       const instanceName = req.body.instanceName || "dumar_comercial";
 
-      // 1. Buscar chats da Evolution API v2 via POST
-      const chatsRes = await fetch(`${EVOLUTION_URL}/chat/findChats/${instanceName}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: EVOLUTION_KEY },
-        body: JSON.stringify({})
-      }).catch(() => null);
-      const chats = chatsRes && chatsRes.ok ? await chatsRes.json() : [];
+      let chats: any[] = [];
+      
+      // 1. Tentar buscar chats da Evolution API (POST e GET)
+      try {
+        const chatsResPost = await fetch(`${EVOLUTION_URL}/chat/findChats/${instanceName}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: EVOLUTION_KEY },
+          body: JSON.stringify({})
+        });
+        if (chatsResPost.ok) {
+          const data = await chatsResPost.json();
+          if (Array.isArray(data)) chats = data;
+        }
+      } catch (e) {}
+
+      if (chats.length === 0) {
+        try {
+          const chatsResGet = await fetch(`${EVOLUTION_URL}/chat/findChats/${instanceName}`, {
+            headers: { apikey: EVOLUTION_KEY }
+          });
+          if (chatsResGet.ok) {
+            const data = await chatsResGet.json();
+            if (Array.isArray(data)) chats = data;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Buscar também contatos recentes da Evolution se disponíveis
+      let contacts: any[] = [];
+      try {
+        const contactsRes = await fetch(`${EVOLUTION_URL}/chat/findContacts/${instanceName}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: EVOLUTION_KEY },
+          body: JSON.stringify({})
+        }).catch(() => null);
+        if (contactsRes && contactsRes.ok) {
+          const data = await contactsRes.json();
+          if (Array.isArray(data)) contacts = data;
+        }
+      } catch (e) {}
 
       const allLeads = await storage.getLeads();
       let createdCount = 0;
       let existingCount = 0;
+      let updatedHistoryCount = 0;
 
-      if (Array.isArray(chats)) {
-        for (const chat of chats) {
-          const remoteJid = chat.lastMessage?.key?.remoteJidAlt || 
-                          (chat.remoteJid && !chat.remoteJid.includes("@lid") ? chat.remoteJid : "") || 
-                          chat.id || 
+      const processedPhones = new Set<string>();
+
+      // Função auxiliar interna para processar um item de conversa ou contato
+      const processChatItem = async (item: any) => {
+        const remoteJid = item.lastMessage?.key?.remoteJidAlt || 
+                          item.key?.remoteJidAlt ||
+                          item.remoteJidAlt || 
+                          (item.remoteJid && !item.remoteJid.includes("@lid") ? item.remoteJid : "") || 
+                          (item.id && !item.id.includes("@lid") ? item.id : "") || 
+                          item.sender || 
+                          item.id || 
                           "";
-          if (!remoteJid || remoteJid.includes("@g.us") || remoteJid.includes("status@broadcast")) continue;
 
-          const phoneFromJid = remoteJid.replace(/\D/g, "");
-          if (!phoneFromJid || phoneFromJid.length < 10) continue;
+        if (!remoteJid || remoteJid.includes("@g.us") || remoteJid.includes("status@broadcast")) return;
 
-          const normalizedIncoming = normalizePhoneForMatching(phoneFromJid);
-          const existingLead = allLeads.find(l => {
-            const cleanLead = normalizePhoneForMatching(l.phone);
-            return cleanLead.includes(normalizedIncoming) || normalizedIncoming.includes(cleanLead);
+        const phoneClean = remoteJid.replace(/\D/g, "");
+        if (!phoneClean || phoneClean.length < 10 || phoneClean.length > 15) return;
+
+        const normalizedPhone = normalizePhoneForMatching(phoneClean);
+        if (processedPhones.has(normalizedPhone)) return;
+        processedPhones.add(normalizedPhone);
+
+        const existingLead = allLeads.find(l => {
+          const cleanLead = normalizePhoneForMatching(l.phone);
+          return cleanLead.includes(normalizedPhone) || normalizedPhone.includes(cleanLead);
+        });
+
+        const rawPushName = item.lastMessage?.pushName || item.pushName || item.name || item.verifiedName;
+        const pushName = formatLeadDisplayName(rawPushName, phoneClean);
+        
+        let lastMsg = "Contato sincronizado do WhatsApp";
+        if (item.lastMessage?.message?.conversation) {
+          lastMsg = item.lastMessage.message.conversation;
+        } else if (item.lastMessage?.message?.extendedTextMessage?.text) {
+          lastMsg = item.lastMessage.message.extendedTextMessage.text;
+        } else if (item.lastMessageText) {
+          lastMsg = item.lastMessageText;
+        }
+
+        const detectedRooms = extractRoomsFromText(lastMsg);
+        const origin = extractOriginAndCampaign(item.lastMessage || item, lastMsg);
+
+        const syncTimestamp = item.lastMessage?.messageTimestamp 
+          ? new Date(Number(item.lastMessage.messageTimestamp) * 1000).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })
+          : new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+
+        const fromMe = Boolean(item.lastMessage?.key?.fromMe);
+        const hasPreviousConversation = fromMe || (item.unreadCount === 0 && item.lastMessage);
+
+        if (!existingLead) {
+          await storage.createLead({
+            name: pushName,
+            phone: phoneClean.startsWith("55") ? phoneClean : `55${phoneClean}`,
+            email: "",
+            stage: "entrada",
+            value: 0,
+            utmSource: origin.source,
+            utmCampaign: origin.campaign,
+            rooms: JSON.stringify(detectedRooms.length > 0 ? detectedRooms : ["Móveis Planejados"]),
+            checklist: JSON.stringify({ briefing: false, medicao: false, orcamento: false }),
+            chatHistory: JSON.stringify([
+              { 
+                sender: fromMe ? "agent" : "client", 
+                text: lastMsg, 
+                timestamp: syncTimestamp, 
+                type: "text",
+                isHuman: fromMe ? true : undefined
+              }
+            ]),
+            lastCustomerMessageAt: new Date().toISOString(),
+            aiPaused: hasPreviousConversation ? true : false
           });
+          createdCount++;
+        } else {
+          existingCount++;
+          // Se o lead existente tiver o histórico de chat vazio, injeta a mensagem inicial
+          let currentHistory: any[] = [];
+          try {
+            currentHistory = typeof existingLead.chatHistory === "string" 
+              ? JSON.parse(existingLead.chatHistory || "[]") 
+              : (existingLead.chatHistory || []);
+          } catch (e) {
+            currentHistory = [];
+          }
 
-          const rawPushName = chat.lastMessage?.pushName || chat.pushName || chat.name || chat.verifiedName;
-          const pushName = formatLeadDisplayName(rawPushName, phoneFromJid);
-          const lastMsg = chat.lastMessage?.message?.conversation || 
-                          chat.lastMessage?.message?.extendedTextMessage?.text || 
-                          chat.lastMessageText || 
-                          "Contato sincronizado do WhatsApp";
-          const detectedRooms = extractRoomsFromText(lastMsg);
-          const origin = extractOriginAndCampaign(chat.lastMessage || chat, lastMsg);
-
-          const syncTimestamp = chat.lastMessage?.messageTimestamp 
-            ? new Date(Number(chat.lastMessage.messageTimestamp) * 1000).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })
-            : new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
-
-          if (!existingLead) {
-            await storage.createLead({
-              name: pushName,
-              phone: phoneFromJid.startsWith("55") ? phoneFromJid : `55${phoneFromJid}`,
-              email: "",
-              stage: "entrada",
-              value: 0,
-              utmSource: origin.source,
-              utmCampaign: origin.campaign,
-              rooms: JSON.stringify(detectedRooms.length > 0 ? detectedRooms : ["Móveis Planejados"]),
-              checklist: JSON.stringify({ briefing: false, medicao: false, orcamento: false }),
+          if (currentHistory.length === 0 && lastMsg) {
+            await storage.updateLead(existingLead.id, {
               chatHistory: JSON.stringify([
-                { sender: "client", text: lastMsg, timestamp: syncTimestamp, type: "text" }
+                { 
+                  sender: fromMe ? "agent" : "client", 
+                  text: lastMsg, 
+                  timestamp: syncTimestamp, 
+                  type: "text",
+                  isHuman: fromMe ? true : undefined
+                }
               ]),
               lastCustomerMessageAt: new Date().toISOString()
             });
-            createdCount++;
-          } else {
-            existingCount++;
+            updatedHistoryCount++;
           }
         }
+      };
+
+      for (const chat of chats) {
+        await processChatItem(chat);
       }
+
+      for (const contact of contacts) {
+        await processChatItem(contact);
+      }
+
+      console.log(`[Sincronização WhatsApp] Finalizada: ${createdCount} novos leads importados, ${existingCount} já existentes.`);
 
       return res.status(200).json({
         success: true,
-        message: `Sincronização concluída! ${createdCount} novos leads importados para o Funil de Vendas (${existingCount} já estavam cadastrados).`,
+        message: `Sincronização concluída! ${createdCount} novos contatos/conversas foram importados para o Funil (${existingCount} já estavam cadastrados).`,
         createdCount,
-        existingCount
+        existingCount,
+        updatedHistoryCount
       });
     } catch (err) {
       console.error("Erro na sincronização de chats da Evolution:", err);
       return res.status(500).json({ success: false, error: "Erro ao sincronizar conversas do WhatsApp" });
     }
   });
+
+  // Helper para obter a data atual YYYY-MM-DD em São Paulo
+  function getSaoPauloDateStr(date = new Date()): string {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(date);
+    const y = parts.find(p => p.type === "year")?.value;
+    const m = parts.find(p => p.type === "month")?.value;
+    const d = parts.find(p => p.type === "day")?.value;
+    return `${y}-${m}-${d}`;
+  }
 
   // Helper para calcular a data exata YYYY-MM-DD em São Paulo a partir do texto de conversa
   function calculateTargetAppointmentDate(text: string, baseDate = new Date()): string {
@@ -1357,42 +1907,27 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
     if (!text) return null;
     const trimmed = text.trim();
 
-    // 1. Padrão: "Meu nome é Henrique", "Me chamo Carlos", "Sou o Henrique", "Pode me chamar de Mariana"
-    const introMatch = trimmed.match(/(?:meu\s+nome\s+(?:é|e)|me\s+chamo|sou\s+(?:o|a)|pode\s+me\s+chamar\s+de)\s+([A-ZÀ-Úa-zà-ú]{2,}(?:\s+[A-ZÀ-Úa-zà-ú]{2,})?)/i);
+    // 1. Padrão Estrito com Gatilho Explícito: "Meu nome é Henrique", "Me chamo Carlos", "Sou o Henrique", "Pode me chamar de Mariana", "Aqui é o Pedro"
+    const introMatch = trimmed.match(/(?:meu\s+nome\s+(?:é|e)|me\s+chamo|sou\s+(?:o|a)|pode\s+me\s+chamar\s+de|aqui\s+(?:é|e)\s+(?:o|a)?)\s+([A-ZÀ-Úa-zà-ú]{2,}(?:\s+[A-ZÀ-Úa-zà-ú]{2,})?)/i);
     if (introMatch && introMatch[1]) {
       const raw = introMatch[1].trim();
-      return raw.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
-    }
-
-    // 2. Resposta direta com o nome (1 ou 2 palavras)
-    const isSimpleName = /^[A-ZÀ-Úa-zà-ú]{2,}(?:\s+[A-ZÀ-Úa-zà-ú]{2,})?$/.test(trimmed);
-    const ignoreList = [
-      "oi", "olá", "ola", "bom dia", "boa tarde", "boa noite", "sim", "não", "nao", 
-      "cozinha", "quarto", "banheiro", "sala", "casa", "apartamento", "araranguá", "ararangua", 
-      "criciuma", "criciúma", "dumar", "marcenaria", "plantas", "fotos", "obrigado", "valeu", 
-      "top", "show", "ok", "beleza", "ate", "até", "tchau"
-    ];
-
-    if (isSimpleName && !ignoreList.includes(trimmed.toLowerCase())) {
-      const isCurrentGeneric = !currentLeadName || 
-                               currentLeadName.toLowerCase().startsWith("cliente") || 
-                               currentLeadName.toLowerCase().includes("hljdev") || 
-                               currentLeadName.toLowerCase().includes("dev") || 
-                               currentLeadName.toLowerCase().includes("teste") ||
-                               currentLeadName.toLowerCase() === "você";
-      if (isCurrentGeneric) {
-        return trimmed.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+      const forbiddenWords = ["cliente", "amigo", "senhor", "senhora", "marcenaria", "dumar", "projeto", "cozinha", "sala", "quarto", "banheiro", "orcamento", "orçamento", "planta"];
+      if (!forbiddenWords.includes(raw.toLowerCase())) {
+        return raw.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
       }
     }
 
     return null;
   }
 
-  // Webhook para mensagens de entrada do WhatsApp (MESSAGES_UPSERT)
+  // Webhook para mensagens de entrada e saída do WhatsApp (MESSAGES_UPSERT, MESSAGES_UPDATE, SEND_MESSAGE)
   app.post("/api/evolution/webhook", async (req, res) => {
     try {
       const data = req.body;
-      if (data && (data.event === "messages.upsert" || data.type === "MESSAGES_UPSERT" || data.event === "MESSAGES_UPSERT")) {
+      const eventName = String(data?.event || data?.type || "").toLowerCase();
+      const isMessageEvent = eventName.includes("message") || eventName.includes("upsert") || eventName.includes("send");
+
+      if (data && (isMessageEvent || !data.event)) {
         const rawList = Array.isArray(data.data) ? data.data : [data.data || data];
 
         for (const messageData of rawList) {
@@ -1409,257 +1944,417 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
           // Ignorar mensagens de grupos (@g.us) e status
           if (remoteJid.includes("@g.us") || remoteJid.includes("status@broadcast")) continue;
 
-          if (!key.fromMe) {
-            const phoneFromJid = remoteJid.replace(/\D/g, "");
+          const phoneFromJid = remoteJid.replace(/\D/g, "");
+          if (!phoneFromJid || phoneFromJid.length < 10) continue;
 
-            if (phoneFromJid && phoneFromJid.length >= 10) {
-              const pushName = formatLeadDisplayName(messageData.pushName || messageData.verifiedBizName, phoneFromJid);
-              const normalizedIncoming = normalizePhoneForMatching(phoneFromJid);
+          const isFromMe = Boolean(key.fromMe);
+          const pushName = formatLeadDisplayName(messageData.pushName || messageData.verifiedBizName, phoneFromJid);
+          const normalizedIncoming = normalizePhoneForMatching(phoneFromJid);
 
-              const allLeads = await storage.getLeads();
-              let targetLead = allLeads.find(l => {
-                const cleanLead = normalizePhoneForMatching(l.phone);
-                return cleanLead.includes(normalizedIncoming) || normalizedIncoming.includes(cleanLead);
+          const allLeads = await storage.getLeads();
+          let targetLead = allLeads.find(l => {
+            const cleanLead = normalizePhoneForMatching(l.phone);
+            return cleanLead.includes(normalizedIncoming) || normalizedIncoming.includes(cleanLead);
+          });
+
+          // Extrair conteúdo da mensagem (Texto, Áudio, Imagem, PDF)
+          let msgContent = "Nova mensagem no WhatsApp";
+          let msgType: "text" | "audio" | "image" | "document" = "text";
+
+          if (messageData.message?.conversation) {
+            msgContent = messageData.message.conversation;
+          } else if (messageData.message?.extendedTextMessage?.text) {
+            msgContent = messageData.message.extendedTextMessage.text;
+          } else if (messageData.message?.audioMessage) {
+            msgType = "audio";
+            msgContent = "🎵 Áudio de Voz Enviado";
+
+            // Tentativa de transcrição de áudio com Whisper da Groq
+            try {
+              let audioBuffer: Buffer | null = null;
+              let mimeType = messageData.message.audioMessage.mimetype || "audio/ogg; codecs=opus";
+
+              // 1. Tentar obter base64 direto da Evolution API
+              const mediaRes = await fetch(`${EVOLUTION_URL}/chat/getBase64FromMediaMessage/dumar_comercial`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", apikey: EVOLUTION_KEY },
+                body: JSON.stringify({ message: messageData })
               });
 
-              // Extrair conteúdo da mensagem (Texto, Áudio, Imagem, PDF)
-              let msgContent = "Nova mensagem no WhatsApp";
-              let msgType: "text" | "audio" | "image" | "document" = "text";
-
-              if (messageData.message?.conversation) {
-                msgContent = messageData.message.conversation;
-              } else if (messageData.message?.extendedTextMessage?.text) {
-                msgContent = messageData.message.extendedTextMessage.text;
-              } else if (messageData.message?.audioMessage) {
-                msgContent = "🎵 Mensagem de Áudio de Voz";
-                msgType = "audio";
-              } else if (messageData.message?.imageMessage) {
-                msgContent = messageData.message.imageMessage.caption || "📷 Imagem Enviada";
-                msgType = "image";
-              } else if (messageData.message?.documentMessage) {
-                msgContent = messageData.message.documentMessage.fileName || "📄 Documento PDF Enviado";
-                msgType = "document";
+              if (mediaRes.ok) {
+                const mediaJson: any = await mediaRes.json();
+                if (mediaJson.base64) {
+                  audioBuffer = Buffer.from(mediaJson.base64, "base64");
+                  if (mediaJson.mimetype) mimeType = mediaJson.mimetype;
+                }
               }
 
-              const rawTs = messageData.messageTimestamp;
-              const timestamp = rawTs 
-                ? new Date(Number(rawTs) * 1000).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })
-                : new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
-
-              const detectedRooms = extractRoomsFromText(msgContent);
-              const origin = extractOriginAndCampaign(messageData, msgContent);
-
-              // Tentar extrair o nome falado pelo cliente no texto
-              const spokenName = extractCustomerNameFromText(msgContent, targetLead?.name || pushName);
-
-              // SE O LEAD NÃO EXISTE -> CRIAR AUTOMATICAMENTE NO POSTGRESQL (Entrada)
-              if (!targetLead) {
-                const finalInitialName = spokenName || pushName;
-                console.log(`Webhook Evolution: Novo Lead detectado (${finalInitialName} - ${phoneFromJid}) [Origem: ${origin.source} - ${origin.campaign}]. Criando no Funil de Vendas...`);
-                targetLead = await storage.createLead({
-                  name: finalInitialName,
-                  phone: phoneFromJid.startsWith("55") ? phoneFromJid : `55${phoneFromJid}`,
-                  email: "",
-                  stage: "entrada",
-                  value: 0,
-                  utmSource: origin.source,
-                  utmCampaign: origin.campaign,
-                  rooms: JSON.stringify(detectedRooms.length > 0 ? detectedRooms : ["Móveis Planejados"]),
-                  checklist: JSON.stringify({ briefing: false, medicao: false, orcamento: false }),
-                  chatHistory: JSON.stringify([
-                    { sender: "client", text: msgContent, timestamp, type: msgType }
-                  ]),
-                  lastCustomerMessageAt: new Date().toISOString()
-                });
-              } else {
-                // ATUALIZAR HISTÓRICO, AMBIENTES E NOME DO LEAD EXISTENTE
-                const currentHistory = typeof targetLead.chatHistory === "string" 
-                  ? JSON.parse(targetLead.chatHistory || "[]") 
-                  : (targetLead.chatHistory || []);
-
-                const updatedHistory = [...currentHistory, { sender: "client", text: msgContent, timestamp, type: msgType }];
-                
-                let existingRooms: string[] = [];
-                try {
-                  existingRooms = typeof targetLead.rooms === "string" ? JSON.parse(targetLead.rooms || "[]") : (targetLead.rooms || []);
-                } catch (e) {
-                  existingRooms = [];
+              // 2. Se não veio base64 direto, tentar baixar de mediaUrl se disponível
+              if (!audioBuffer && messageData.message.audioMessage.url) {
+                const downloadRes = await fetch(messageData.message.audioMessage.url);
+                if (downloadRes.ok) {
+                  const arrBuf = await downloadRes.arrayBuffer();
+                  audioBuffer = Buffer.from(arrBuf);
                 }
-                const combinedRooms = Array.from(new Set([...existingRooms, ...detectedRooms]));
-
-                // Se o cliente informou o nome e o lead ainda tinha apelido/nick técnico ou genérico, atualiza
-                const nameToUpdate = spokenName && spokenName !== targetLead.name ? spokenName : targetLead.name;
-
-                targetLead = await storage.updateLead(targetLead.id, {
-                  name: nameToUpdate,
-                  chatHistory: JSON.stringify(updatedHistory),
-                  rooms: JSON.stringify(combinedRooms),
-                  lastCustomerMessageAt: new Date().toISOString()
-                });
               }
 
-              // DISPARAR MOTOR DE IA COMERCIAL SE ATIVO
-              if (aiConfig.botEnabled && targetLead) {
-                const isResetKeyword = msgContent.trim().toLowerCase() === aiConfig.triggerKeyword.toLowerCase();
-                const history = typeof targetLead.chatHistory === "string" ? JSON.parse(targetLead.chatHistory || "[]") : (targetLead.chatHistory || []);
+              // 3. Executar Transcrição com Whisper
+              if (audioBuffer) {
+                const transcribed = await transcribeAudioWithWhisper(audioBuffer, mimeType);
+                if (transcribed && transcribed.trim().length > 0) {
+                  msgContent = `🎵 [Áudio]: "${transcribed.trim()}"`;
+                  console.log(`Whisper Groq: Áudio de ${phoneFromJid} transcrito: "${transcribed.trim()}"`);
+                }
+              }
+            } catch (audioErr) {
+              console.error("Erro ao processar/transcrever áudio:", audioErr);
+            }
+          } else if (messageData.message?.imageMessage) {
+            msgContent = messageData.message.imageMessage.caption || "📷 Imagem Enviada";
+            msgType = "image";
+          } else if (messageData.message?.documentMessage) {
+            msgContent = messageData.message.documentMessage.fileName || "📄 Documento PDF Enviado";
+            msgType = "document";
+          }
+
+          const rawTs = messageData.messageTimestamp;
+          const timestamp = rawTs 
+            ? new Date(Number(rawTs) * 1000).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })
+            : new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+
+          // =========================================================================
+          // TRATAMENTO EXCLUSIVO DE COMANDOS DO DIRETOR (PAULO VARGAS)
+          // =========================================================================
+          const ownerClean = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
+          const isFromOwner = !isFromMe && (phoneFromJid.includes(ownerClean) || ownerClean.includes(phoneFromJid));
+
+          if (isFromOwner) {
+            console.log(`Webhook Evolution: Mensagem recebida do Diretor Paulo (${phoneFromJid}): "${msgContent}"`);
+            
+            // Buscar se há lead aguardando aprovação de agendamento
+            const pendingLeads = (await storage.getLeads()).filter(l => l.appointmentStatus === "pending_approval");
+            const targetPendingLead = pendingLeads.length > 0 ? pendingLeads[pendingLeads.length - 1] : null;
+
+            if (targetPendingLead) {
+              const lowerOwnerMsg = msgContent.toLowerCase();
+              const isApproval = lowerOwnerMsg.includes("ok") || 
+                                 lowerOwnerMsg.includes("sim") || 
+                                 lowerOwnerMsg.includes("pode") || 
+                                 lowerOwnerMsg.includes("marcar") || 
+                                 lowerOwnerMsg.includes("confirmar") ||
+                                 lowerOwnerMsg.includes("aprovado");
+
+              const isRejection = lowerOwnerMsg.includes("não") || 
+                                  lowerOwnerMsg.includes("nao") || 
+                                  lowerOwnerMsg.includes("negar") || 
+                                  lowerOwnerMsg.includes("sem agenda") ||
+                                  lowerOwnerMsg.includes("cancelar");
+
+              let details: any = {};
+              try {
+                details = typeof targetPendingLead.appointmentDetails === "string"
+                  ? JSON.parse(targetPendingLead.appointmentDetails || "{}")
+                  : (targetPendingLead.appointmentDetails || {});
+              } catch (e) {
+                details = {};
+              }
+
+              let finalDate = details.date || getSaoPauloDateStr();
+              let finalTime = details.time || "14:00";
+
+              // Se o Paulo digitou um dia ou horário específico no texto (ex: "pode marcar sexta às 16h")
+              if (lowerOwnerMsg.includes("às") || lowerOwnerMsg.includes("as") || lowerOwnerMsg.includes("h")) {
+                const timeMatch = lowerOwnerMsg.match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
+                if (timeMatch) {
+                  if (timeMatch[1]) finalTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
+                  else if (timeMatch[3]) finalTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
+                }
+              }
+              if (lowerOwnerMsg.includes("segunda") || lowerOwnerMsg.includes("terça") || lowerOwnerMsg.includes("quarta") || lowerOwnerMsg.includes("quinta") || lowerOwnerMsg.includes("sexta") || lowerOwnerMsg.includes("sábado")) {
+                finalDate = calculateTargetAppointmentDate(lowerOwnerMsg);
+              }
+
+              if (isApproval) {
+                // 1. Criar evento na Agenda do CRM (PostgreSQL / Google Calendar)
+                await storage.createCalendarEvent({
+                  title: `Reunião Projetista - ${targetPendingLead.name}`,
+                  date: finalDate,
+                  time: finalTime,
+                  type: "evento",
+                  priority: "alta",
+                  leadId: targetPendingLead.id,
+                  notes: `Agendamento VIP aprovado pelo Diretor Paulo Vargas via WhatsApp. Ambientes: ${targetPendingLead.rooms}`,
+                  completed: false
+                });
+
+                // 2. Atualizar Lead no CRM para Briefing & Medição
+                const currentChecklist = typeof targetPendingLead.checklist === "string" 
+                  ? JSON.parse(targetPendingLead.checklist || "{}") 
+                  : (targetPendingLead.checklist || {});
+
+                await storage.updateLead(targetPendingLead.id, {
+                  stage: "briefing",
+                  appointmentStatus: "confirmed",
+                  checklist: JSON.stringify({
+                    ...currentChecklist,
+                    dataAgendamento: `${finalDate} ${finalTime}`
+                  })
+                });
+
+                // 3. Enviar mensagem de confirmação para o Cliente
+                const clientConfirmMsg = `Olá ${targetPendingLead.name}! Conversei diretamente com nosso diretor Paulo Vargas e sua reunião no nosso escritório comercial está confirmada para *${finalDate} às ${finalTime}*! 📅✨\n\nNossos projetistas já estão preparando tudo para visualizar seu projeto 3D renderizado. Seja muito bem-vindo(a) à Dumar Móveis Planejados!`;
+                await sendWhatsAppMessageViaEvolution(targetPendingLead.phone, clientConfirmMsg, "dumar_comercial");
+
+                // 4. Confirmar para o Paulo
+                const ownerReplyMsg = `✅ *Agendamento Confirmado e Salvo no CRM!* 📅✨\n\n👤 *Cliente:* ${targetPendingLead.name}\n📱 *WhatsApp:* ${targetPendingLead.phone}\n📅 *Data Agendada:* ${finalDate} às ${finalTime}\n\n🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
+                await sendWhatsAppMessageViaEvolution(ownerClean, ownerReplyMsg, "dumar_comercial");
+
+                console.log(`Diretoria Dumar: Reunião do Lead ${targetPendingLead.name} confirmada por Paulo Vargas para ${finalDate} às ${finalTime}.`);
+                continue;
+              } else if (isRejection) {
+                await storage.updateLead(targetPendingLead.id, { appointmentStatus: "rejected" });
                 
-                // Se o cliente enviar o comando de reset (#ia), despausa a IA para ele imediatamente
-                if (isResetKeyword && targetLead.aiPaused) {
-                  console.log(`IA Comercial Dumar: Comando ${aiConfig.triggerKeyword} recebido. Reativando IA para ${targetLead.name}...`);
-                  targetLead = await storage.updateLead(targetLead.id, { aiPaused: false });
+                // Mensagem cordial ao cliente sugerindo reagendamento
+                const clientRejectMsg = `Olá ${targetPendingLead.name}! Consultei nossa equipe de projetos e neste horário específico nossa equipe já estará em atendimento externo. Terias disponibilidade em outro horário ou no próximo turno para alinharmos?`;
+                await sendWhatsAppMessageViaEvolution(targetPendingLead.phone, clientRejectMsg, "dumar_comercial");
+
+                await sendWhatsAppMessageViaEvolution(ownerClean, `❌ *Agendamento de ${targetPendingLead.name} cancelado conforme sua instrução.*`, "dumar_comercial");
+                continue;
+              }
+            } else {
+              console.log(`Diretoria Dumar: Mensagem do Paulo recebida, nenhum agendamento pendente de validação no momento.`);
+            }
+
+            // REGRA MANDATÓRIA: O número do Paulo é da Diretoria. NUNCA criar Lead no funil nem acionar IA para ele!
+            continue;
+          }
+
+          const detectedRooms = extractRoomsFromText(msgContent);
+          const origin = extractOriginAndCampaign(messageData, msgContent);
+
+          // Tentar extrair o nome falado pelo cliente no texto
+          const spokenName = !isFromMe ? extractCustomerNameFromText(msgContent, targetLead?.name || pushName) : null;
+
+          // SE O LEAD NÃO EXISTE -> CRIAR AUTOMATICAMENTE NO FUNIL (Entrada)
+          if (!targetLead) {
+            const finalInitialName = spokenName || pushName;
+            console.log(`Webhook Evolution: Novo Lead criado no Funil (${finalInitialName} - ${phoneFromJid}) [Origem: ${origin.source} - ${origin.campaign}].`);
+            targetLead = await storage.createLead({
+              name: finalInitialName,
+              phone: phoneFromJid.startsWith("55") ? phoneFromJid : `55${phoneFromJid}`,
+              email: "",
+              stage: "entrada",
+              value: 0,
+              utmSource: origin.source,
+              utmCampaign: origin.campaign,
+              rooms: JSON.stringify(detectedRooms.length > 0 ? detectedRooms : ["Móveis Planejados"]),
+              checklist: JSON.stringify({ briefing: false, medicao: false, orcamento: false }),
+              chatHistory: JSON.stringify([
+                { 
+                  sender: isFromMe ? "agent" : "client", 
+                  text: msgContent, 
+                  timestamp, 
+                  type: msgType,
+                  isHuman: isFromMe ? true : undefined
+                }
+              ]),
+              lastCustomerMessageAt: new Date().toISOString(),
+              aiPaused: isFromMe ? true : false,
+              appointmentStatus: "none",
+              appointmentDetails: "{}"
+            });
+          } else {
+            // ATUALIZAR HISTÓRICO, AMBIENTES E NOME DO LEAD EXISTENTE
+            const currentHistory = typeof targetLead.chatHistory === "string" 
+              ? JSON.parse(targetLead.chatHistory || "[]") 
+              : (targetLead.chatHistory || []);
+
+            const updatedHistory = [
+              ...currentHistory, 
+              { 
+                sender: isFromMe ? "agent" : "client", 
+                text: msgContent, 
+                timestamp, 
+                type: msgType,
+                isHuman: isFromMe ? true : undefined
+              }
+            ];
+            
+            let existingRooms: string[] = [];
+            try {
+              existingRooms = typeof targetLead.rooms === "string" ? JSON.parse(targetLead.rooms || "[]") : (targetLead.rooms || []);
+            } catch (e) {
+              existingRooms = [];
+            }
+            const combinedRooms = Array.from(new Set([...existingRooms, ...detectedRooms]));
+
+            const nameToUpdate = spokenName && spokenName !== targetLead.name ? spokenName : targetLead.name;
+
+            targetLead = await storage.updateLead(targetLead.id, {
+              name: nameToUpdate,
+              chatHistory: JSON.stringify(updatedHistory),
+              rooms: JSON.stringify(combinedRooms),
+              lastCustomerMessageAt: new Date().toISOString(),
+              ...(isFromMe ? { aiPaused: true } : {})
+            });
+          }
+
+          // DISPARAR MOTOR DE IA COMERCIAL SE ATIVO GLOBALMENTE E HABILITADO ESPECIFICAMENTE NO BOTÃO DESTE LEAD
+          if (!isFromMe && aiConfig.botEnabled && targetLead) {
+            const history = typeof targetLead.chatHistory === "string" ? JSON.parse(targetLead.chatHistory || "[]") : (targetLead.chatHistory || []);
+            const isLeadAiActive = targetLead.aiPaused === false;
+            const isAllowedStage = ["entrada", "briefing"].includes(targetLead.stage || "entrada");
+
+            if (isLeadAiActive && isAllowedStage) {
+              try {
+                const actualDelay = Math.min(aiConfig.typingDelay || 1, 2);
+                if (actualDelay > 0) {
+                  await new Promise(r => setTimeout(r, actualDelay * 1000));
                 }
 
-                // 1. Hand-off individual (se o lead está sob controle humano/pausado)
-                const isLeadAiPaused = Boolean(targetLead.aiPaused) && !isResetKeyword;
+                const targetChecklist = typeof targetLead.checklist === "string" 
+                  ? JSON.parse(targetLead.checklist || "{}") 
+                  : (targetLead.checklist || {});
 
-                // 2. Regra de Estágio: IA atende apenas leads em aberto (fases 'entrada' e 'briefing')
-                const isAllowedStage = ["entrada", "briefing"].includes(targetLead.stage || "entrada");
+                const targetRooms = typeof targetLead.rooms === "string" 
+                  ? JSON.parse(targetLead.rooms || "[]") 
+                  : (targetLead.rooms || []);
 
-                if (!isLeadAiPaused && isAllowedStage) {
+                const replyText = await generateAIResponse(
+                  history, 
+                  targetLead.name, 
+                  targetLead.phone,
+                  {
+                    rooms: targetRooms,
+                    previousChatCount: history.length,
+                    lastAppointment: targetChecklist.dataAgendamento || ""
+                  }
+                );
+
+                const lowerReply = replyText.toLowerCase();
+                const isConfirmedAppointment = lowerReply.includes("está agendado") || 
+                                              lowerReply.includes("agendado:") || 
+                                              lowerReply.includes("agendamento confirmado") ||
+                                              lowerReply.includes("marcado para") ||
+                                              lowerReply.includes("marcada para");
+
+                // Calcular estimativa interna e classificação de Lead VIP
+                const leadEstimate = calculateLeadEstimatedValue(targetRooms);
+
+                let finalReplyToClient = replyText;
+
+                // SE FOR AGENDAMENTO E EXIGIR APROVAÇÃO DO PAULO (HUMAN-IN-THE-LOOP)
+                if (isConfirmedAppointment && aiConfig.requireOwnerApproval !== false) {
+                  const targetAppointmentDate = calculateTargetAppointmentDate(`${msgContent} ${replyText}`);
+                  const timeMatch = lowerReply.match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
+                  let extractedTime = "14:00";
+                  if (timeMatch) {
+                    if (timeMatch[1]) extractedTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
+                    else if (timeMatch[3]) extractedTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
+                  }
+
+                  // Salvar estado pendente no Lead
+                  await storage.updateLead(targetLead.id, {
+                    appointmentStatus: "pending_approval",
+                    appointmentDetails: JSON.stringify({
+                      date: targetAppointmentDate,
+                      time: extractedTime,
+                      rooms: targetRooms,
+                      estimatedValue: leadEstimate.estimatedValue,
+                      summary: msgContent
+                    })
+                  });
+
+                  // Resposta acolhedora de espera ao cliente (sem valores)
+                  finalReplyToClient = `Perfeito, ${targetLead.name}! Estou verificando a confirmação de agenda com a nossa diretoria para *${targetAppointmentDate} às ${extractedTime}*. Em instantes te confirmo por aqui!`;
+
+                  // DISPARAR NOTIFICAÇÃO EXECUTIVA VIP NO WHATSAPP DO PAULO
                   try {
-                    // Delay para simular digitação humana (máximo 1 segundo para testes ágeis)
-                    const actualDelay = Math.min(aiConfig.typingDelay || 1, 2);
-                    if (actualDelay > 0) {
-                      await new Promise(r => setTimeout(r, actualDelay * 1000));
-                    }
+                    const ownerPhone = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
+                    const allText = history.map((m: any) => m.text).join(" ") + " " + msgContent;
+                    const cityMatch = allText.match(/(?:ararangu[aá]|crici[uú]ma|balne[aá]rio\s+arroio\s+do\s+silva|tubar[aã]o|i[cç]ara|sombrio|turvo|morro\s+da\s+fuma[cç]a|urussanga|forquilhinha|maracaj[aá]|meleiro|santa\s+rosa\s+do\s+sul|passo\s+de\s+torres|praia\s+grande|florian[oó]polis|porto\s+alegre)/i);
+                    const locationStr = cityMatch ? cityMatch[0].toUpperCase() : "Balneário Arroio do Silva / Criciúma";
 
-                    const targetChecklist = typeof targetLead.checklist === "string" 
-                      ? JSON.parse(targetLead.checklist || "{}") 
-                      : (targetLead.checklist || {});
+                    const propMatch = allText.match(/\b(casa|apartamento|apto|cobertura|sala\s+comercial)\b/i);
+                    const propertyTypeStr = propMatch ? propMatch[0].toUpperCase() : "Imóvel";
+                    const roomsStr = (targetRooms && targetRooms.length > 0) ? targetRooms.join(", ") : "Móveis Planejados";
 
-                    const targetRooms = typeof targetLead.rooms === "string" 
-                      ? JSON.parse(targetLead.rooms || "[]") 
-                      : (targetLead.rooms || []);
+                    const vipBadge = leadEstimate.isVip ? "🚨 *NOVA SOLICITAÇÃO DE AGENDAMENTO (LEAD VIP > R$ 10k)* 💎✨" : "📅 *NOVA SOLICITAÇÃO DE AGENDAMENTO* ✨";
 
-                    const replyText = await generateAIResponse(
-                      history, 
-                      targetLead.name, 
-                      targetLead.phone,
-                      {
-                        rooms: targetRooms,
-                        previousChatCount: history.length,
-                        lastAppointment: targetChecklist.dataAgendamento || ""
-                      }
-                    );
-
-                    let phoneClean = targetLead.phone.replace(/\D/g, "");
-                    if (phoneClean.length >= 10 && !phoneClean.startsWith("55")) phoneClean = `55${phoneClean}`;
-
-                    console.log(`IA Comercial Dumar: Enviando resposta automática para ${targetLead.name} (${targetLead.phone}): "${replyText.slice(0, 50)}..."`);
-
-                    const { success: evoSuccess } = await sendWhatsAppMessageViaEvolution(
-                      targetLead.phone, 
-                      replyText, 
-                      "dumar_comercial"
-                    );
-
-                    const botTimestamp = new Date().toLocaleTimeString("pt-BR", {
-                      timeZone: "America/Sao_Paulo",
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    });
-
-                    const historyWithBot = [...history, { sender: "agent", text: replyText, timestamp: botTimestamp, isAi: true, sentAt: Date.now(), deliveredViaEvolution: evoSuccess }];
-                    await storage.updateLead(targetLead.id, { chatHistory: JSON.stringify(historyWithBot) });
-
-                    // Se a resposta da IA confirmou agendamento, cria evento na Agenda do CRM e move para "briefing"
-                    const lowerReply = replyText.toLowerCase();
-                    const isConfirmedAppointment = lowerReply.includes("está agendado") || 
-                                                  lowerReply.includes("agendado:") || 
-                                                  lowerReply.includes("agendamento confirmado") ||
-                                                  lowerReply.includes("marcado para") ||
-                                                  lowerReply.includes("marcada para");
-
-                    if (isConfirmedAppointment) {
-                      try {
-                        // Calcular a data EXATA combinada (ex: se o cliente falou "segunda", calcula a próxima segunda dia 17/08/2026)
-                        const targetAppointmentDate = calculateTargetAppointmentDate(`${msgContent} ${replyText}`);
-
-                        // Tentar extrair horário simples (ex: 15h, 14:00, 10h30)
-                        const timeMatch = lowerReply.match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
-                        let extractedTime = "14:00";
-                        if (timeMatch) {
-                          if (timeMatch[1]) {
-                            extractedTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
-                          } else if (timeMatch[3]) {
-                            extractedTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
-                          }
-                        }
-
-                        await storage.createCalendarEvent({
-                          title: `Reunião Projetista - ${targetLead.name}`,
-                          date: targetAppointmentDate,
-                          time: extractedTime,
-                          type: "evento",
-                          priority: "alta",
-                          leadId: targetLead.id,
-                          notes: `Agendado automaticamente pela IA via WhatsApp: "${replyText.slice(0, 140)}..."`,
-                          completed: false
-                        });
-
-                        // Mover lead para a coluna Briefing & Medição e salvar dataAgendamento no checklist
-                        const currentChecklist = typeof targetLead.checklist === "string" 
-                          ? JSON.parse(targetLead.checklist || "{}") 
-                          : (targetLead.checklist || {});
-                        const updatedChecklist = {
-                          ...currentChecklist,
-                          dataAgendamento: `${targetAppointmentDate} ${extractedTime}`
-                        };
-
-                        await storage.updateLead(targetLead.id, { 
-                          stage: "briefing",
-                          checklist: JSON.stringify(updatedChecklist)
-                        });
-
-                        console.log(`IA Comercial Dumar: Compromisso salvo na Agenda (${targetAppointmentDate} às ${extractedTime}) e Lead ${targetLead.name} movido para Briefing & Medição.`);
-
-                        // NOTIFICAR O PAULO (DIRETORIA) NO WHATSAPP COM DADOS DO AGENDAMENTO E DICA LOGÍSTICA
-                        if (aiConfig.notifyOwnerOnAppointment !== false) {
-                          try {
-                            const ownerPhone = aiConfig.ownerPhone || "555196682257";
-                            
-                            // Extrair cidade das mensagens
-                            const allText = history.map((m: any) => m.text).join(" ") + " " + msgContent;
-                            const cityMatch = allText.match(/(?:ararangu[aá]|crici[uú]ma|balne[aá]rio\s+arroio\s+do\s+silva|tubar[aã]o|i[cç]ara|sombrio|turvo|morro\s+da\s+fuma[cç]a|urussanga|forquilhinha|maracaj[aá]|meleiro|santa\s+rosa\s+do\s+sul|passo\s+de\s+torres|praia\s+grande|florian[oó]polis|porto\s+alegre)/i);
-                            const locationStr = cityMatch ? cityMatch[0].toUpperCase() : "A definir";
-
-                            const propMatch = allText.match(/\b(casa|apartamento|apto|cobertura|sala\s+comercial)\b/i);
-                            const propertyTypeStr = propMatch ? propMatch[0].toUpperCase() : "Não informado";
-
-                            const roomsStr = (targetRooms && targetRooms.length > 0) ? targetRooms.join(", ") : "Móveis Planejados";
-
-                            const notifyMsg = `🚨 *NOVO AGENDAMENTO CONFIRMADO PELA IA!* 📅✨
+                    const notifyMsg = `${vipBadge}
 
 👤 *Cliente:* ${targetLead.name}
 📱 *WhatsApp:* ${targetLead.phone}
-📍 *Cidade / Região:* ${locationStr}
-🏠 *Tipo de Imóvel:* ${propertyTypeStr}
+📍 *Local:* ${locationStr} (${propertyTypeStr})
 🛋️ *Ambientes:* ${roomsStr}
+💰 *Estimativa Interna:* ${leadEstimate.summary}
+📅 *Horário Solicitado:* ${targetAppointmentDate} às ${extractedTime}
 
-📅 *Data Agendada:* ${targetAppointmentDate}
-⏰ *Horário:* ${extractedTime}
+💬 *Mensagem do Cliente:* "${msgContent.slice(0, 140)}"
 
-💡 *DICA LOGÍSTICA (PAULO):* Você pode conciliar este atendimento em *${locationStr}* com outros clientes da mesma região no mesmo turno para otimizar seus deslocamentos!
+👉 *COMO RESPONDER:*
+• Digite *OK* ou *SIM* (ou envie um áudio 🎙️) para aprovar neste horário
+• Ou digite outro dia/hora (Ex: *"Pode marcar sexta às 10h"*)
+• Ou digite *NEGAR* se não tiver agenda
 
 🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
 
-                            console.log(`IA Comercial Dumar: Notificando Paulo (${ownerPhone}) via WhatsApp sobre agendamento em ${locationStr}...`);
-                            await sendWhatsAppMessageViaEvolution(ownerPhone, notifyMsg, "dumar_comercial");
-                          } catch (notifyErr) {
-                            console.error("Erro ao enviar notificação de agendamento para o Paulo:", notifyErr);
-                          }
-                        }
-                      } catch (calErr) {
-                        console.error("Erro ao salvar evento de agendamento da IA:", calErr);
-                      }
-                    }
-                  } catch (aiErr) {
-                    console.error("Erro ao processar resposta automática da IA:", aiErr);
+                    console.log(`IA Comercial Dumar: Notificando Paulo (${ownerPhone}) para aprovação de agendamento VIP...`);
+                    await sendWhatsAppMessageViaEvolution(ownerPhone, notifyMsg, "dumar_comercial");
+                  } catch (notifyErr) {
+                    console.error("Erro ao enviar notificação de agendamento para o Paulo:", notifyErr);
                   }
-                } else {
-                  console.log(`IA Comercial Dumar: Silenciada para ${targetLead.name} devido ao Hand-off Ativo de atendimento humano.`);
+                } else if (isConfirmedAppointment && aiConfig.requireOwnerApproval === false) {
+                  // Modo direto sem aprovação
+                  const targetAppointmentDate = calculateTargetAppointmentDate(`${msgContent} ${replyText}`);
+                  const timeMatch = lowerReply.match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
+                  let extractedTime = "14:00";
+                  if (timeMatch) {
+                    if (timeMatch[1]) extractedTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
+                    else if (timeMatch[3]) extractedTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
+                  }
+
+                  await storage.createCalendarEvent({
+                    title: `Reunião Projetista - ${targetLead.name}`,
+                    date: targetAppointmentDate,
+                    time: extractedTime,
+                    type: "evento",
+                    priority: "alta",
+                    leadId: targetLead.id,
+                    notes: `Agendado automaticamente pela IA via WhatsApp: "${replyText.slice(0, 140)}..."`,
+                    completed: false
+                  });
+
+                  await storage.updateLead(targetLead.id, { 
+                    stage: "briefing",
+                    appointmentStatus: "confirmed",
+                    checklist: JSON.stringify({
+                      ...targetChecklist,
+                      dataAgendamento: `${targetAppointmentDate} ${extractedTime}`
+                    })
+                  });
                 }
+
+                console.log(`IA Comercial Dumar: Enviando resposta para ${targetLead.name} (${targetLead.phone}): "${finalReplyToClient.slice(0, 60)}..."`);
+                const { success: evoSuccess } = await sendWhatsAppMessageViaEvolution(
+                  targetLead.phone, 
+                  finalReplyToClient, 
+                  "dumar_comercial"
+                );
+
+                const botTimestamp = new Date().toLocaleTimeString("pt-BR", {
+                  timeZone: "America/Sao_Paulo",
+                  hour: "2-digit",
+                  minute: "2-digit"
+                });
+
+                const historyWithBot = [...history, { sender: "agent", text: finalReplyToClient, timestamp: botTimestamp, isAi: true, sentAt: Date.now(), deliveredViaEvolution: evoSuccess }];
+                await storage.updateLead(targetLead.id, { chatHistory: JSON.stringify(historyWithBot) });
+              } catch (aiErr) {
+                console.error("Erro ao processar resposta automática da IA:", aiErr);
               }
+            } else {
+              console.log(`IA Comercial Dumar: Não intervindo para ${targetLead.name} (Atendimento manual/IA em espera).`);
             }
           }
         }

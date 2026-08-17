@@ -67,8 +67,25 @@ interface AIConfig {
   triggerKeyword: string;
   typingDelay: number;
   notifyOwnerOnAppointment?: boolean;
+  requireOwnerApproval?: boolean;
+  vipThreshold?: number;
   ownerPhone?: string;
   ownerName?: string;
+  estimatedPrices?: {
+    cozinha?: number;
+    quarto?: number;
+    suite?: number;
+    closet?: number;
+    sala?: number;
+    painel?: number;
+    banheiro?: number;
+    lavabo?: number;
+    gourmet?: number;
+    churrasqueira?: number;
+    lavanderia?: number;
+    completo?: number;
+    [k: string]: number | undefined;
+  };
 }
 
 const PRESETS = {
@@ -872,7 +889,7 @@ export default function CRMSettings() {
               </div>
             </div>
 
-            {/* Notificação Instantânea de Agendamentos no WhatsApp (Diretoria - Paulo) */}
+            {/* Notificação Instantânea & Aprovação de Agendamentos no WhatsApp (Diretoria - Paulo) */}
             <div className="bg-[#121212] border border-amber-500/30 bg-amber-500/[0.02] rounded-2xl p-5 shadow-xl space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2.5">
@@ -880,32 +897,37 @@ export default function CRMSettings() {
                     <Phone size={16} />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                      Notificação de Agendamentos no WhatsApp (Diretoria)
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                      Validação de Agendamentos & Leads VIP (WhatsApp do Paulo)
+                      <span className="text-[9px] bg-amber-500/20 text-amber-300 font-extrabold px-2 py-0.5 rounded-full border border-amber-500/30">
+                        Human-in-the-Loop 💎
+                      </span>
                     </h4>
                     <p className="text-[10px] text-gray-400">
-                      Receba no WhatsApp os dados do cliente, cidade, ambientes e dica logística de rota
+                      Receba o resumo executivo no WhatsApp para aprovar (por texto ou áudio) antes de confirmar com o cliente
                     </p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setConfig(prev => ({ ...prev, notifyOwnerOnAppointment: !(prev.notifyOwnerOnAppointment ?? true) }))}
-                  className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    (config.notifyOwnerOnAppointment ?? true)
-                      ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
-                      : "bg-white/10 text-gray-400"
-                  }`}
-                >
-                  {(config.notifyOwnerOnAppointment ?? true) ? "NOTIFICAÇÃO ATIVA" : "DESATIVADA"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfig(prev => ({ ...prev, requireOwnerApproval: !(prev.requireOwnerApproval ?? true) }))}
+                    className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      (config.requireOwnerApproval ?? true)
+                        ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+                        : "bg-white/10 text-gray-400"
+                    }`}
+                  >
+                    {(config.requireOwnerApproval ?? true) ? "APROVAÇÃO OBRIGATÓRIA" : "AGENDAMENTO DIRETO"}
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                    Nome do Responsável / Diretor:
+                    Nome do Diretor:
                   </label>
                   <input
                     type="text"
@@ -928,14 +950,81 @@ export default function CRMSettings() {
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:border-amber-400 font-mono"
                   />
                 </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                    Gatilho Alerta Lead VIP (R$):
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs text-gray-400 font-bold">R$</span>
+                    <input
+                      type="number"
+                      value={config.vipThreshold || 10000}
+                      onChange={e => setConfig(prev => ({ ...prev, vipThreshold: Number(e.target.value) }))}
+                      placeholder="10000"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl pl-8 p-2.5 text-xs text-amber-300 font-bold focus:border-amber-400 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabela de Estimativas por Ambiente (100% MDF Fino - Uso Exclusivo da Diretoria) */}
+              <div className="bg-black/50 border border-white/10 rounded-xl p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-white/5 pb-2">
+                  <span className="text-[11px] font-bold uppercase text-white tracking-wider flex items-center gap-1.5">
+                    💰 Tabela de Estimativas por Ambiente (Uso Interno da IA & Diretoria)
+                  </span>
+                  <span className="text-[9px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-bold">
+                    🔒 Sigilo Comercial (Cliente NUNCA vê esses valores)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {[
+                    { key: "cozinha", label: "Cozinha", def: 15000 },
+                    { key: "quarto", label: "Quarto / Dormitório", def: 12000 },
+                    { key: "suite", label: "Suíte / Casal", def: 14000 },
+                    { key: "closet", label: "Closet Sob Medida", def: 12000 },
+                    { key: "sala", label: "Sala / Home Theater", def: 8000 },
+                    { key: "painel", label: "Painel TV / Ripado", def: 5000 },
+                    { key: "banheiro", label: "Banheiro / Lavabo", def: 3500 },
+                    { key: "gourmet", label: "Área Gourmet", def: 10000 },
+                    { key: "lavanderia", label: "Lavanderia", def: 4000 },
+                    { key: "completo", label: "Imóvel Completo", def: 45000 },
+                  ].map(item => (
+                    <div key={item.key} className="bg-black/40 border border-white/5 rounded-lg p-2">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1 truncate">
+                        {item.label}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1.5 text-[10px] text-gray-500 font-bold">R$</span>
+                        <input
+                          type="number"
+                          value={config.estimatedPrices?.[item.key] ?? item.def}
+                          onChange={e => {
+                            const val = Number(e.target.value);
+                            setConfig(prev => ({
+                              ...prev,
+                              estimatedPrices: {
+                                ...(prev.estimatedPrices || {}),
+                                [item.key]: val
+                              }
+                            }));
+                          }}
+                          className="w-full bg-black/60 border border-white/10 rounded-md pl-6 p-1 text-[11px] text-white focus:border-amber-400 font-mono"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="bg-black/40 border border-white/5 rounded-xl p-3 text-[11px] text-gray-300 space-y-1">
                 <p className="font-bold text-amber-400 flex items-center gap-1.5">
-                  💡 Conciliação Inteligente de Deslocamentos:
+                  💡 Como funciona a Aprovação no WhatsApp do Paulo:
                 </p>
                 <p className="text-gray-400 leading-relaxed text-[10px]">
-                  Ao agendar (ex: cliente em <strong className="text-white">Criciúma</strong>), o Paulo receberá um WhatsApp com o resumo completo e lembrete para encaixar outros atendimentos na mesma cidade/região no mesmo turno.
+                  Quando o cliente solicita agendamento ou o projeto passa de <strong className="text-amber-300">R$ {(config.vipThreshold || 10000).toLocaleString('pt-BR')}</strong>, o Paulo recebe no WhatsApp o resumo, porte e estimativa. O Paulo pode responder <strong className="text-white">"OK"</strong> ou <strong className="text-white">gravar um áudio de voz 🎙️</strong> (ex: <em>"Pode marcar sexta às 10h"</em>). O sistema confirma com o cliente, move o lead para Briefing e salva o evento automaticamente na Agenda do CRM!
                 </p>
               </div>
             </div>
