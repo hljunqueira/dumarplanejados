@@ -154,13 +154,16 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formUsername.trim()) {
-      showToast("Informe o nome de usuário (login).", "error");
+    const cleanEmail = formEmail.trim();
+    const cleanUsername = (formUsername.trim() || cleanEmail).toLowerCase();
+
+    if (!cleanEmail) {
+      showToast("Informe o e-mail de acesso.", "error");
       return;
     }
 
     if (!editingUserId && !formPassword.trim()) {
-      showToast("A senha inicial é obrigatória para novos usuários.", "error");
+      showToast("A senha de acesso é obrigatória para cadastrar o colaborador.", "error");
       return;
     }
 
@@ -169,8 +172,8 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
       if (editingUserId) {
         // Atualização
         const payload: any = {
-          name: formName.trim(),
-          email: formEmail.trim(),
+          name: (formName.trim() || cleanUsername),
+          email: cleanEmail,
           role: formRole,
           permissions: formPermissions,
           active: formActive
@@ -186,11 +189,11 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
         });
 
         if (res.ok) {
-          showToast("Usuário atualizado com sucesso!");
           setIsModalOpen(false);
+          showToast("Colaborador atualizado com sucesso!");
           await fetchUsers();
         } else {
-          const err = await res.json();
+          const err = await res.json().catch(() => ({ message: "Erro ao atualizar usuário." }));
           showToast(err.message || "Erro ao atualizar usuário.", "error");
         }
       } else {
@@ -199,9 +202,9 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: formName.trim(),
-            username: formUsername.trim(),
-            email: formEmail.trim(),
+            name: (formName.trim() || cleanUsername),
+            username: cleanUsername,
+            email: cleanEmail,
             password: formPassword.trim(),
             role: formRole,
             permissions: formPermissions,
@@ -210,11 +213,11 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
         });
 
         if (res.ok) {
-          showToast("Novo usuário criado com sucesso!");
           setIsModalOpen(false);
+          showToast("Novo colaborador cadastrado com sucesso!");
           await fetchUsers();
         } else {
-          const err = await res.json();
+          const err = await res.json().catch(() => ({ message: "Erro ao cadastrar colaborador." }));
           showToast(err.message || "Erro ao criar usuário.", "error");
         }
       }
@@ -446,25 +449,48 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Nome Completo
+                    Nome Completo *
                   </label>
                   <input
                     type="text"
                     required
                     placeholder="Ex: João da Silva"
                     value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
+                    onChange={(e) => {
+                      setFormName(e.target.value);
+                      if (!formUsername && !editingUserId) {
+                        setFormUsername(e.target.value.toLowerCase().replace(/\s+/g, "."));
+                      }
+                    }}
                     className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400/50"
                   />
                 </div>
 
                 <div>
+                  <label className="block text-[11px] font-semibold text-amber-300 uppercase tracking-wider mb-1.5">
+                    E-mail de Acesso (Login) *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Ex: joao@dumarplanejados.com.br"
+                    value={formEmail}
+                    onChange={(e) => {
+                      setFormEmail(e.target.value);
+                      if (!formUsername && !editingUserId && e.target.value.includes("@")) {
+                        setFormUsername(e.target.value.split("@")[0].toLowerCase());
+                      }
+                    }}
+                    className="w-full bg-black/60 border border-amber-500/40 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Nome de Usuário / Login
+                    Nome de Usuário / Apelido
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="Ex: joao.vendas"
                     value={formUsername}
                     onChange={(e) => setFormUsername(e.target.value)}
@@ -475,23 +501,11 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
 
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                    E-mail (Opcional)
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="Ex: joao@dumarplanejados.com.br"
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400/50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                    {editingUserId ? "Nova Senha (Deixe em branco para manter)" : "Senha de Acesso"}
+                    {editingUserId ? "Nova Senha (Deixe em branco para manter)" : "Senha de Acesso *"}
                   </label>
                   <input
                     type="password"
+                    required={!editingUserId}
                     placeholder={editingUserId ? "••••••••" : "Mínimo 6 caracteres"}
                     value={formPassword}
                     onChange={(e) => setFormPassword(e.target.value)}
