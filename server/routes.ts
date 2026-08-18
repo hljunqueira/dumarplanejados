@@ -1307,15 +1307,15 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
       if (isGenericName) {
         compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- Você ainda NÃO tem o nome do cliente. Na primeira interação, pergunte educadamente com quem tem o prazer de falar.`;
       } else {
-        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- O nome do cliente é "${clientName}". Trate-o de forma personalizada e calorosa.`;
+        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- O nome do cliente é "${clientName}".\n- REGRA DE OURO: Como você já sabe o nome do cliente ou a conversa já iniciou, NUNCA repita "Seja muito bem-vindo à Dumar". Responda de forma ágil, direta e calorosa (Ex: "Perfeito, ${clientName}!", "Excelente, ${clientName}!").`;
       }
 
-      const hasPreviousConversation = conversationHistory.length >= 2;
+      const hasPreviousConversation = conversationHistory.length >= 1;
       if (hasPreviousConversation) {
         compiledPrompt += `\n\n🧠 CONTINUIDADE DE CONVERSA (EM ANDAMENTO):
-- NUNCA repita saudações de abertura ("Olá! Seja bem-vindo à Dumar").
-- Vá direto ao ponto, respondendo exatamente o que o cliente acabou de falar.
-- Mantenha mensagens curtas (1 a 2 frases) com UMA única pergunta direta.`;
+- NUNCA repita saudações de abertura ("Olá! Seja bem-vindo à Dumar", "Tudo bem?").
+- Vá 100% DIRETO AO PONTO, acolhendo o que o cliente acabou de falar em 1 frase e fazendo UMA única pergunta direta para avançar.
+- Mantenha a resposta com no máximo 2 frases curtas.`;
       }
 
       // Injetar contexto de ambientes já detectados
