@@ -1278,7 +1278,7 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
     conversationHistory: Array<{ sender: string; text: string }>,
     clientName: string = "Cliente",
     clientPhone: string = "",
-    extraContext?: { rooms?: string[]; previousChatCount?: number; lastAppointment?: string }
+    extraContext?: { rooms?: string[]; previousChatCount?: number; lastAppointment?: string; daysSinceLastContact?: number }
   ): Promise<string> {
     try {
       const nowInSP = new Date();
@@ -1329,13 +1329,25 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
           ? extraContext.rooms.join(", ") 
           : "seus móveis planejados";
 
-        compiledPrompt += `\n\n🧠 MEMÓRIA DE CONTEXTO & RETOMADA DE CONVERSA (CLIENTE EM ANDAMENTO):
-- Este cliente JÁ conversou conosco anteriormente. NUNCA faça saudação de boas-vindas ("Seja bem-vindo à Dumar") nem pergunte o nome dele novamente.
-- Se o cliente retornou após um tempo e mandou apenas uma saudação curta (Ex: "Oi", "Voltei", "Boa tarde", "E aí", "Tudo bem?"):
-  👉 Acolha o retorno de forma calorosa chamando-o pelo nome e RETOME O ASSUNTO DE ONDE PARARAM (Ex: "Olá, ${isGenericName ? "" : clientName}! Que bom falar com você de novo. 😊 Estávamos conversando sobre o projeto de ${roomsStr}. Você conseguiu a planta baixa ou fotos do espaço para continuarmos?").
+        const daysAgo = extraContext?.daysSinceLastContact || 0;
+        const isLongHiatus = daysAgo >= 3;
+
+        if (isLongHiatus) {
+          compiledPrompt += `\n\n⏳ RETORNO APÓS DIAS DE AUSÊNCIA (Último contato há aprox. ${daysAgo} dias):
+- O cliente passou alguns dias sem conversar e agora mandou mensagem.
+- REGRA DE OURO: Seja super calorosa, gentil, ZERO invasiva e mostre total disposição para ajudá-lo no tempo dele.
+- NUNCA cobre o cliente ("sumiu?", "por que demorou?"). Apenas acolha com simpatia e relembre com naturalidade o projeto de ${roomsStr}.
+- Exemplo: "Olá, ${isGenericName ? "" : clientName}! Tudo bem por aí? Que ótimo falar com você de novo! 😊 Estávamos vendo o projeto de ${roomsStr}. Como posso te ajudar a dar andamento hoje?"`;
+        } else {
+          compiledPrompt += `\n\n🧠 MEMÓRIA DE CONTEXTO & RETOMADA DE CONVERSA (CLIENTE EM ANDAMENTO):
+- Este cliente JÁ conversou conosco anteriormente. NUNCA faça saudação de primeiro contato ("Seja bem-vindo à Dumar") nem pergunte o nome dele novamente.
+- Se o cliente mandou apenas uma saudação curta (Ex: "Oi", "Voltei", "Boa tarde", "E aí", "Tudo bem?"):
+  👉 Acolha o retorno chamando-o pelo nome e RETOME O ASSUNTO DE ONDE PARARAM (Ex: "Olá, ${isGenericName ? "" : clientName}! Que bom falar com você de novo. 😊 Estávamos conversando sobre o projeto de ${roomsStr}. Você conseguiu a planta baixa ou fotos do espaço para continuarmos?").
 - Se o cliente enviou uma dúvida ou continuou a falar de onde parou:
-  👉 Vá 100% DIRETO AO ASSUNTO, acolha o que ele falou em 1 frase e faça UMA única pergunta direta para avançar o projeto.
-- Mantenha mensagens curtas (1 a 2 frases) no estilo ágil e humanizado do WhatsApp.`;
+  👉 Vá 100% DIRETO AO ASSUNTO, acolha o que ele falou em 1 frase e faça UMA única pergunta direta para avançar o projeto.`;
+        }
+
+        compiledPrompt += `\n- Mantenha mensagens curtas (máximo 2 frases) no estilo ágil e humanizado do WhatsApp.`;
       }
       
       compiledPrompt += `\n\nPROIBIÇÃO RIGOROSA:
@@ -2231,6 +2243,17 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
                   ? JSON.parse(targetLead.rooms || "[]") 
                   : (targetLead.rooms || []);
 
+                let daysSinceLastContact = 0;
+                if (targetLead.lastCustomerMessageAt) {
+                  try {
+                    const lastDate = new Date(targetLead.lastCustomerMessageAt).getTime();
+                    const now = Date.now();
+                    daysSinceLastContact = Math.max(0, Math.floor((now - lastDate) / (1000 * 60 * 60 * 24)));
+                  } catch (e) {
+                    daysSinceLastContact = 0;
+                  }
+                }
+
                 const replyText = await generateAIResponse(
                   history, 
                   targetLead.name, 
@@ -2238,7 +2261,8 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
                   {
                     rooms: targetRooms,
                     previousChatCount: history.length,
-                    lastAppointment: targetChecklist.dataAgendamento || ""
+                    lastAppointment: targetChecklist.dataAgendamento || "",
+                    daysSinceLastContact
                   }
                 );
 
