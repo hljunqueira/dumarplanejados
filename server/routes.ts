@@ -1317,6 +1317,10 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
 - Vá 100% DIRETO AO PONTO, acolhendo o que o cliente acabou de falar em 1 frase e fazendo UMA única pergunta direta para avançar.
 - Mantenha a resposta com no máximo 2 frases curtas.`;
       }
+      
+      compiledPrompt += `\n\nPROIBIÇÃO RIGOROSA:
+- NUNCA mencione o endereço da loja ("Av. Santa Catarina, 551...") nem convide para "tomar um café no escritório" enquanto estiver apenas conversando ou tirando dúvidas.
+- Fale sobre os móveis sob medida, qualidade 100% MDF com ferragens amortecidas e faça UMA única pergunta direta.`;
 
       // Injetar contexto de ambientes já detectados
       if (extraContext?.rooms && extraContext.rooms.length > 0) {
@@ -1371,6 +1375,13 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
             let rawContent = data.choices?.[0]?.message?.content?.trim() || "";
             // Limpar eventuais tags de pensamento (<think>...</think>)
             rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+            // Sanitização de segurança: remover endereço caso o cliente não tenha perguntado "onde fica"
+            const lastClientMsg = messages.filter(m => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
+            const askedForAddress = lastClientMsg.includes("onde") || lastClientMsg.includes("endereço") || lastClientMsg.includes("localiza");
+            if (!askedForAddress) {
+              rawContent = rawContent.replace(/\(?Av\.?\s+Santa\s+Catarina[^)]*\)?/gi, "").trim();
+              rawContent = rawContent.replace(/\s{2,}/g, " ").trim();
+            }
             if (rawContent.length > 0) {
               generatedAnswer = rawContent;
               break; // Sucesso com o modelo
