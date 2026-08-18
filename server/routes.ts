@@ -114,7 +114,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Listar todos os usuários
   app.get("/api/users", async (req, res) => {
     try {
-      const usersList = await storage.getUsers();
+      let usersList = await storage.getUsers();
+      
+      // Se não houver usuários no banco, auto-inicializa os administradores padrão
+      if (usersList.length === 0) {
+        console.log("Inicializando administradores padrão no banco...");
+        await storage.createUser({
+          username: "admin",
+          password: hashPassword("Dumar@2026"),
+          name: "Administrador Dumar",
+          email: "admin@dumarplanejados.com.br",
+          role: "admin",
+          permissions: JSON.stringify(ALL_SECTIONS),
+          active: true,
+          createdAt: new Date().toISOString()
+        });
+
+        await storage.createUser({
+          username: "paulo@dumarplanejados.com.br",
+          password: hashPassword("Pvargas@26"),
+          name: "Paulo Vargas",
+          email: "paulo@dumarplanejados.com.br",
+          role: "admin",
+          permissions: JSON.stringify(ALL_SECTIONS),
+          active: true,
+          createdAt: new Date().toISOString()
+        });
+
+        usersList = await storage.getUsers();
+      }
+
       // Omitir senhas no retorno
       const sanitized = usersList.map(u => {
         let perms: string[] = [];
@@ -149,7 +178,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const existing = await storage.getUserByUsername(username.trim());
+      const cleanUsername = username.trim();
+      const existing = await storage.getUserByUsername(cleanUsername);
       if (existing) {
         return res.status(400).json({ message: "Já existe um usuário com este login." });
       }
@@ -163,9 +193,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const newUser = await storage.createUser({
-        username: username.trim(),
+        username: cleanUsername,
         password: hashPassword(password),
-        name: (name || username).trim(),
+        name: (name || cleanUsername).trim(),
         email: (email || "").trim(),
         role: role || "vendedor",
         permissions: JSON.stringify(permsArray),

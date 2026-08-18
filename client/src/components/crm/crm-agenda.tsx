@@ -1089,40 +1089,55 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
         </div>
       )}
 
-      {/* MODAL DE CRIAÇÃO / EDIÇÃO NO ESTILO GOOGLE CALENDAR */}
+      {/* MODAL DE CRIAÇÃO / EDIÇÃO NO ESTILO GOOGLE CALENDAR (LARGO COM GRIDS) */}
       {showEventModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[250] flex items-center justify-center p-3 sm:p-4 animate-fade-in overflow-y-auto">
-          <div className="bg-[#1e1f22] border border-white/10 rounded-3xl w-full max-w-lg shadow-2xl animate-scale-in text-left overflow-hidden my-6">
-            {/* Header: Botão Fechar à Esquerda + Botão Salvar à Direita */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/5">
-              <button
-                type="button"
-                onClick={() => setShowEventModal(false)}
-                className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[250] flex items-center justify-center p-3 sm:p-5 animate-fade-in overflow-y-auto">
+          <div className="bg-[#1a1b1e] border border-white/15 rounded-3xl w-full max-w-4xl shadow-2xl animate-scale-in text-left overflow-hidden my-4 sm:my-8 flex flex-col max-h-[90vh]">
+            {/* Header: Botão Fechar à Esquerda + Título/Status + Botão Salvar */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/40 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEventModal(false)}
+                  className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+                <h3 className="text-xs sm:text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                  <CalendarIcon size={16} className="text-blue-400" />
+                  {editingEventId ? "Editar Compromisso" : "Novo Compromisso na Agenda"}
+                </h3>
+              </div>
               
-              <button
-                type="button"
-                onClick={handleSaveEvent}
-                disabled={saving || !eventTitle.trim()}
-                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold px-5 py-2 rounded-full transition-all shadow-md shadow-blue-600/20 cursor-pointer"
-              >
-                {saving ? "Salvando..." : "Salvar"}
-              </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowEventModal(false)}
+                  className="text-xs font-semibold text-gray-400 hover:text-white px-3 py-1.5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer hidden sm:block"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEvent}
+                  disabled={saving || !eventTitle.trim()}
+                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-extrabold px-6 py-2 rounded-full transition-all shadow-lg shadow-blue-600/30 cursor-pointer flex items-center gap-1.5"
+                >
+                  {saving ? "Salvando..." : "Salvar Compromisso"}
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSaveEvent} className="p-5 sm:p-6 space-y-5">
-              {/* Campo Adicionar Título (Estilo Google) */}
+            <form onSubmit={handleSaveEvent} className="p-5 sm:p-7 overflow-y-auto space-y-6 flex-1 scrollbar-thin">
+              {/* Título Superior Largo */}
               <div>
                 <input
                   type="text"
                   value={eventTitle}
                   onChange={e => setEventTitle(e.target.value)}
-                  placeholder="Adicionar título"
+                  placeholder="Adicionar título do compromisso (ex: Apresentação Projeto 3D)"
                   required
-                  className="w-full bg-transparent border-b border-white/10 pb-2 text-lg sm:text-xl font-normal text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-transparent border-b border-white/15 pb-2.5 text-xl sm:text-2xl font-medium text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
                   autoFocus
                 />
               </div>
@@ -1134,18 +1149,18 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                   onClick={() => setEventType("evento")}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     eventType === "evento"
-                      ? "bg-blue-600/30 text-blue-300 border border-blue-500/40"
+                      ? "bg-blue-600/30 text-blue-300 border border-blue-500/50 shadow"
                       : "bg-white/5 text-gray-400 hover:text-gray-200 border border-white/5"
                   }`}
                 >
-                  Evento
+                  Reunião / Visita
                 </button>
                 <button
                   type="button"
                   onClick={() => setEventType("tarefa")}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     eventType === "tarefa"
-                      ? "bg-blue-600/30 text-blue-300 border border-blue-500/40"
+                      ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 shadow"
                       : "bg-white/5 text-gray-400 hover:text-gray-200 border border-white/5"
                   }`}
                 >
@@ -1156,7 +1171,7 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                   onClick={() => setEventType("nota")}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     eventType === "nota"
-                      ? "bg-blue-600/30 text-blue-300 border border-blue-500/40"
+                      ? "bg-amber-600/30 text-amber-300 border border-amber-500/50 shadow"
                       : "bg-white/5 text-gray-400 hover:text-gray-200 border border-white/5"
                   }`}
                 >
@@ -1164,96 +1179,102 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                 </button>
               </div>
 
-              {/* SEÇÃO PRINCIPAL DE DATAS E HORÁRIOS (IDÊNTICO AO GOOGLE CALENDAR) */}
-              <div className="space-y-3.5 pt-2">
-                {/* Linha 1: Ícone Relógio + Dia Inteiro + Switch */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-sm text-gray-200">
-                    <Clock size={20} className="text-gray-400" />
-                    <span className="font-normal">Dia inteiro</span>
-                  </div>
-
-                  {/* Switch iOS / Google Style */}
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={isAllDay} 
-                      onChange={e => setIsAllDay(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                {/* Linha 2: Data de Início e Horário de Início */}
-                <div className="flex items-center justify-between pl-9 text-sm">
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={eventDate}
-                      onChange={e => {
-                        setEventDate(e.target.value);
-                        setEventEndDate(e.target.value);
-                      }}
-                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
-                    />
-                    <span className="text-gray-200 hover:text-blue-400 transition-colors font-medium cursor-pointer">
-                      {formatExtensiveDate(eventDate)}
-                    </span>
-                  </div>
-
-                  {!isAllDay && eventType !== "nota" && (
-                    <input
-                      type="time"
-                      value={eventTime}
-                      onChange={e => handleTimeOrDurationChange(e.target.value, eventDuration)}
-                      className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-white font-mono text-sm focus:outline-none focus:border-blue-500 cursor-pointer"
-                    />
-                  )}
-                </div>
-
-                {/* Linha 3: Data de Término e Horário de Término */}
-                {!isAllDay && eventType !== "nota" && (
-                  <div className="flex items-center justify-between pl-9 text-sm">
-                    <div className="relative">
-                      <input
-                        type="date"
-                        value={eventEndDate}
-                        onChange={e => setEventEndDate(e.target.value)}
-                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
-                      />
-                      <span className="text-gray-200 hover:text-blue-400 transition-colors font-medium cursor-pointer">
-                        {formatExtensiveDate(eventEndDate)}
-                      </span>
+              {/* GRID PRINCIPAL DE 2 COLUNAS */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+                {/* COLUNA ESQUERDA: Data, Horários, Duração Rápida & Conflitos */}
+                <div className="lg:col-span-7 space-y-4 bg-black/40 p-5 rounded-2xl border border-white/10">
+                  {/* Linha: Ícone Relógio + Dia Inteiro + Switch */}
+                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                    <div className="flex items-center gap-3 text-sm text-gray-200 font-bold">
+                      <Clock size={18} className="text-blue-400" />
+                      <span>Dia inteiro</span>
                     </div>
 
-                    <input
-                      type="time"
-                      value={eventEndTime}
-                      onChange={e => {
-                        setEventEndTime(e.target.value);
-                        setEventDuration("custom");
-                      }}
-                      className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-white font-mono text-sm focus:outline-none focus:border-blue-500 cursor-pointer"
-                    />
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isAllDay} 
+                        onChange={e => setIsAllDay(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
                   </div>
-                )}
 
-                {/* Linha 4: Botão "Mais opções" para Duração Rápida */}
-                {!isAllDay && eventType !== "nota" && (
-                  <div className="pl-9 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowDurationOptions(!showDurationOptions)}
-                      className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>{showDurationOptions ? "Ocultar durações pré-definidas" : "Mais opções de duração"}</span>
-                      <ChevronDown size={14} className={`transition-transform ${showDurationOptions ? "rotate-180" : ""}`} />
-                    </button>
+                  {/* Grid de Início e Término */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Início */}
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5 space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Início</span>
+                      <div className="flex items-center justify-between">
+                        <div className="relative flex-1">
+                          <input
+                            type="date"
+                            value={eventDate}
+                            onChange={e => {
+                              setEventDate(e.target.value);
+                              setEventEndDate(e.target.value);
+                            }}
+                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                          />
+                          <span className="text-xs text-white hover:text-blue-400 font-medium cursor-pointer truncate block">
+                            {formatExtensiveDate(eventDate)}
+                          </span>
+                        </div>
 
-                    {/* Presets de Duração de Marcenaria */}
-                    {showDurationOptions && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2.5 p-3 bg-black/40 rounded-2xl border border-white/5 animate-fade-in">
+                        {!isAllDay && eventType !== "nota" && (
+                          <input
+                            type="time"
+                            value={eventTime}
+                            onChange={e => handleTimeOrDurationChange(e.target.value, eventDuration)}
+                            className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500 cursor-pointer ml-2"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Término */}
+                    {!isAllDay && eventType !== "nota" ? (
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5 space-y-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Término</span>
+                        <div className="flex items-center justify-between">
+                          <div className="relative flex-1">
+                            <input
+                              type="date"
+                              value={eventEndDate}
+                              onChange={e => setEventEndDate(e.target.value)}
+                              className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                            />
+                            <span className="text-xs text-white hover:text-blue-400 font-medium cursor-pointer truncate block">
+                              {formatExtensiveDate(eventEndDate)}
+                            </span>
+                          </div>
+
+                          <input
+                            type="time"
+                            value={eventEndTime}
+                            onChange={e => {
+                              setEventEndTime(e.target.value);
+                              setEventDuration("custom");
+                            }}
+                            className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500 cursor-pointer ml-2"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5 flex items-center justify-center text-xs text-gray-500">
+                        Compromisso para o dia todo
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DURAÇÃO RÁPIDA (GRADE DE PRESETS) */}
+                  {!isAllDay && eventType !== "nota" && (
+                    <div className="space-y-2 pt-2 border-t border-white/5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                        Duração Rápida (1 Clique)
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {DURATION_PRESETS.map(preset => {
                           const isSelected = eventDuration === preset.value;
                           return (
@@ -1261,104 +1282,125 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                               key={preset.value}
                               type="button"
                               onClick={() => handleTimeOrDurationChange(eventTime, preset.value)}
-                              className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                              className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
                                 isSelected
-                                  ? "bg-blue-600/30 border-blue-500 text-white"
+                                  ? "bg-blue-600/30 border-blue-500 text-white shadow-md"
                                   : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
                               }`}
                             >
-                              <div className="text-xs font-bold flex items-center gap-1">
+                              <div className="text-xs font-bold flex items-center gap-1.5">
                                 <span>{preset.icon}</span> {preset.label}
                               </div>
-                              <div className="text-[10px] text-gray-400 truncate mt-0.5">
+                              <div className="text-[9px] text-gray-400 truncate mt-1">
                                 {preset.desc}
                               </div>
                             </button>
                           );
                         })}
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {/* ALERTA DE CONFLITO DE HORÁRIO EM TEMPO REAL */}
-                {timeConflict && (
-                  <div className="ml-9 p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300 flex items-start gap-2.5 animate-fade-in">
-                    <AlertTriangle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
-                    <div className="text-xs leading-relaxed">
-                      <strong className="text-red-200 block">Conflito de Horário!</strong>
-                      Já existe <em>"{timeConflict.conflictingEvent.title}"</em> das {timeConflict.conflictingEvent.time} às {timeConflict.conflictingEvent.endTime || "término"}.
-                      <div className="mt-1">
-                        👉 <button 
-                          type="button" 
-                          onClick={() => handleTimeOrDurationChange(timeConflict.suggestedStart, eventDuration)}
-                          className="underline font-bold text-amber-300 hover:text-white cursor-pointer"
-                        >
-                          Ajustar para {timeConflict.suggestedStart}
-                        </button>
+                  {/* ALERTA DE CONFLITO DE HORÁRIO EM TEMPO REAL */}
+                  {timeConflict && (
+                    <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300 flex items-start gap-3 animate-fade-in">
+                      <AlertTriangle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs leading-relaxed">
+                        <strong className="text-red-200 block font-bold">Atenção: Conflito de Horário!</strong>
+                        Já existe <em>"{timeConflict.conflictingEvent.title}"</em> agendado das {timeConflict.conflictingEvent.time} às {timeConflict.conflictingEvent.endTime || "término"} neste dia.
+                        <div className="mt-1.5">
+                          👉 <button 
+                            type="button" 
+                            onClick={() => handleTimeOrDurationChange(timeConflict.suggestedStart, eventDuration)}
+                            className="underline font-bold text-amber-300 hover:text-white cursor-pointer"
+                          >
+                            Clique aqui para ajustar para {timeConflict.suggestedStart}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* COLUNA DIREITA: Cliente Lead, Local, Prioridade & Notas */}
+                <div className="lg:col-span-5 space-y-4 bg-white/[0.03] p-5 rounded-2xl border border-white/10">
+                  {/* Seção Conta */}
+                  <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+                    <div className="w-8 h-8 rounded-full bg-black border border-white/15 flex items-center justify-center text-[10px] font-bold text-white tracking-tighter">
+                      Dumar
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-200 font-medium">dumarmoveisplanejados@gmail.com</div>
+                      <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        Minha agenda (Dumar CRM)
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* SEÇÃO CONTA / MINHA AGENDA */}
-              <div className="flex items-center gap-3.5 pt-3 border-t border-white/5">
-                <div className="w-8 h-8 rounded-full bg-black border border-white/10 flex items-center justify-center text-[10px] font-bold text-white tracking-tighter">
-                  Dumar
-                </div>
-                <div>
-                  <div className="text-xs text-gray-200 font-medium">dumarmoveisplanejados@gmail.com</div>
-                  <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    Minha agenda (Dumar CRM)
+                  {/* Vincular Cliente Lead */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                      <Users size={13} className="text-amber-400" />
+                      Cliente Vinculado (Lead)
+                    </label>
+                    <select
+                      value={eventLeadId}
+                      onChange={e => setEventLeadId(e.target.value)}
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="">Nenhum cliente selecionado</option>
+                      {leads.map(l => (
+                        <option key={l.id} value={l.id}>{l.name} {l.phone ? `(${l.phone})` : ""}</option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-              </div>
 
-              {/* SEÇÃO CONVIDADOS / VINCULAR CLIENTE LEAD */}
-              <div className="flex items-start gap-3.5 pt-2 border-t border-white/5">
-                <Users size={18} className="text-gray-400 mt-2" />
-                <div className="flex-1">
-                  <label className="block text-[11px] text-gray-400 mb-1">Adicionar cliente (Lead)</label>
-                  <select
-                    value={eventLeadId}
-                    onChange={e => setEventLeadId(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                  >
-                    <option value="">Nenhum cliente selecionado</option>
-                    {leads.map(l => (
-                      <option key={l.id} value={l.id}>{l.name} {l.phone ? `(${l.phone})` : ""}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                  {/* Prioridade */}
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                      Prioridade
+                    </label>
+                    <select
+                      value={eventPriority}
+                      onChange={e => setEventPriority(e.target.value as any)}
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="alta">🚨 Alta (VIP 💎)</option>
+                      <option value="media">⚡ Média (Padrão)</option>
+                      <option value="baixa">☕ Baixa</option>
+                    </select>
+                  </div>
 
-              {/* SEÇÃO LOCAL */}
-              <div className="flex items-start gap-3.5 pt-2 border-t border-white/5">
-                <MapPin size={18} className="text-gray-400 mt-2" />
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={eventLocation}
-                    onChange={e => setEventLocation(e.target.value)}
-                    placeholder="Adicionar local (Escritório ou Endereço da Obra)"
-                    className="w-full bg-transparent text-xs text-white placeholder-gray-500 py-1.5 focus:outline-none border-b border-transparent focus:border-blue-500"
-                  />
-                </div>
-              </div>
+                  {/* Local da Reunião / Obra */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                      <MapPin size={13} className="text-red-400" />
+                      Local do Compromisso
+                    </label>
+                    <input
+                      type="text"
+                      value={eventLocation}
+                      onChange={e => setEventLocation(e.target.value)}
+                      placeholder="Ex: Escritório Comercial (Av. Santa Catarina, 551) ou Obra"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
 
-              {/* SEÇÃO DESCRIÇÃO / NOTAS */}
-              <div className="flex items-start gap-3.5 pt-2 border-t border-white/5">
-                <AlignLeft size={18} className="text-gray-400 mt-2" />
-                <div className="flex-1">
-                  <textarea
-                    value={eventNotes}
-                    onChange={e => setEventNotes(e.target.value)}
-                    placeholder="Adicionar descrição / notas técnicas de marcenaria..."
-                    rows={2}
-                    className="w-full bg-transparent text-xs text-white placeholder-gray-500 py-1.5 focus:outline-none border-b border-transparent focus:border-blue-500 resize-none"
-                  />
+                  {/* Notas e Observações Técnicas */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                      <AlignLeft size={13} className="text-gray-400" />
+                      Notas / Detalhes de Marcenaria
+                    </label>
+                    <textarea
+                      value={eventNotes}
+                      onChange={e => setEventNotes(e.target.value)}
+                      placeholder="Anotações sobre projeto 3D, medição de cozinha, amostras de MDF..."
+                      rows={3}
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none scrollbar-thin"
+                    />
+                  </div>
                 </div>
               </div>
             </form>

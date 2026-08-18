@@ -400,9 +400,20 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
       </div>
 
       {filteredUsers.length === 0 && !loading && (
-        <div className="text-center py-12 bg-white/[0.02] border border-white/5 rounded-2xl space-y-2">
-          <Users size={32} className="mx-auto text-gray-600" />
-          <p className="text-xs text-gray-400">Nenhum colaborador encontrado.</p>
+        <div className="text-center py-12 px-4 bg-white/[0.02] border border-white/5 rounded-2xl space-y-3">
+          <Users size={36} className="mx-auto text-gray-600" />
+          <div>
+            <h4 className="text-sm font-bold text-white">Nenhum colaborador encontrado</h4>
+            <p className="text-xs text-gray-400 mt-1">Comece cadastrando os atendentes, projetistas ou equipe técnica.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenCreateModal}
+            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs py-2 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
+          >
+            <UserPlus size={15} />
+            <span>Cadastrar Novo Colaborador</span>
+          </button>
         </div>
       )}
 

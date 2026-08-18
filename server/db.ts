@@ -48,6 +48,44 @@ export async function initDbTables() {
         created_at TEXT DEFAULT ''
       );
 
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        name TEXT NOT NULL DEFAULT '',
+        email TEXT DEFAULT '',
+        role TEXT NOT NULL DEFAULT 'vendedor',
+        permissions TEXT DEFAULT '["kanban", "agenda"]',
+        active BOOLEAN DEFAULT TRUE,
+        created_at TEXT DEFAULT ''
+      );
+
+      CREATE TABLE IF NOT EXISTS leads (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        email TEXT,
+        stage TEXT NOT NULL DEFAULT 'entrada',
+        value INTEGER NOT NULL DEFAULT 0,
+        utm_source TEXT DEFAULT 'Google Ads',
+        utm_campaign TEXT DEFAULT 'Campanha Manual',
+        rooms TEXT DEFAULT '[]',
+        promob_files TEXT DEFAULT '[]',
+        payment_method TEXT DEFAULT '',
+        installments INTEGER DEFAULT 1,
+        down_payment INTEGER DEFAULT 0,
+        delivery_date TEXT DEFAULT '',
+        assembler TEXT DEFAULT '',
+        checklist TEXT DEFAULT '{}',
+        chat_history TEXT DEFAULT '[]',
+        construction_photos TEXT DEFAULT '[]',
+        materials TEXT DEFAULT '{}',
+        last_customer_message_at TEXT DEFAULT '',
+        ai_paused BOOLEAN DEFAULT FALSE,
+        appointment_status TEXT DEFAULT 'none',
+        appointment_details TEXT DEFAULT '{}'
+      );
+
       -- Migração automática de novas colunas na tabela leads
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS construction_photos TEXT DEFAULT '[]';
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS materials TEXT DEFAULT '{}';
