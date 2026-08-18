@@ -78,6 +78,42 @@ export default function CRMKanban({
     }
   };
 
+  const [columnLimits, setColumnLimits] = useState<Record<string, number>>({});
+  const [revertingSync, setRevertingSync] = useState(false);
+
+  const getStageLimit = (stageId: string) => columnLimits[stageId] || 30;
+
+  const handleLoadMore = (stageId: string, all = false) => {
+    setColumnLimits(prev => ({
+      ...prev,
+      [stageId]: all ? 999999 : (prev[stageId] || 30) + 30
+    }));
+  };
+
+  const handleRevertSync = async () => {
+    if (!window.confirm("Deseja realmente reverter o sincronismo em massa e remover os contatos da agenda telefônica importados para a etapa Entrada?")) {
+      return;
+    }
+    setRevertingSync(true);
+    try {
+      const res = await fetch("/api/leads/revert-sync", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncFeedback(data.message || "Reversão realizada com sucesso!");
+        if (fetchLeads) {
+          await fetchLeads();
+        }
+      } else {
+        setSyncFeedback(data.message || "Erro ao reverter sincronização.");
+      }
+    } catch (e) {
+      setSyncFeedback("Erro ao conectar com o servidor para reverter sincronização.");
+    } finally {
+      setRevertingSync(false);
+      setTimeout(() => setSyncFeedback(null), 7000);
+    }
+  };
+
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.setData("text/plain", leadId);
     e.dataTransfer.effectAllowed = "move";
@@ -204,6 +240,19 @@ export default function CRMKanban({
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          {filteredLeads.length > 50 && (
+            <button
+              type="button"
+              onClick={handleRevertSync}
+              disabled={revertingSync}
+              className="text-xs py-1.5 px-3 rounded-lg flex items-center gap-1.5 font-bold transition-all border bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 hover:border-red-500/50 cursor-pointer shadow-sm disabled:opacity-50"
+              title="Limpar e reverter contatos sincronizados em massa da agenda telefônica"
+            >
+              <RotateCw size={13} className={revertingSync ? "animate-spin text-red-400" : ""} />
+              <span>{revertingSync ? "Revertendo..." : "Reverter Sincronismo"}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleSyncWhatsapp}
@@ -213,7 +262,7 @@ export default function CRMKanban({
                 ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                 : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:border-emerald-500/50"
             }`}
-            title="Importar conversas e contatos do WhatsApp que ainda não subiram para o funil"
+            title="Importar conversas ativas do WhatsApp para o funil"
           >
             <RotateCw size={13} className={syncingWhatsapp ? "animate-spin text-emerald-400" : ""} />
             <span>{syncingWhatsapp ? "Sincronizando..." : "Sincronizar WhatsApp"}</span>
@@ -241,7 +290,7 @@ export default function CRMKanban({
           <button
             type="button"
             onClick={() => setSyncFeedback(null)}
-            className="text-gray-400 hover:text-white text-[10px] uppercase font-bold"
+            className="text-gray-400 hover:text-white text-[10px] uppercase font-bold cursor-pointer"
           >
             Fechar
           </button>
@@ -289,6 +338,8 @@ export default function CRMKanban({
             .filter(l => l.stage === stage.id)
             .sort((a, b) => getLeadLastInteractionTime(b) - getLeadLastInteractionTime(a));
 
+          const currentLimit = getStageLimit(stage.id);
+          const visibleLeads = stageLeads.slice(0, currentLimit);
           const isTargetStage = dragOverStageId === stage.id;
 
           return (
@@ -311,7 +362,7 @@ export default function CRMKanban({
 
               {/* Corpo da Coluna com Cards Estilo Comprido Minimalista */}
               <div className="flex-1 p-2 space-y-2 overflow-y-auto bg-black/10 scrollbar-thin">
-                {stageLeads.map(lead => {
+                {visibleLeads.map(lead => {
                   const isBeingDragged = draggedLeadId === lead.id;
                   const completedChecklist = lead.checklist ? Object.values(lead.checklist).filter(Boolean).length : 0;
                   const totalChecklist = lead.checklist ? Object.keys(lead.checklist).length : 0;
@@ -378,7 +429,7 @@ export default function CRMKanban({
                                   e.stopPropagation();
                                   handleDeleteLead(lead.id);
                                 }}
-                                className="text-gray-600 hover:text-red-400 p-0.5 transition-colors"
+                                className="text-gray-600 hover:text-red-400 p-0.5 transition-colors cursor-pointer"
                                 title="Excluir Lead"
                               >
                                 <Trash2 size={11} />
@@ -464,6 +515,31 @@ export default function CRMKanban({
                     </div>
                   );
                 })}
+
+                {/* PAGINAÇÃO / CARREGAR MAIS LEADS DA COLUNA */}
+                {stageLeads.length > currentLimit && (
+                  <div className="p-2.5 bg-black/40 border border-white/10 rounded-xl text-center space-y-2 animate-fade-in">
+                    <span className="text-[10px] text-gray-400 block font-medium">
+                      Mostrando {currentLimit} de {stageLeads.length} leads
+                    </span>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleLoadMore(stage.id, false)}
+                        className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                      >
+                        + Carregar mais 30
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleLoadMore(stage.id, true)}
+                        className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-[10px] font-bold transition-all cursor-pointer border border-amber-500/30"
+                      >
+                        Ver Todos
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {stageLeads.length === 0 && (
                   <div className="h-28 border border-dashed border-white/5 rounded-xl flex flex-col items-center justify-center text-center p-2">

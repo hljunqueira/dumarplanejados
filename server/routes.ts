@@ -1834,19 +1834,17 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
         }
       };
 
-      for (const chat of chats) {
+      // Processar apenas chats com mensagens reais (máximo 40 mais recentes)
+      const recentChats = chats.filter(c => Boolean(c.lastMessage || c.lastMessageText)).slice(0, 40);
+      for (const chat of recentChats) {
         await processChatItem(chat);
-      }
-
-      for (const contact of contacts) {
-        await processChatItem(contact);
       }
 
       console.log(`[Sincronização WhatsApp] Finalizada: ${createdCount} novos leads importados, ${existingCount} já existentes.`);
 
       return res.status(200).json({
         success: true,
-        message: `Sincronização concluída! ${createdCount} novos contatos/conversas foram importados para o Funil (${existingCount} já estavam cadastrados).`,
+        message: `Sincronização concluída! ${createdCount} conversas recentes ativas foram adicionadas ao Funil.`,
         createdCount,
         existingCount,
         updatedHistoryCount
@@ -1854,6 +1852,43 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
     } catch (err) {
       console.error("Erro na sincronização de chats da Evolution:", err);
       return res.status(500).json({ success: false, error: "Erro ao sincronizar conversas do WhatsApp" });
+    }
+  });
+
+  // Reverter sincronização em massa de contatos do WhatsApp
+  app.post("/api/leads/revert-sync", async (req, res) => {
+    try {
+      const allLeads = await storage.getLeads();
+      let removedCount = 0;
+
+      for (const lead of allLeads) {
+        // Verifica se o lead foi criado pelo sincronismo em massa e não tem histórico relevante
+        let historyStr = "";
+        try {
+          historyStr = typeof lead.chatHistory === "string" ? lead.chatHistory : JSON.stringify(lead.chatHistory || []);
+        } catch (e) {
+          historyStr = "";
+        }
+
+        const isSyncLead = historyStr.includes("Contato sincronizado do WhatsApp") || 
+                           (lead.stage === "entrada" && lead.name.startsWith("Cliente ") && lead.value === 0 && (!lead.rooms || lead.rooms.length === 0 || JSON.stringify(lead.rooms).includes("Móveis Planejados")));
+
+        // Preserva leads com valores fechados ou em etapas avançadas
+        if (isSyncLead && lead.stage === "entrada" && (!lead.value || lead.value === 0)) {
+          await storage.deleteLead(Number(lead.id));
+          removedCount++;
+        }
+      }
+
+      console.log(`[Reversão de Sincronização] ${removedCount} contatos sincronizados em massa foram removidos do funil.`);
+      return res.status(200).json({
+        success: true,
+        message: `Reversão concluída com sucesso! ${removedCount} contatos importados em massa foram removidos do Funil.`,
+        removedCount
+      });
+    } catch (err) {
+      console.error("Erro ao reverter sincronização:", err);
+      return res.status(500).json({ success: false, message: "Erro ao reverter sincronização." });
     }
   });
 
