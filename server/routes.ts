@@ -1325,10 +1325,17 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
 
       const hasPreviousConversation = conversationHistory.length >= 2;
       if (hasPreviousConversation) {
-        compiledPrompt += `\n\n🧠 CONTINUIDADE DE CONVERSA (EM ANDAMENTO):
-- NUNCA repita saudações de abertura ("Olá! Seja bem-vindo à Dumar", "Tudo bem?").
-- Vá 100% DIRETO AO PONTO, acolhendo o que o cliente acabou de falar em 1 frase e fazendo UMA única pergunta direta para avançar.
-- Mantenha a resposta com no máximo 2 frases curtas.`;
+        const roomsStr = (extraContext?.rooms && extraContext.rooms.length > 0) 
+          ? extraContext.rooms.join(", ") 
+          : "seus móveis planejados";
+
+        compiledPrompt += `\n\n🧠 MEMÓRIA DE CONTEXTO & RETOMADA DE CONVERSA (CLIENTE EM ANDAMENTO):
+- Este cliente JÁ conversou conosco anteriormente. NUNCA faça saudação de boas-vindas ("Seja bem-vindo à Dumar") nem pergunte o nome dele novamente.
+- Se o cliente retornou após um tempo e mandou apenas uma saudação curta (Ex: "Oi", "Voltei", "Boa tarde", "E aí", "Tudo bem?"):
+  👉 Acolha o retorno de forma calorosa chamando-o pelo nome e RETOME O ASSUNTO DE ONDE PARARAM (Ex: "Olá, ${isGenericName ? "" : clientName}! Que bom falar com você de novo. 😊 Estávamos conversando sobre o projeto de ${roomsStr}. Você conseguiu a planta baixa ou fotos do espaço para continuarmos?").
+- Se o cliente enviou uma dúvida ou continuou a falar de onde parou:
+  👉 Vá 100% DIRETO AO ASSUNTO, acolha o que ele falou em 1 frase e faça UMA única pergunta direta para avançar o projeto.
+- Mantenha mensagens curtas (1 a 2 frases) no estilo ágil e humanizado do WhatsApp.`;
       }
       
       compiledPrompt += `\n\nPROIBIÇÃO RIGOROSA:
@@ -1337,7 +1344,7 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
 
       // Injetar contexto de ambientes já detectados
       if (extraContext?.rooms && extraContext.rooms.length > 0) {
-        compiledPrompt += `\n- Ambientes já mencionados pelo cliente: ${extraContext.rooms.join(", ")}.`;
+        compiledPrompt += `\n- Ambientes já identificados deste cliente: ${extraContext.rooms.join(", ")}.`;
       }
 
       // Formatar mensagens para o formato de chat
@@ -1345,8 +1352,8 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
         { role: "system", content: compiledPrompt }
       ];
 
-      // Incluir últimas mensagens da conversa sanitizadas
-      const recentHistory = conversationHistory.slice(-8);
+      // Incluir histórico amplo da conversa sanitizado (até 14 mensagens)
+      const recentHistory = conversationHistory.slice(-14);
       for (const item of recentHistory) {
         const textContent = String(item.text || "").trim();
         if (textContent.length > 0) {
