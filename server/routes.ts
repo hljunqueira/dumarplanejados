@@ -1292,11 +1292,19 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
 
       const GROQ_PRIMARY_KEY = ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
 
-      const isGenericName = !clientName || 
-                            clientName.toLowerCase().includes("cliente teste") || 
-                            clientName.toLowerCase().startsWith("cliente (") || 
-                            clientName.toLowerCase() === "você" || 
-                            clientName.toLowerCase() === "voce";
+      // Função para validar se o nome parece um nome próprio humano real ou nick/apelido técnico
+      const isNickOrTechnical = (name: string): boolean => {
+        if (!name) return true;
+        const clean = name.trim().toLowerCase();
+        if (clean.length < 2) return true;
+        if (clean.includes("cliente") || clean.includes("teste") || clean.includes("você") || clean.includes("voce") || clean.includes("null") || clean.includes("undefined")) return true;
+        if (clean.includes("dev") || clean.includes("admin") || clean.includes("user") || clean.includes("bot") || clean.includes("iphone") || clean.includes("loja") || clean.includes("sac") || clean.includes("vendas") || clean.includes("hlj")) return true;
+        if (/\d/.test(clean)) return true;
+        if (!/[aeiouáéíóúãõâêîôû]/i.test(clean)) return true;
+        return false;
+      };
+
+      const isGenericName = isNickOrTechnical(clientName);
 
       let compiledPrompt = aiConfig.systemPrompt
         .replace(/{nome}/g, isGenericName ? "" : clientName)
@@ -1305,12 +1313,12 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
         .replace(/{empresa}/g, aiConfig.companyName);
 
       if (isGenericName) {
-        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- Você ainda NÃO tem o nome do cliente. Na primeira interação, pergunte educadamente com quem tem o prazer de falar.`;
+        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- Você AINDA NÃO tem o nome do cliente (o nome atual é um apelido/código ou desconhecido).\n- REGRA OBRIGATÓRIA: Como você não sabe o nome real do cliente, na sua saudação pergunte educadamente: "Com quem tenho o prazer de falar? E qual ambiente você gostaria de planejar?". NUNCA chame o cliente por nicks como "${clientName}".`;
       } else {
-        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- O nome do cliente é "${clientName}".\n- REGRA DE OURO: Como você já sabe o nome do cliente ou a conversa já iniciou, NUNCA repita "Seja muito bem-vindo à Dumar". Responda de forma ágil, direta e calorosa (Ex: "Perfeito, ${clientName}!", "Excelente, ${clientName}!").`;
+        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- O nome do cliente é "${clientName}". Trate-o com cordialidade usando o nome dele de forma natural.`;
       }
 
-      const hasPreviousConversation = conversationHistory.length >= 1;
+      const hasPreviousConversation = conversationHistory.length >= 2;
       if (hasPreviousConversation) {
         compiledPrompt += `\n\n🧠 CONTINUIDADE DE CONVERSA (EM ANDAMENTO):
 - NUNCA repita saudações de abertura ("Olá! Seja bem-vindo à Dumar", "Tudo bem?").
