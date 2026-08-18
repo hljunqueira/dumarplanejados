@@ -2201,7 +2201,12 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
           // DISPARAR MOTOR DE IA COMERCIAL SE ATIVO GLOBALMENTE E HABILITADO ESPECIFICAMENTE NO BOTÃO DESTE LEAD
           if (!isFromMe && aiConfig.botEnabled && targetLead) {
             const history = typeof targetLead.chatHistory === "string" ? JSON.parse(targetLead.chatHistory || "[]") : (targetLead.chatHistory || []);
-            const isLeadAiActive = targetLead.aiPaused === false;
+            
+            // BLINDAGEM DE ATENDIMENTO HUMANO: Se a última mensagem da empresa foi enviada por um humano, a IA NUNCA intervém!
+            const lastAgentMsg = history.filter((h: any) => h.sender === "agent").slice(-1)[0];
+            const lastMsgWasHuman = lastAgentMsg?.isHuman === true;
+            
+            const isLeadAiActive = targetLead.aiPaused === false && !lastMsgWasHuman;
             const isAllowedStage = ["entrada", "briefing"].includes(targetLead.stage || "entrada");
 
             if (isLeadAiActive && isAllowedStage) {
