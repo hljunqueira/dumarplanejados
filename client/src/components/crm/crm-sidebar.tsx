@@ -58,11 +58,11 @@ export default function CRMSidebar({
 
   // Itens Globais do Sidebar
   const allNavItems = [
-    { id: "dashboard", label: "VISÃO GERAL", icon: BarChart2, path: "/crm/dashboard" },
-    { id: "kanban", label: "FUNIL DE VENDAS", icon: Users, path: "/crm/funil" },
-    { id: "agenda", label: "AGENDA DE MEDIÇÕES", icon: CalendarIcon, path: "/crm/agenda" },
-    { id: "financeiro", label: "FINANCEIRO & CONTRATOS", icon: FileText, path: "/crm/financeiro" },
-    { id: "configuracoes", label: "CONFIGURAÇÕES & EQUIPE", icon: Settings, path: "/crm/configuracoes" },
+    { id: "dashboard", label: "Visão Geral", icon: BarChart2, path: "/crm/dashboard" },
+    { id: "kanban", label: "Funil de Vendas", icon: Users, path: "/crm/funil" },
+    { id: "agenda", label: "Agenda", icon: CalendarIcon, path: "/crm/agenda" },
+    { id: "financeiro", label: "Gestão Financeira", icon: FileText, path: "/crm/financeiro" },
+    { id: "configuracoes", label: "Configurações", icon: Settings, path: "/crm/configuracoes" },
   ];
 
   // Filtragem RBAC Dinâmica

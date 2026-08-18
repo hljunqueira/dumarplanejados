@@ -2423,7 +2423,7 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
 
   app.post("/api/calendar-events", async (req, res) => {
     try {
-      const { title, date, time, type = "evento", priority = "media", leadId, notes, completed = false } = req.body;
+      const { title, date, time, endTime, duration = "60", type = "evento", priority = "media", leadId, notes, completed = false } = req.body;
       if (!title || !date) {
         return res.status(400).json({ message: "Título e data são obrigatórios" });
       }

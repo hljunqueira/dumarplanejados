@@ -20,12 +20,17 @@ export async function initDbTables() {
         title TEXT NOT NULL,
         date TEXT NOT NULL,
         time TEXT DEFAULT '',
+        end_time TEXT DEFAULT '',
+        duration TEXT DEFAULT '60',
         type TEXT NOT NULL DEFAULT 'evento',
         priority TEXT NOT NULL DEFAULT 'media',
         lead_id INTEGER,
         notes TEXT DEFAULT '',
         completed BOOLEAN NOT NULL DEFAULT false
       );
+
+      ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS end_time TEXT DEFAULT '';
+      ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS duration TEXT DEFAULT '60';
 
       CREATE TABLE IF NOT EXISTS contracts (
         id SERIAL PRIMARY KEY,

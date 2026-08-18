@@ -63,7 +63,9 @@ export const calendarEvents = pgTable("calendar_events", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   date: text("date").notNull(), // YYYY-MM-DD
-  time: text("time").default(""),
+  time: text("time").default(""), // Hora início (ex: 14:00)
+  endTime: text("end_time").default(""), // Hora término (ex: 15:00)
+  duration: text("duration").default("60"), // Duração em minutos (ex: "30", "60", "90", "120", "dia_todo")
   type: text("type").notNull().default("evento"), // "evento" | "tarefa" | "nota"
   priority: text("priority").notNull().default("media"), // "alta" | "media" | "baixa"
   leadId: integer("lead_id"),
