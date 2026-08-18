@@ -2109,12 +2109,12 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
                   })
                 });
 
-                // 3. Enviar mensagem de confirmação para o Cliente
-                const clientConfirmMsg = `Olá ${targetPendingLead.name}! Conversei diretamente com nosso diretor Paulo Vargas e sua reunião no nosso escritório comercial está confirmada para *${finalDate} às ${finalTime}*! 📅✨\n\nNossos projetistas já estão preparando tudo para visualizar seu projeto 3D renderizado. Seja muito bem-vindo(a) à Dumar Móveis Planejados!`;
+                // 3. Enviar mensagem de confirmação para o Cliente com o Endereço Oficial
+                const clientConfirmMsg = `Olá ${targetPendingLead.name}! Conversei diretamente com nosso diretor Paulo Vargas e sua reunião no nosso escritório comercial está confirmada para *${finalDate} às ${finalTime}*! 📅✨\n\n📍 *Local de Atendimento:*\n${aiConfig.officeAddress}\n\nNossos projetistas já estão preparando tudo para visualizar seu projeto 3D renderizado. Seja muito bem-vindo(a) à Dumar Móveis Planejados!`;
                 await sendWhatsAppMessageViaEvolution(targetPendingLead.phone, clientConfirmMsg, "dumar_comercial");
 
                 // 4. Confirmar para o Paulo
-                const ownerReplyMsg = `✅ *Agendamento Confirmado e Salvo no CRM!* 📅✨\n\n👤 *Cliente:* ${targetPendingLead.name}\n📱 *WhatsApp:* ${targetPendingLead.phone}\n📅 *Data Agendada:* ${finalDate} às ${finalTime}\n\n🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
+                const ownerReplyMsg = `✅ *Agendamento Confirmado e Salvo no CRM!* 📅✨\n\n👤 *Cliente:* ${targetPendingLead.name}\n📱 *WhatsApp:* ${targetPendingLead.phone}\n📅 *Data Agendada:* ${finalDate} às ${finalTime}\n📍 *Local:* Escritório Comercial\n\n🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
                 await sendWhatsAppMessageViaEvolution(ownerClean, ownerReplyMsg, "dumar_comercial");
 
                 console.log(`Diretoria Dumar: Reunião do Lead ${targetPendingLead.name} confirmada por Paulo Vargas para ${finalDate} às ${finalTime}.`);
