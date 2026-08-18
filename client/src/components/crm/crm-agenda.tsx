@@ -60,14 +60,26 @@ const getSaoPauloDateStr = (date = new Date()) => {
   return `${y}-${m}-${d}`;
 };
 
-// Formatar data por extenso: "terça-feira, 18 de ago."
-const formatExtensiveDate = (dateStr: string) => {
+// Formatar data no padrão oficial brasileiro: "17/08/2026"
+export const formatPtBrDate = (dateStr: string): string => {
   if (!dateStr) return "";
-  const [y, m, d] = dateStr.split("-").map(Number);
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    const [y, m, d] = parts;
+    return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+  }
+  return dateStr;
+};
+
+// Formatar data por extenso: "segunda-feira, 17/08/2026"
+const formatExtensiveDate = (dateStr: string): string => {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return dateStr;
+  const [y, m, d] = parts;
   const dt = new Date(y, m - 1, d);
   const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(dt);
-  const monthName = new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(dt).replace(".", "");
-  return `${weekday}, ${d} de ${monthName}.`;
+  return `${weekday}, ${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
 };
 
 // Helper para somar minutos a um horário HH:MM
@@ -84,13 +96,14 @@ const calculateEndTime = (startTime: string, durationMinutes: string): string =>
   return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
 };
 
-// Helper para formatar rótulo de período
-const formatPeriodLabel = (time?: string, endTime?: string, duration?: string) => {
+// Helper para formatar rótulo de período com início e término
+const formatPeriodLabel = (time?: string, endTime?: string, duration?: string): string => {
   if (!time) return "Sem horário";
   if (duration === "dia_todo") return "Dia inteiro";
   if (endTime && endTime !== time) {
-    const durLabel = DURATION_PRESETS.find(p => p.value === duration)?.label;
-    return `${time} – ${endTime}${durLabel ? ` (${durLabel})` : ""}`;
+    const durPreset = DURATION_PRESETS.find(p => p.value === duration);
+    const durText = durPreset ? ` (${durPreset.label})` : "";
+    return `${time} às ${endTime}${durText}`;
   }
   return `${time}`;
 };
@@ -770,7 +783,7 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
 
                                 <span className="text-[10px] text-amber-300 font-mono flex items-center gap-1">
                                   <Clock size={10} />
-                                  {ev.date} • {formatPeriodLabel(ev.time, ev.endTime, ev.duration)}
+                                  {formatPtBrDate(ev.date)} • {formatPeriodLabel(ev.time, ev.endTime, ev.duration)}
                                 </span>
                               </div>
                             </div>
@@ -850,7 +863,7 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
 
                     <div className="text-xs text-amber-300 font-mono font-medium flex items-center gap-1.5">
                       <Clock size={12} />
-                      {ev.date} • {formatPeriodLabel(ev.time, ev.endTime, ev.duration)}
+                      {formatPtBrDate(ev.date)} • {formatPeriodLabel(ev.time, ev.endTime, ev.duration)}
                     </div>
 
                     {linkedLead && (
@@ -1202,12 +1215,23 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                   </div>
 
                   {/* Grid de Início e Término */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Início */}
-                    <div className="bg-white/5 p-3 rounded-xl border border-white/5 space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Início</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* Card Início */}
+                    <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="relative flex-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                          <CalendarDays size={12} />
+                          Data de Início
+                        </span>
+                        {!isAllDay && eventType !== "nota" && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                            Horário
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2.5">
+                        <div className="relative flex-1 bg-black/50 border border-white/10 hover:border-blue-500/40 transition-colors rounded-xl px-3 py-2 cursor-pointer">
                           <input
                             type="date"
                             value={eventDate}
@@ -1217,7 +1241,7 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                             }}
                             className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
                           />
-                          <span className="text-xs text-white hover:text-blue-400 font-medium cursor-pointer truncate block">
+                          <span className="text-xs text-gray-200 hover:text-blue-400 font-semibold truncate block capitalize">
                             {formatExtensiveDate(eventDate)}
                           </span>
                         </div>
@@ -1227,25 +1251,34 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                             type="time"
                             value={eventTime}
                             onChange={e => handleTimeOrDurationChange(e.target.value, eventDuration)}
-                            className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500 cursor-pointer ml-2"
+                            className="bg-black/80 border border-blue-500/40 focus:border-blue-400 rounded-xl px-2.5 py-2 text-white font-mono text-xs font-bold focus:outline-none cursor-pointer text-center min-w-[78px] shadow-inner"
                           />
                         )}
                       </div>
                     </div>
 
-                    {/* Término */}
+                    {/* Card Término */}
                     {!isAllDay && eventType !== "nota" ? (
-                      <div className="bg-white/5 p-3 rounded-xl border border-white/5 space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Término</span>
+                      <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 space-y-2">
                         <div className="flex items-center justify-between">
-                          <div className="relative flex-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <CalendarDays size={12} />
+                            Data de Término
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                            Horário
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2.5">
+                          <div className="relative flex-1 bg-black/50 border border-white/10 hover:border-emerald-500/40 transition-colors rounded-xl px-3 py-2 cursor-pointer">
                             <input
                               type="date"
                               value={eventEndDate}
                               onChange={e => setEventEndDate(e.target.value)}
                               className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
                             />
-                            <span className="text-xs text-white hover:text-blue-400 font-medium cursor-pointer truncate block">
+                            <span className="text-xs text-gray-200 hover:text-emerald-400 font-semibold truncate block capitalize">
                               {formatExtensiveDate(eventEndDate)}
                             </span>
                           </div>
@@ -1257,12 +1290,12 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                               setEventEndTime(e.target.value);
                               setEventDuration("custom");
                             }}
-                            className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500 cursor-pointer ml-2"
+                            className="bg-black/80 border border-emerald-500/40 focus:border-emerald-400 rounded-xl px-2.5 py-2 text-white font-mono text-xs font-bold focus:outline-none cursor-pointer text-center min-w-[78px] shadow-inner"
                           />
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-white/5 p-3 rounded-xl border border-white/5 flex items-center justify-center text-xs text-gray-500">
+                      <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 flex items-center justify-center text-xs text-gray-400">
                         Compromisso para o dia todo
                       </div>
                     )}
