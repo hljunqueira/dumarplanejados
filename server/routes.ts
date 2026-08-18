@@ -1711,6 +1711,10 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
         const phoneClean = remoteJid.replace(/\D/g, "");
         if (!phoneClean || phoneClean.length < 10 || phoneClean.length > 15) return;
 
+        // REGRA MANDATÓRIA: O número do Paulo (Diretoria) NUNCA deve ser importado como Lead!
+        const ownerClean = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
+        if (phoneClean.includes(ownerClean) || ownerClean.includes(phoneClean)) return;
+
         const normalizedPhone = normalizePhoneForMatching(phoneClean);
         if (processedPhones.has(normalizedPhone)) return;
         processedPhones.add(normalizedPhone);
