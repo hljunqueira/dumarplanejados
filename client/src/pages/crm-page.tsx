@@ -17,6 +17,7 @@ import CRMPerfil from "@/components/crm/crm-perfil";
 import CRMFinanceiro from "@/components/crm/crm-financeiro";
 import CRMSettings from "@/components/crm/crm-settings";
 import CRMConfiguracoes from "@/components/crm/crm-configuracoes";
+import CRMConfirmModal from "@/components/crm/crm-confirm-modal";
 
 // --- COLUNAS DO FUNIL OPERACIONAL ---
 const STAGES = [
@@ -728,38 +729,17 @@ export default function CRMPage() {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO CUSTOMIZADO */}
-      {deleteConfirmLeadId && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-[#121212] border border-white/15 rounded-2xl p-6 shadow-2xl space-y-4 text-center animate-scale-in">
-            <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Confirmar Exclusão</h3>
-              <p className="text-xs text-gray-400 mt-1">Tem certeza que deseja excluir este lead permanentemente do banco de dados?</p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button 
-                type="button" 
-                onClick={() => setDeleteConfirmLeadId(null)}
-                className="w-1/2 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold py-2.5 px-4 rounded-xl cursor-pointer border border-white/10 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                type="button" 
-                onClick={confirmDeleteLead}
-                className="w-1/2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl cursor-pointer shadow-lg shadow-red-600/20 transition-colors"
-              >
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE LEAD SEGURO */}
+      <CRMConfirmModal
+        isOpen={Boolean(deleteConfirmLeadId)}
+        title="Excluir Lead do Funil?"
+        description={`Tem certeza que deseja excluir permanentemente o lead "${leads.find(l => String(l.id) === String(deleteConfirmLeadId))?.name || 'selecionado'}" do banco de dados? Todo o histórico de mensagens e projetos será removido.`}
+        confirmText="Sim, Excluir Lead"
+        cancelText="Cancelar"
+        isDestructive={true}
+        onConfirm={confirmDeleteLead}
+        onClose={() => setDeleteConfirmLeadId(null)}
+      />
     </div>
   );
 }

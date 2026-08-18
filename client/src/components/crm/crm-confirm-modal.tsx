@@ -27,7 +27,7 @@ export default function CRMConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[300] flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-[#12141a] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-scale-in text-left">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
