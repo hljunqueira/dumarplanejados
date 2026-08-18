@@ -503,11 +503,12 @@ export default function CRMPage() {
           <header className="hidden md:flex h-14 px-6 border-b border-white/10 items-center justify-between bg-black/40 flex-shrink-0">
             <div>
               <h2 className="text-xs font-black tracking-wider uppercase text-white">
-                {activeSection === "dashboard" && "Visão Geral (Gestão Comercial)"}
-                {activeSection === "agenda" && "Agenda de Medições"}
-                {activeSection === "financeiro" && "Financeiro & Gestão de Caixa"}
+                {activeSection === "dashboard" && "Visão Geral"}
+                {activeSection === "agenda" && "Agenda"}
+                {activeSection === "financeiro" && "Gestão Financeira"}
                 {activeSection === "perfil" && "Meu Perfil"}
-                {activeSection === "configuracoes" && "Configurações do Sistema"}
+                {activeSection === "configuracoes" && "Configurações"}
+                {activeSection === "mensagens" && "Automação & IA"}
               </h2>
             </div>
             <div className="flex items-center gap-3">
@@ -524,15 +525,17 @@ export default function CRMPage() {
 
         {/* Abas */}
         {activeSection === "dashboard" && (
-          <CRMDashboard 
-            leads={leads}
-            closedSalesTotal={closedSalesTotal}
-            activeProjectsCount={activeProjectsCount}
-            scheduledMeasurementsCount={scheduledMeasurementsCount}
-            totalValue={totalValue}
-            utmData={utmData}
-            getNetworkColor={getNetworkColor}
-          />
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <CRMDashboard 
+              leads={leads}
+              closedSalesTotal={closedSalesTotal}
+              activeProjectsCount={activeProjectsCount}
+              scheduledMeasurementsCount={scheduledMeasurementsCount}
+              totalValue={totalValue}
+              utmData={utmData}
+              getNetworkColor={getNetworkColor}
+            />
+          </div>
         )}
 
         {activeSection === "kanban" && (
@@ -557,25 +560,33 @@ export default function CRMPage() {
         )}
 
         {activeSection === "agenda" && (
-          <CRMAgenda leads={leads} />
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <CRMAgenda leads={leads} />
+          </div>
         )}
 
         {activeSection === "perfil" && (
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
             <CRMPerfil currentUser={currentUser} setCurrentUser={setCurrentUser} />
           </div>
         )}
 
         {activeSection === "financeiro" && (
-          <CRMFinanceiro leads={leads} setSelectedLead={setSelectedLead} />
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <CRMFinanceiro leads={leads} setSelectedLead={setSelectedLead} />
+          </div>
         )}
 
         {activeSection === "mensagens" && (
-          <CRMSettings />
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <CRMSettings />
+          </div>
         )}
 
         {activeSection === "configuracoes" && (
-          <CRMConfiguracoes currentUser={currentUser} setCurrentUser={setCurrentUser} />
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <CRMConfiguracoes currentUser={currentUser} setCurrentUser={setCurrentUser} />
+          </div>
         )}
       </main>
 
