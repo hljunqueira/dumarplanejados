@@ -1088,22 +1088,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ceoName: "Paulo Vargas",
     officeAddress: "Av. Santa Catarina, 551, Sala 205, Centro, Balneário Arroio do Silva - SC",
     factoryLocation: "Parque Fabril Próprio (separado do escritório comercial)",
-    activePreset: "qualificador", // 'qualificador' | 'agendador' | 'triagem' | 'personalizado'
+    activePreset: "qualificador",
     welcomeMessage: "Olá {nome}! Tudo bem? Seja muito bem-vindo(a) à {empresa}. Recebemos seu contato com sucesso. Para qual ambiente você gostaria de fazer um projeto sob medida?",
-    systemPrompt: `Você é a assistente comercial de inteligência artificial da Dumar Móveis Planejados, especialista em móveis sob medida de alto padrão 100% MDF com ferragens amortecidas.
-Seu objetivo é atender os clientes de forma calorosa, ágil e profissional no WhatsApp.
+    systemPrompt: `Você é a Consultora Comercial de Marcenaria Fina da Dumar Móveis Planejados (móveis sob medida de alto padrão 100% MDF com ferragens amortecidas).
+Seu objetivo é conduzir um atendimento ágil, caloroso, altamente persuasivo e humanizado no WhatsApp, qualificando o cliente e avançando para validação da diretoria ou agendamento de visita técnica / projeto 3D.
 
-REGRAS MANDATÓRIAS:
-1. SAUDAÇÃO PERSONALIZADA: Se você souber o nome do cliente ({nome}), comece chamando-o pelo nome (Ex: "Olá, {nome}! Tudo bem? Seja muito bem-vindo(a) à Dumar Móveis Planejados."). Se o nome não estiver identificado ou for genérico, pergunte gentilmente: "Olá! Tudo bem? Seja bem-vindo(a) à Dumar Móveis Planejados. Com quem tenho o prazer de falar? E qual ambiente você gostaria de planejar?".
-2. INFORMAÇÕES INSTITUCIONAIS & DIRETORIA: O fundador, empresário e diretor executivo da Dumar Móveis Planejados é o Paulo Vargas. Se o cliente perguntar quem é o dono, CEO, responsável ou empresário da Dumar, informe com total segurança que é o Paulo Vargas, um profissional apaixonado por marcenaria fina e móveis sob medida de excelência.
-3. NUNCA passe valores ou orçamentos fechados de cabeça. Explique que cada projeto é 100% sob medida e personalizado.
-4. Descubra quais ambientes o cliente deseja planejar (Cozinha, Quarto/Suíte, Banheiro, Sala, Closet, Lavanderia, etc.).
-5. Pergunte se o cliente já possui a planta baixa com medidas ou fotos do cômodo.
-6. Identifique onde fica o imóvel (cidade/bairro) e se é casa ou apartamento.
-7. Convide o cliente para uma reunião no Escritório Comercial da Dumar (Av. Santa Catarina, 551, Sala 205, Centro, Balneário Arroio do Silva - SC) para tomar um café e visualizar o projeto 3D renderizado no Promob com nossos projetistas, ou agendar uma visita técnica na obra.
-8. LINKS DE PORTFÓLIO E VÍDEOS: Se o cliente pedir para ver fotos de trabalhos realizados, modelos de ambientes ou projetos entregues, envie o link do nosso Portfólio: https://dumarplanejados.com.br/#portfolio . Se pedir vídeos de móveis, montagens e acabamentos, envie o link dos nossos Vídeos: https://dumarplanejados.com.br/#videos .
-9. TRATAMENTO DE DESPEDIDAS E ENCERRAMENTOS: Se a última mensagem do cliente for um encerramento ou despedida curta (ex: "Até", "Até logo", "Tchau", "Valeu", "Obrigado", "Depois eu vejo", "Vou ver e te aviso", "Combinado"), NUNCA reabra a conversa do zero nem pergunte "Como posso ajudar hoje?". Apenas despeça-se com elegância e carinho, desejando um ótimo dia e reforçando que estamos à disposição quando ele quiser dar andamento ao projeto.
-10. Escreva mensagens curtas, humanizadas e acolhedoras (estilo WhatsApp real, máximo de 2 a 3 parágrafos curtos).`,
+REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
+1. MENSAGENS CURTAS E DIRETAS (MÁXIMO 2 A 3 FRASES): NUNCA envie blocos de texto ou parágrafos longos. Escreva exatamente como uma pessoa real conversa no WhatsApp.
+2. UMA PERGUNTA POR VEZ (ESCUTA ATIVA & MICRO-COMPROMISSOS):
+   - Nunca faça mais de uma pergunta na mesma mensagem.
+   - Sempre valide e acolha o que o cliente acabou de dizer antes de fazer a próxima pergunta.
+   - Siga a cadência natural:
+     Passo 1: Confirmar o nome e acolher com entusiasmo.
+     Passo 2: Entender quais ambientes ele deseja planejar (Cozinha, Quarto/Suíte, Banheiro, Sala, Casa toda, etc.).
+     Passo 3: Saber a cidade/bairro do imóvel e se é casa ou apartamento.
+     Passo 4: Perguntar se já possui a planta com medidas ou fotos do cômodo.
+     Passo 5: Sondar investimento previsto ou encaminhar para a aprovação da diretoria (Paulo Vargas).
+3. PROIBIDO COLAR ENDEREÇO OU CONVITE REPETITIVO DE CAFÉ:
+   - NUNCA cole o endereço completo do escritório ("Av. Santa Catarina, 551...") nem fique convidando para café repetidamente a cada mensagem.
+   - O endereço só deve ser mencionado se o cliente perguntar expressamente onde fica a loja ou quando o agendamento presencial for efetivamente concluído.
+4. ATENDIMENTO EXCLUSIVO & DIRETORIA (PAULO VARGAS):
+   - O fundador e diretor executivo da Dumar é o Paulo Vargas.
+   - Se o cliente citar o Paulo, múltiplos ambientes ou valores de investimento (ex: R$ 25 mil, 30k, 50k), acolha com entusiasmo de atendimento VIP e informe que está abrindo o projeto com o Paulo para priorizar a proposta dele.
+5. SIGILO COMERCIAL & VALORES:
+   - NUNCA passe valores fechados de cabeça. Explique que como é 100% sob medida, o projeto é desenhado para se adequar ao investimento e ao espaço dele.
+6. LINKS DE PORTFÓLIO E VÍDEOS:
+   - Fotos de projetos: https://dumarplanejados.com.br/#portfolio
+   - Vídeos de projetos e bastidores: https://dumarplanejados.com.br/#videos
+7. ENCERRAMENTOS E RESPEITO AO TEMPO:
+   - Se o cliente disser que vai deixar para depois, que não pode falar agora ou agradecer, despeça-se com elegância e carinho sem insistir.`,
     businessHours: {
       days: ["seg", "ter", "qua", "qui", "sex", "sab"],
       workDaysText: "Segunda a Sexta das 08:30 às 12:00 e das 13:30 às 18:00; Sábado das 08:30 às 12:00 (Domingos e Feriados fechado)",
@@ -1118,7 +1131,7 @@ REGRAS MANDATÓRIAS:
       noDirectPrice: true,
       askFloorPlan: true,
       askLocation: true,
-      inviteOffice: true,
+      inviteOffice: false,
       shortMessages: true
     },
     handoffEnabled: true,
@@ -1224,7 +1237,7 @@ REGRAS MANDATÓRIAS:
       ter: "Terça-feira",
       qua: "Quarta-feira",
       qui: "Quinta-feira",
-      sex: "Sexta-feira",
+      sex: "Segunda-feira",
       sab: "Sábado",
       dom: "Domingo"
     };
@@ -1263,7 +1276,6 @@ REGRAS MANDATÓRIAS:
     extraContext?: { rooms?: string[]; previousChatCount?: number; lastAppointment?: string }
   ): Promise<string> {
     try {
-      // 1. Obter Data e Hora atual no Fuso Horário de Brasília / São Paulo
       const nowInSP = new Date();
       const currentFullDateStr = nowInSP.toLocaleDateString("pt-BR", {
         timeZone: "America/Sao_Paulo",
@@ -1280,24 +1292,6 @@ REGRAS MANDATÓRIAS:
 
       const GROQ_PRIMARY_KEY = ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
 
-      // 2. Buscar eventos reais do Calendário do CRM para validar ocupação
-      let upcomingEventsText = "Nenhum compromisso marcado para os próximos dias (Agenda 100% Livre).";
-      try {
-        const events = await storage.getCalendarEvents();
-        if (events && events.length > 0) {
-          const activeEvents = events
-            .filter((e: any) => !e.completed)
-            .slice(-12)
-            .map((e: any) => `- Data: ${e.date} às ${e.time || "horário comercial"} | ${e.title}`);
-          if (activeEvents.length > 0) {
-            upcomingEventsText = activeEvents.join("\n");
-          }
-        }
-      } catch (e) {
-        console.error("Erro ao buscar eventos do calendário para a IA:", e);
-      }
-
-      // 3. Montar prompt com as variáveis substituídas
       const isGenericName = !clientName || 
                             clientName.toLowerCase().includes("cliente teste") || 
                             clientName.toLowerCase().startsWith("cliente (") || 
@@ -1308,50 +1302,25 @@ REGRAS MANDATÓRIAS:
         .replace(/{nome}/g, isGenericName ? "" : clientName)
         .replace(/{nome_cliente}/g, isGenericName ? "" : clientName)
         .replace(/{telefone}/g, clientPhone)
-        .replace(/{empresa}/g, aiConfig.companyName)
-        .replace(/{endereco_escritorio}/g, aiConfig.officeAddress);
+        .replace(/{empresa}/g, aiConfig.companyName);
 
       if (isGenericName) {
-        compiledPrompt += `\n\nCONTEXTO DO CLIENTE ATUAL:\n- Você ainda NÃO possui o nome deste cliente. Na sua primeira mensagem, pergunte educadamente com quem tem o prazer de falar e qual ambiente deseja planejar.`;
+        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- Você ainda NÃO tem o nome do cliente. Na primeira interação, pergunte educadamente com quem tem o prazer de falar.`;
       } else {
-        compiledPrompt += `\n\nCONTEXTO DO CLIENTE ATUAL:\n- O nome do cliente é "${clientName}".`;
+        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- O nome do cliente é "${clientName}". Trate-o de forma personalizada e calorosa.`;
       }
 
-      // 3.1 Inteligência de Reconhecimento de Conversa Anterior (Memória de Longo Prazo)
       const hasPreviousConversation = conversationHistory.length >= 2;
       if (hasPreviousConversation) {
-        compiledPrompt += `\n\n🧠 CONTINUIDADE DE CONVERSA & RECONHECIMENTO DE CONTEXTO:
-- Esta é uma conversa em andamento. NUNCA repita saudações de primeiro contato ("Olá! Como posso te ajudar hoje?") nem se reapresente.
-- Responda diretamente ao que o cliente acabou de falar de forma humana, empática e concisa.
-- SE O CLIENTE DISSER QUE VAI DEIXAR PARA MAIS TARDE, QUE NÃO PODE FALAR AGORA, QUE AINDA NÃO QUER OU QUE ESTÁ OCUPADO:
-  -> Responda com respeito e cordialidade imediata (ex: "Sem problemas! Fique super à vontade. Quando for o momento ideal para você, estamos à disposição aqui pelo WhatsApp. Tenha um ótimo dia!"). NUNCA insista nem repita saudações.`;
+        compiledPrompt += `\n\n🧠 CONTINUIDADE DE CONVERSA (EM ANDAMENTO):
+- NUNCA repita saudações de abertura ("Olá! Seja bem-vindo à Dumar").
+- Vá direto ao ponto, respondendo exatamente o que o cliente acabou de falar.
+- Mantenha mensagens curtas (1 a 2 frases) com UMA única pergunta direta.`;
       }
 
-      // 4. Injeção de Grade de Horários por Dia da Semana e Agenda em Tempo Real
-      const scheduleDescription = formatWeeklySchedule(aiConfig.businessHours);
-
-      compiledPrompt += `\n\n📅 CONSULTA DE AGENDA & HORÁRIOS EM TEMPO REAL:
-- Data e Hora Atual em Brasília: ${currentFullDateStr}, exatamente às ${currentTimeStr}.
-- Grade Detalhada de Atendimento por Dia da Semana:
-- ${scheduleDescription}
-- Compromissos e Horários Já Ocupados no CRM:
-${upcomingEventsText}
-
-REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
-1. Se o cliente solicitar um dia/horário específico, consulte a Grade Detalhada acima para verificar se esse dia e turno estão ABERTOS.
-2. SE O HORÁRIO FOR DENTRO DO EXPEDIENTE E ESTIVER LIVRE: Confirme o agendamento no Escritório Comercial (${aiConfig.officeAddress}) ou visita técnica na obra, reforçando o dia e horário confirmados.
-3. SE FOR FORA DO EXPEDIENTE: Explique gentilmente que não há atendimento nesse período e sugira 2 horários abertos mais próximos conforme a Grade.`;
-
-      // Adicionar reforço das regras ativas
-      const activeRules: string[] = [];
-      if (aiConfig.rules.noDirectPrice) activeRules.push("- Não informe preços finais sem medição ou planta.");
-      if (aiConfig.rules.askFloorPlan) activeRules.push("- Pergunte se o cliente tem planta baixa ou fotos do ambiente.");
-      if (aiConfig.rules.askLocation) activeRules.push("- Pergunte a cidade e tipo do imóvel (casa/apto).");
-      if (aiConfig.rules.inviteOffice) activeRules.push(`- Convide para reunião no Escritório Comercial (${aiConfig.officeAddress}) ou visita técnica na obra.`);
-      if (aiConfig.rules.shortMessages) activeRules.push("- Responda em estilo WhatsApp: frases naturais, curtas e diretas.");
-
-      if (activeRules.length > 0) {
-        compiledPrompt += `\n\nREGRAS ADICIONAIS ATIVAS:\n${activeRules.join("\n")}`;
+      // Injetar contexto de ambientes já detectados
+      if (extraContext?.rooms && extraContext.rooms.length > 0) {
+        compiledPrompt += `\n- Ambientes já mencionados pelo cliente: ${extraContext.rooms.join(", ")}.`;
       }
 
       // Formatar mensagens para o formato de chat
@@ -1392,8 +1361,8 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
             body: JSON.stringify({
               model: modelName,
               messages,
-              temperature: 0.6,
-              max_tokens: 300
+              temperature: 0.4,
+              max_tokens: 160
             })
           });
 
@@ -1419,14 +1388,14 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
         return generatedAnswer;
       }
 
-      // Fallback Inteligente Contextual (NUNCA repetir saudação inicial se a conversa já estiver em andamento)
+      // Fallback Inteligente Contextual
       const isOngoing = conversationHistory.length >= 2;
       if (isOngoing) {
-        return "Perfeito, entendido! Qualquer dúvida ou quando desejar dar andamento ao projeto dos seus móveis sob medida, estamos à disposição aqui pelo WhatsApp. Tenha um ótimo dia!";
+        return "Perfeito, compreendido! Qualquer dúvida sobre os móveis planejados, estamos à disposição aqui pelo WhatsApp. 😊";
       }
 
       const safeName = isGenericName ? "" : ` ${clientName}`;
-      return `Olá${safeName}! Tudo bem? Seja muito bem-vindo(a) à Dumar Móveis Planejados. Qual ambiente você gostaria de planejar?`;
+      return `Olá${safeName}! Tudo bem? Seja muito bem-vindo(a) à Dumar Móveis Planejados. 😊 Qual ambiente você gostaria de planejar hoje?`;
     } catch (err) {
       console.error("Erro geral ao gerar resposta com o Motor de IA:", err);
       const isOngoing = conversationHistory.length >= 2;
@@ -2236,21 +2205,33 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
                 );
 
                 const lowerReply = replyText.toLowerCase();
-                const isConfirmedAppointment = lowerReply.includes("está agendado") || 
+                const lowerMsg = msgContent.toLowerCase();
+
+                // Detecção Semântica de Gatilhos VIP & Agendamento
+                const isExplicitAppointment = lowerReply.includes("está agendado") || 
                                               lowerReply.includes("agendado:") || 
                                               lowerReply.includes("agendamento confirmado") ||
                                               lowerReply.includes("marcado para") ||
-                                              lowerReply.includes("marcada para");
+                                              lowerReply.includes("marcada para") ||
+                                              lowerMsg.includes("agendar") ||
+                                              lowerMsg.includes("marcar") ||
+                                              lowerMsg.includes("visita técnica") ||
+                                              lowerMsg.includes("pode vir medir");
+
+                const mentionsPaulo = lowerMsg.includes("paulo") || lowerReply.includes("paulo vargas");
+                const mentionsHighValue = lowerMsg.includes("mil") || lowerMsg.includes("k") || /\b\d{2,3}\.?000\b/.test(lowerMsg) || lowerMsg.includes("25");
+                const hasMultipleRooms = targetRooms.length >= 2 || lowerMsg.includes("casa toda") || lowerMsg.includes("apartamento todo");
 
                 // Calcular estimativa interna e classificação de Lead VIP
                 const leadEstimate = calculateLeadEstimatedValue(targetRooms);
+                const isVipOpportunity = isExplicitAppointment || mentionsPaulo || mentionsHighValue || hasMultipleRooms;
 
                 let finalReplyToClient = replyText;
 
-                // SE FOR AGENDAMENTO E EXIGIR APROVAÇÃO DO PAULO (HUMAN-IN-THE-LOOP)
-                if (isConfirmedAppointment && aiConfig.requireOwnerApproval !== false) {
+                // SE FOR GATILHO VIP OU AGENDAMENTO -> ACIONAR VALIDAÇÃO EXECUTIVA COM O PAULO
+                if (isVipOpportunity && aiConfig.requireOwnerApproval !== false) {
                   const targetAppointmentDate = calculateTargetAppointmentDate(`${msgContent} ${replyText}`);
-                  const timeMatch = lowerReply.match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
+                  const timeMatch = (lowerReply + " " + lowerMsg).match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
                   let extractedTime = "14:00";
                   if (timeMatch) {
                     if (timeMatch[1]) extractedTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
@@ -2269,8 +2250,12 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
                     })
                   });
 
-                  // Resposta acolhedora de espera ao cliente (sem valores)
-                  finalReplyToClient = `Perfeito, ${targetLead.name}! Estou verificando a confirmação de agenda com a nossa diretoria para *${targetAppointmentDate} às ${extractedTime}*. Em instantes te confirmo por aqui!`;
+                  // Resposta acolhedora e personalizada de atendimento VIP (sem valores)
+                  if (mentionsPaulo || mentionsHighValue || hasMultipleRooms) {
+                    finalReplyToClient = `Excelente, ${targetLead.name}! Com esses ambientes e esse investimento, estou alinhando agora com o Paulo Vargas (nosso diretor) para priorizarmos seu projeto e vermos a melhor data de atendimento. Um minutinho que já te confirmo por aqui! ✨`;
+                  } else {
+                    finalReplyToClient = `Perfeito, ${targetLead.name}! Estou verificando a confirmação de agenda com a nossa diretoria para *${targetAppointmentDate} às ${extractedTime}*. Em instantes te confirmo por aqui!`;
+                  }
 
                   // DISPARAR NOTIFICAÇÃO EXECUTIVA VIP NO WHATSAPP DO PAULO
                   try {
@@ -2283,7 +2268,9 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
                     const propertyTypeStr = propMatch ? propMatch[0].toUpperCase() : "Imóvel";
                     const roomsStr = (targetRooms && targetRooms.length > 0) ? targetRooms.join(", ") : "Móveis Planejados";
 
-                    const vipBadge = leadEstimate.isVip ? "🚨 *NOVA SOLICITAÇÃO DE AGENDAMENTO (LEAD VIP > R$ 10k)* 💎✨" : "📅 *NOVA SOLICITAÇÃO DE AGENDAMENTO* ✨";
+                    const vipBadge = (leadEstimate.isVip || mentionsHighValue || mentionsPaulo) 
+                      ? "🚨 *OPORTUNIDADE VIP (DIRETORIA DUMAR)* 💎✨" 
+                      : "📅 *SOLICITAÇÃO DE AGENDAMENTO* ✨";
 
                     const notifyMsg = `${vipBadge}
 
@@ -2291,8 +2278,8 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
 📱 *WhatsApp:* ${targetLead.phone}
 📍 *Local:* ${locationStr} (${propertyTypeStr})
 🛋️ *Ambientes:* ${roomsStr}
-💰 *Estimativa Interna:* ${leadEstimate.summary}
-📅 *Horário Solicitado:* ${targetAppointmentDate} às ${extractedTime}
+💰 *Estimativa / Orçamento:* ${leadEstimate.summary}
+📅 *Previsão de Data:* ${targetAppointmentDate} às ${extractedTime}
 
 💬 *Mensagem do Cliente:* "${msgContent.slice(0, 140)}"
 
@@ -2308,7 +2295,7 @@ REGRAS DE VALIDAÇÃO DE AGENDAMENTO:
                   } catch (notifyErr) {
                     console.error("Erro ao enviar notificação de agendamento para o Paulo:", notifyErr);
                   }
-                } else if (isConfirmedAppointment && aiConfig.requireOwnerApproval === false) {
+                } else if (isExplicitAppointment && aiConfig.requireOwnerApproval === false) {
                   // Modo direto sem aprovação
                   const targetAppointmentDate = calculateTargetAppointmentDate(`${msgContent} ${replyText}`);
                   const timeMatch = lowerReply.match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
