@@ -1280,6 +1280,20 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
     clientPhone: string = "",
     extraContext?: { rooms?: string[]; previousChatCount?: number; lastAppointment?: string; daysSinceLastContact?: number }
   ): Promise<string> {
+    // Função para validar se o nome parece um nome próprio humano real ou nick/apelido técnico
+    const isNickOrTechnical = (name: string): boolean => {
+      if (!name) return true;
+      const clean = name.trim().toLowerCase();
+      if (clean.length < 2) return true;
+      if (clean.includes("cliente") || clean.includes("teste") || clean.includes("você") || clean.includes("voce") || clean.includes("null") || clean.includes("undefined")) return true;
+      if (clean.includes("dev") || clean.includes("admin") || clean.includes("user") || clean.includes("bot") || clean.includes("iphone") || clean.includes("loja") || clean.includes("sac") || clean.includes("vendas") || clean.includes("hlj")) return true;
+      if (/\d/.test(clean)) return true;
+      if (!/[aeiouáéíóúãõâêîôû]/i.test(clean)) return true;
+      return false;
+    };
+
+    const isGenericName = isNickOrTechnical(clientName);
+
     try {
       const nowInSP = new Date();
       const currentFullDateStr = nowInSP.toLocaleDateString("pt-BR", {
@@ -1296,20 +1310,6 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
       });
 
       const GROQ_PRIMARY_KEY = ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
-
-      // Função para validar se o nome parece um nome próprio humano real ou nick/apelido técnico
-      const isNickOrTechnical = (name: string): boolean => {
-        if (!name) return true;
-        const clean = name.trim().toLowerCase();
-        if (clean.length < 2) return true;
-        if (clean.includes("cliente") || clean.includes("teste") || clean.includes("você") || clean.includes("voce") || clean.includes("null") || clean.includes("undefined")) return true;
-        if (clean.includes("dev") || clean.includes("admin") || clean.includes("user") || clean.includes("bot") || clean.includes("iphone") || clean.includes("loja") || clean.includes("sac") || clean.includes("vendas") || clean.includes("hlj")) return true;
-        if (/\d/.test(clean)) return true;
-        if (!/[aeiouáéíóúãõâêîôû]/i.test(clean)) return true;
-        return false;
-      };
-
-      const isGenericName = isNickOrTechnical(clientName);
 
       let compiledPrompt = aiConfig.systemPrompt
         .replace(/{nome}/g, isGenericName ? "" : clientName)
@@ -1382,8 +1382,8 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
         messages.push({ role: "user", content: "Olá" });
       }
 
-      // Modelos ativos e testados na API Groq
-      const ACTIVE_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "groq/compound"];
+      // Modelos ativos e testados na API Groq (groq/compound é ultra rápido e sem tokens perdidos em pensamento)
+      const ACTIVE_MODELS = ["groq/compound", "openai/gpt-oss-120b", "openai/gpt-oss-20b"];
       let generatedAnswer = "";
 
       for (const modelName of ACTIVE_MODELS) {
@@ -1398,7 +1398,7 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
               model: modelName,
               messages,
               temperature: 0.4,
-              max_tokens: 160
+              max_tokens: 600
             })
           });
 
@@ -1431,23 +1431,13 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
         return generatedAnswer;
       }
 
-      // Fallback Inteligente Contextual
-      const isOngoing = conversationHistory.length >= 2;
-      if (isOngoing) {
-        return "Perfeito, compreendido! Qualquer dúvida sobre os móveis planejados, estamos à disposição aqui pelo WhatsApp. 😊";
-      }
-
-      if (isGenericName) {
-        return "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?";
-      }
-      return `Olá, ${clientName}! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Qual ambiente você gostaria de planejar hoje?`;
+      // Fallback Inteligente Contextual Dinâmico
+      const safeLeadName = isGenericName ? "" : `${clientName}! `;
+      return `Perfeito, ${safeLeadName}Qual ambiente você gostaria de planejar hoje (cozinha, quarto, sala, etc.)?`;
     } catch (err) {
       console.error("Erro geral ao gerar resposta com o Motor de IA:", err);
-      const isOngoing = conversationHistory.length >= 2;
-      if (isOngoing) {
-        return "Certo, compreendido! Quando for o momento ideal para você, estamos à total disposição por aqui.";
-      }
-      return "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?";
+      const safeLeadName = isGenericName ? "" : `${clientName}! `;
+      return `Olá, ${safeLeadName}Qual ambiente você gostaria de planejar hoje?`;
     }
   }
 
