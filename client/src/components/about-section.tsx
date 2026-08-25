@@ -114,7 +114,7 @@ export default function AboutSection() {
                 className="text-neutral-700 hover:text-black font-semibold transition-colors duration-300"
               >
                 <MapPin className="h-4 w-4 mr-2" />
-                Ver Showroom
+                Ver Escritório Comercial
               </Button>
             </div>
 
@@ -151,7 +151,7 @@ export default function AboutSection() {
 
             <div className="p-6 space-y-6">
               <div className="bg-neutral-100 p-4 rounded-xl border border-neutral-200 space-y-2">
-                <h4 className="font-bold text-sm text-[#1A1A1A]">Endereço Showroom & Fábrica:</h4>
+                <h4 className="font-bold text-sm text-[#1A1A1A]">Endereço Escritório Comercial:</h4>
                 <p className="text-sm text-neutral-700">
                   Av. Santa Catarina, 551 sala 205<br />
                   Centro - Balneário Arroio do Silva - SC

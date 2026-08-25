@@ -1,11 +1,104 @@
 import React, { useState, useRef } from "react";
-import { Phone, FileText, Upload, Send, CheckCircle2, Trash2, Mic, Paperclip, Smile, File, Image as ImageIcon, Volume2, Square, ExternalLink, CheckCheck, Bot, AlertCircle, Play, Pause, UserCheck } from "lucide-react";
+import { 
+  Phone, FileText, Upload, Send, CheckCircle2, Trash2, Mic, Paperclip, 
+  Smile, File, Image as ImageIcon, Volume2, Square, ExternalLink, 
+  CheckCheck, Bot, AlertCircle, Play, Pause, UserCheck, X, Download, ZoomIn 
+} from "lucide-react";
 import { Lead } from "./types";
 
 interface Stage {
   id: string;
   title: string;
   color: string;
+}
+
+// Componente elegante para reprodução de mensagens de voz estilo WhatsApp
+function VoiceMessagePlayer({ audioUrl, isAgent }: { audioUrl: string; isAgent: boolean }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(e => console.error("Erro ao tocar áudio:", e));
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration || 0);
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = val;
+      setCurrentTime(val);
+    }
+  };
+
+  const formatTime = (secs: number) => {
+    if (isNaN(secs) || secs === 0) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2.5 p-2 bg-black/25 rounded-xl border border-white/10 my-1 w-full max-w-[260px] shadow-inner">
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+        }}
+      />
+      <button
+        type="button"
+        onClick={togglePlay}
+        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-transform active:scale-95 cursor-pointer shadow ${
+          isAgent ? "bg-emerald-500 hover:bg-emerald-400 text-black" : "bg-amber-500 hover:bg-amber-400 text-black"
+        }`}
+        title={isPlaying ? "Pausar Áudio" : "Ouvir Áudio"}
+      >
+        {isPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current translate-x-0.5" />}
+      </button>
+
+      <div className="flex-1 flex flex-col gap-1">
+        <input
+          type="range"
+          min="0"
+          max={duration || 100}
+          step="0.1"
+          value={currentTime}
+          onChange={handleSeek}
+          className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
+        />
+        <div className="flex justify-between items-center text-[9px] text-gray-300 font-mono">
+          <span>{formatTime(currentTime)}</span>
+          <span className="flex items-center gap-1">
+            {duration > 0 ? formatTime(duration) : <Volume2 size={10} className="inline opacity-70" />}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 interface CRMLeadDrawerProps {
@@ -70,6 +163,7 @@ export default function CRMLeadDrawer({
   const timerRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sendingMedia, setSendingMedia] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title?: string } | null>(null);
   const [togglingAi, setTogglingAi] = useState(false);
 
   const handleToggleAi = async () => {
@@ -599,32 +693,86 @@ export default function CRMLeadDrawer({
                         ? "bg-[#005c4b] text-white rounded-tr-none border border-emerald-500/20" 
                         : "bg-[#202c33] text-gray-100 rounded-tl-none border border-white/5"
                     }`}>
-                      {/* Renderizador de Áudio PTT */}
-                      {chat.type === "audio" && (
-                        <div className="flex flex-col gap-1.5 mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <Volume2 size={16} className={isAgent ? "text-emerald-300" : "text-emerald-400"} />
-                            <span className="text-[10px] font-bold">Mensagem de Voz</span>
+                      {/* Renderizador de Áudio de Voz (PTT) */}
+                      {(chat.type === "audio" || chat.audioUrl) && (
+                        <div className="flex flex-col gap-1 mb-1.5">
+                          <div className="flex items-center gap-1.5 text-gray-300">
+                            <Volume2 size={14} className={isAgent ? "text-emerald-300" : "text-amber-400"} />
+                            <span className="text-[10px] font-semibold">Mensagem de Voz</span>
                           </div>
-                          <audio controls src={chat.audioUrl} className="w-full h-8 max-w-[220px]" />
-                        </div>
-                      )}
-
-                      {/* Renderizador de Mídia (Fotos / PDFs) */}
-                      {chat.type === "media" && (
-                        <div className="space-y-1.5 mb-1.5">
-                          {chat.mediaType === "image" ? (
-                            <img src={chat.mediaUrl} alt="Foto da conversa" className="rounded-lg max-h-48 object-cover w-full border border-white/10" />
+                          {chat.audioUrl ? (
+                            <VoiceMessagePlayer 
+                              audioUrl={chat.audioUrl.startsWith("/uploads/") ? `/api${chat.audioUrl}` : chat.audioUrl} 
+                              isAgent={isAgent} 
+                            />
                           ) : (
-                            <a href={chat.mediaUrl} target="_blank" rel="noreferrer" download={chat.fileName} className="flex items-center gap-2 p-2 bg-black/30 rounded-lg border border-white/10 hover:underline">
-                              <File size={16} className="text-emerald-400" />
-                              <span className="truncate max-w-[160px] text-[10px]">{chat.fileName || "Download Documento"}</span>
-                            </a>
+                            <div className="text-[10px] italic text-gray-400 bg-black/20 p-2 rounded-lg border border-white/5">
+                              Áudio recebido (processado via transcrição)
+                            </div>
                           )}
                         </div>
                       )}
 
-                      <p className="leading-relaxed whitespace-pre-wrap select-text">{chat.text}</p>
+                      {/* Renderizador de Mídia (Fotos / Imagens) */}
+                      {(chat.type === "image" || chat.mediaType === "image" || (chat.mediaUrl && (chat.type === "media" || chat.type === "image"))) && chat.mediaUrl && (
+                        <div className="space-y-1.5 mb-2">
+                          <div 
+                            onClick={() => {
+                              const finalUrl = chat.mediaUrl.startsWith("/uploads/") ? `/api${chat.mediaUrl}` : chat.mediaUrl;
+                              setLightboxImage({ url: finalUrl, title: chat.text || "Foto do WhatsApp" });
+                            }}
+                            className="relative group cursor-pointer overflow-hidden rounded-xl border border-white/15 bg-black/40 hover:border-amber-400/50 transition-all shadow-md min-h-[120px] flex items-center justify-center"
+                          >
+                            <img 
+                              src={chat.mediaUrl.startsWith("/uploads/") ? `/api${chat.mediaUrl}` : chat.mediaUrl} 
+                              alt={chat.text || "Foto da conversa"} 
+                              className="rounded-xl max-h-64 object-cover w-full group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                              onError={(e) => {
+                                // Se falhar com /api/uploads, tenta sem /api ou vice-versa
+                                const target = e.currentTarget;
+                                if (target.src.includes("/api/uploads/")) {
+                                  target.src = target.src.replace("/api/uploads/", "/uploads/");
+                                }
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-[11px] font-semibold backdrop-blur-[2px]">
+                              <ZoomIn size={16} className="text-amber-400" />
+                              <span>Ver em tela cheia</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Renderizador de Documentos (PDF / Arquivos) */}
+                      {(chat.type === "document" || chat.mediaType === "document") && (
+                        <div className="space-y-1.5 mb-1.5">
+                          <a 
+                            href={chat.mediaUrl || "#"} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            download={chat.fileName || "documento.pdf"} 
+                            className="flex items-center gap-2.5 p-2 bg-black/30 rounded-xl border border-white/10 hover:border-amber-400/40 hover:bg-black/50 transition-all group"
+                          >
+                            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg group-hover:bg-emerald-500/30">
+                              <File size={16} />
+                            </div>
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="truncate text-[10px] font-bold text-gray-200 group-hover:text-amber-300">
+                                {chat.fileName || "Documento PDF"}
+                              </span>
+                              <span className="text-[9px] text-gray-400 flex items-center gap-1">
+                                <Download size={10} /> Clique para baixar
+                              </span>
+                            </div>
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Texto da mensagem (caso não seja apenas marcador genérico de imagem) */}
+                      {chat.text && chat.text !== "📷 Imagem Enviada" && chat.text !== "🎵 Áudio de Voz Enviado" && (
+                        <p className="leading-relaxed whitespace-pre-wrap select-text">{chat.text}</p>
+                      )}
                       
                       <div className="flex items-center justify-end gap-1 mt-1">
                         <span className={`text-[9px] ${isAgent ? "text-emerald-200/70" : "text-gray-400"}`}>
@@ -741,6 +889,48 @@ export default function CRMLeadDrawer({
           </div>
         </div>
       </div>
+
+      {/* Modal Lightbox / Tela Cheia para Fotos do Chat */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-md animate-fade-in"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="absolute top-4 right-4 flex items-center gap-3 z-10" onClick={(e) => e.stopPropagation()}>
+            <a
+              href={lightboxImage.url}
+              download="foto-dumar.jpg"
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors flex items-center gap-1.5 text-xs px-3 font-semibold border border-white/10 shadow-lg"
+            >
+              <Download size={14} className="text-amber-400" />
+              <span>Baixar Foto</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => setLightboxImage(null)}
+              className="p-2 bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white rounded-full transition-colors border border-white/10 shadow-lg cursor-pointer"
+              title="Fechar"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="max-w-4xl max-h-[85vh] flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightboxImage.url}
+              alt={lightboxImage.title || "Imagem em alta resolução"}
+              className="max-h-[80vh] max-w-[90vw] object-contain rounded-2xl border border-white/15 shadow-2xl"
+            />
+            {lightboxImage.title && (
+              <p className="text-gray-300 text-xs mt-3 text-center bg-black/60 px-4 py-1.5 rounded-full border border-white/10 font-medium">
+                {lightboxImage.title}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

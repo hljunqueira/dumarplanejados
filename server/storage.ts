@@ -1,14 +1,16 @@
 import { db } from "./db";
 import { 
-  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog,
+  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog, suppliers,
   type User, type InsertUser, type Lead, type InsertLead, 
   type WhatsappTemplate, type InsertWhatsappTemplate, 
   type CalendarEventItem, type InsertCalendarEvent,
   type FinancialTransaction, type InsertFinancialTransaction,
   type ContractItem, type InsertContract,
-  type MaterialCatalogItem, type InsertMaterialCatalog
+  type MaterialCatalogItem, type InsertMaterialCatalog,
+  type Supplier, type InsertSupplier
 } from "../shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, ne, inArray } from "drizzle-orm";
+
 
 export interface IStorage {
   getUsers(): Promise<User[]>;
@@ -38,7 +40,18 @@ export interface IStorage {
   createFinancialTransaction(tx: InsertFinancialTransaction): Promise<FinancialTransaction>;
   createRecurringTransactions(transactions: InsertFinancialTransaction[]): Promise<FinancialTransaction[]>;
   updateFinancialTransaction(id: number, updates: Partial<InsertFinancialTransaction>): Promise<FinancialTransaction>;
+  updateFinancialTransactionsByGroup(recurrenceGroup: string, updates: Partial<InsertFinancialTransaction>, onlyPending?: boolean): Promise<FinancialTransaction[]>;
+  updateFinancialTransactionsByIds(ids: number[], updates: Partial<InsertFinancialTransaction>): Promise<FinancialTransaction[]>;
   deleteFinancialTransaction(id: number): Promise<boolean>;
+  deleteFinancialTransactionsByGroup(recurrenceGroup: string): Promise<boolean>;
+  deleteFinancialTransactionsByIds(ids: number[]): Promise<boolean>;
+
+
+  getSuppliers(): Promise<Supplier[]>;
+  getSupplier(id: number): Promise<Supplier | undefined>;
+  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: number, updates: Partial<InsertSupplier>): Promise<Supplier>;
+  deleteSupplier(id: number): Promise<boolean>;
 
   getContracts(): Promise<ContractItem[]>;
   getContract(id: number): Promise<ContractItem | undefined>;
@@ -170,8 +183,77 @@ export class DatabaseStorage implements IStorage {
     return tx;
   }
 
+  async updateFinancialTransactionsByGroup(
+    recurrenceGroup: string,
+    updates: Partial<InsertFinancialTransaction>,
+    onlyPending: boolean = false
+  ): Promise<FinancialTransaction[]> {
+    if (!recurrenceGroup) return [];
+    if (onlyPending) {
+      return await db.update(financialTransactions)
+        .set(updates)
+        .where(and(eq(financialTransactions.recurrenceGroup, recurrenceGroup), ne(financialTransactions.status, "pago")))
+        .returning();
+    } else {
+      return await db.update(financialTransactions)
+        .set(updates)
+        .where(eq(financialTransactions.recurrenceGroup, recurrenceGroup))
+        .returning();
+    }
+  }
+
+  async updateFinancialTransactionsByIds(
+    ids: number[],
+    updates: Partial<InsertFinancialTransaction>
+  ): Promise<FinancialTransaction[]> {
+    if (ids.length === 0) return [];
+    return await db.update(financialTransactions)
+      .set(updates)
+      .where(inArray(financialTransactions.id, ids))
+      .returning();
+  }
+
   async deleteFinancialTransaction(id: number): Promise<boolean> {
     const result = await db.delete(financialTransactions).where(eq(financialTransactions.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteFinancialTransactionsByGroup(recurrenceGroup: string): Promise<boolean> {
+    if (!recurrenceGroup) return false;
+    const result = await db.delete(financialTransactions).where(eq(financialTransactions.recurrenceGroup, recurrenceGroup)).returning();
+    return result.length > 0;
+  }
+
+  async deleteFinancialTransactionsByIds(ids: number[]): Promise<boolean> {
+    if (ids.length === 0) return false;
+    const result = await db.delete(financialTransactions).where(inArray(financialTransactions.id, ids)).returning();
+    return result.length > 0;
+  }
+
+
+
+  async getSuppliers(): Promise<Supplier[]> {
+    return await db.select().from(suppliers);
+  }
+
+  async getSupplier(id: number): Promise<Supplier | undefined> {
+    const [s] = await db.select().from(suppliers).where(eq(suppliers.id, id));
+    return s;
+  }
+
+  async createSupplier(insertSupplier: InsertSupplier): Promise<Supplier> {
+    const [s] = await db.insert(suppliers).values(insertSupplier).returning();
+    return s;
+  }
+
+  async updateSupplier(id: number, updates: Partial<InsertSupplier>): Promise<Supplier> {
+    const [s] = await db.update(suppliers).set(updates).where(eq(suppliers.id, id)).returning();
+    if (!s) throw new Error("Fornecedor não encontrado");
+    return s;
+  }
+
+  async deleteSupplier(id: number): Promise<boolean> {
+    const result = await db.delete(suppliers).where(eq(suppliers.id, id)).returning();
     return result.length > 0;
   }
 
@@ -222,5 +304,3 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
-
-

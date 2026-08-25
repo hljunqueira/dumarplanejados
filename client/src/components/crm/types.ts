@@ -2,6 +2,12 @@ export interface ChatHistoryItem {
   sender: "client" | "agent" | "system";
   text: string;
   timestamp: string;
+  type?: "text" | "audio" | "image" | "media" | "document";
+  mediaUrl?: string;
+  audioUrl?: string;
+  fileName?: string;
+  mediaType?: "image" | "document" | "audio";
+  isHuman?: boolean;
 }
 
 export interface Lead {

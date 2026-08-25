@@ -10,6 +10,45 @@ function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
+// Função para salvar mídias em base64 na pasta pública /uploads/chat/
+function saveBase64MediaToFile(base64Data: string, mimeType: string = "image/jpeg", prefix: string = "media"): string {
+  try {
+    if (!base64Data) return "";
+    const uploadDir = path.join(process.cwd(), "uploads", "chat");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    let cleanBase64 = base64Data;
+    let ext = "jpg";
+
+    if (base64Data.includes(";base64,")) {
+      const parts = base64Data.split(";base64,");
+      const mimeMatch = parts[0].match(/:(.*?)$/);
+      if (mimeMatch) mimeType = mimeMatch[1];
+      cleanBase64 = parts[1];
+    }
+
+    const mime = (mimeType || "").toLowerCase();
+    if (mime.includes("png")) ext = "png";
+    else if (mime.includes("webp")) ext = "webp";
+    else if (mime.includes("gif")) ext = "gif";
+    else if (mime.includes("pdf")) ext = "pdf";
+    else if (mime.includes("ogg") || mime.includes("opus")) ext = "ogg";
+    else if (mime.includes("mp3") || mime.includes("mpeg")) ext = "mp3";
+    else if (mime.includes("m4a") || mime.includes("aac")) ext = "m4a";
+    else if (mime.includes("wav")) ext = "wav";
+
+    const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const filePath = path.join(uploadDir, fileName);
+    fs.writeFileSync(filePath, Buffer.from(cleanBase64, "base64"));
+    return `/api/uploads/chat/${fileName}`;
+  } catch (err) {
+    console.error("Erro ao salvar mídia em disco:", err);
+    return "";
+  }
+}
+
 import { initDbTables } from "./db";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -541,6 +580,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- TRANSAÇÕES FINANCEIRAS (CRM FINANCEIRO) ---
 
+  // Helper para normalizar valores monetários recebidos como string, float ou com vírgula
+  const sanitizeMonetaryAmount = (val: any): number => {
+    if (typeof val === "number") return isNaN(val) ? 0 : parseFloat(val.toFixed(2));
+    if (typeof val === "string") {
+      let clean = val.replace(/R\$\s?/, "").trim();
+      if (clean.includes(",") && clean.includes(".")) {
+        clean = clean.replace(/\./g, "").replace(",", ".");
+      } else if (clean.includes(",")) {
+        clean = clean.replace(",", ".");
+      }
+      const num = parseFloat(clean);
+      return isNaN(num) ? 0 : parseFloat(num.toFixed(2));
+    }
+    return 0;
+  };
+
+
   app.get("/api/financial/transactions", async (req, res) => {
     try {
       const transactions = await storage.getFinancialTransactions();
@@ -552,22 +608,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/financial/transactions", async (req, res) => {
-    const { description, type, amount, category, status, dueDate, paymentDate, paymentMethod, leadId, notes } = req.body;
-    if (!description || amount === undefined) {
-      return res.status(400).json({ message: "Descrição e valor são obrigatórios" });
+    const { description, type, amount, category, status, dueDate, paymentDate, paymentMethod, leadId, supplierId, supplierName, notes } = req.body;
+    const parsedAmount = sanitizeMonetaryAmount(amount);
+    
+    if (!description || parsedAmount <= 0) {
+      return res.status(400).json({ message: "Descrição e valor válido (maior que zero) são obrigatórios" });
     }
 
     try {
       const newTx = await storage.createFinancialTransaction({
         description,
         type: type || "receita",
-        amount: Number(amount) || 0,
+        amount: parsedAmount,
         category: category || "venda_marcenaria",
         status: status || "pago",
         dueDate: dueDate || new Date().toISOString().split("T")[0],
         paymentDate: paymentDate || (status === "pago" ? new Date().toISOString().split("T")[0] : ""),
         paymentMethod: paymentMethod || "PIX",
         leadId: leadId ? Number(leadId) : null,
+        supplierId: supplierId ? Number(supplierId) : null,
+        supplierName: supplierName || "",
         notes: notes || "",
         isRecurring: false,
         recurrenceGroup: "",
@@ -577,19 +637,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(201).json(newTx);
     } catch (err) {
       console.error("Erro ao criar transação financeira:", err);
-      return res.status(500).json({ message: "Erro ao criar transação financeira" });
+      return res.status(500).json({ message: "Erro ao criar transação financeira: " + (err as Error).message });
     }
   });
 
   // Criar Lote de Despesas Recorrentes (Custos Fixos)
   app.post("/api/financial/transactions/recurring", async (req, res) => {
-    const { description, type, amount, category, status, baseDueDate, paymentMethod, monthsCount, notes } = req.body;
-    if (!description || !amount || !monthsCount) {
-      return res.status(400).json({ message: "Descrição, valor e quantidade de meses são obrigatórios" });
+    const { description, type, amount, category, status, baseDueDate, paymentMethod, monthsCount, supplierId, supplierName, notes } = req.body;
+    const parsedAmount = sanitizeMonetaryAmount(amount);
+    const numMonths = Math.min(Math.max(Number(monthsCount) || 1, 1), 36);
+
+    if (!description || parsedAmount <= 0 || !numMonths) {
+      return res.status(400).json({ message: "Descrição, valor válido e quantidade de meses são obrigatórios" });
     }
 
     try {
-      const numMonths = Math.min(Math.max(Number(monthsCount) || 1, 1), 36);
       const recurrenceGroupId = `REC-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const startDate = baseDueDate ? new Date(baseDueDate + "T12:00:00") : new Date();
       const baseDay = startDate.getDate();
@@ -610,13 +672,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         transactionsToCreate.push({
           description: `${description} (${i + 1}/${numMonths})`,
           type: type || "despesa",
-          amount: Number(amount) || 0,
+          amount: parsedAmount,
           category: category || "administrativo",
           status: currentStatus,
           dueDate: formattedDueDate,
           paymentDate: currentPaymentDate,
           paymentMethod: paymentMethod || "Boleto",
           leadId: null,
+          supplierId: supplierId ? Number(supplierId) : null,
+          supplierName: supplierName || "",
           notes: notes ? `${notes} | Recorrente ${i + 1}/${numMonths}` : `Custo Fixo Recorrente ${i + 1}/${numMonths}`,
           isRecurring: true,
           recurrenceGroup: recurrenceGroupId,
@@ -629,7 +693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(201).json({ success: true, count: created.length, data: created });
     } catch (err) {
       console.error("Erro ao criar lote de transações recorrentes:", err);
-      return res.status(500).json({ message: "Erro ao criar transações recorrentes" });
+      return res.status(500).json({ message: "Erro ao criar transações recorrentes: " + (err as Error).message });
     }
   });
 
@@ -640,7 +704,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const updated = await storage.updateFinancialTransaction(id, req.body);
+      const updates = { ...req.body };
+      if (updates.amount !== undefined) {
+        updates.amount = sanitizeMonetaryAmount(updates.amount);
+      }
+      const updated = await storage.updateFinancialTransaction(id, updates);
       return res.status(200).json(updated);
     } catch (err) {
       console.error("Erro ao atualizar transação financeira:", err);
@@ -659,10 +727,310 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Transação não encontrada" });
       }
-      return res.status(200).json({ success: true, message: "Transação excluída com sucesso" });
+      return res.status(200).json({ message: "Transação excluída com sucesso" });
     } catch (err) {
       console.error("Erro ao excluir transação financeira:", err);
       return res.status(500).json({ message: "Erro ao excluir transação financeira" });
+    }
+  });
+
+  // Exclusão em lote por Recurrence Group
+  app.delete("/api/financial/transactions/group/:groupKey", async (req, res) => {
+    try {
+      const groupKey = req.params.groupKey;
+      const success = await storage.deleteFinancialTransactionsByGroup(groupKey);
+      return res.status(200).json({ success, message: "Lote de parcelas excluído com sucesso" });
+    } catch (err) {
+      console.error("Erro ao excluir lote de parcelas:", err);
+      return res.status(500).json({ message: "Erro ao excluir lote de parcelas" });
+    }
+  });
+
+  // Atualização em lote por Recurrence Group (permite editar valor e descrição de todas as parcelas)
+  app.patch("/api/financial/transactions/group/:groupKey", async (req, res) => {
+    try {
+      const groupKey = req.params.groupKey;
+      const { updates, onlyPending } = req.body;
+      const sanitizedUpdates = { ...updates };
+      if (sanitizedUpdates.amount !== undefined) {
+        sanitizedUpdates.amount = sanitizeMonetaryAmount(sanitizedUpdates.amount);
+      }
+      const updatedList = await storage.updateFinancialTransactionsByGroup(
+        groupKey,
+        sanitizedUpdates,
+        Boolean(onlyPending)
+      );
+      return res.status(200).json({ success: true, updated: updatedList });
+    } catch (err) {
+      console.error("Erro ao atualizar grupo de parcelas:", err);
+      return res.status(500).json({ message: "Erro ao atualizar grupo de parcelas" });
+    }
+  });
+
+  // Exclusão em lote por IDs
+  app.post("/api/financial/transactions/batch-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Lista de IDs inválida" });
+      }
+      const success = await storage.deleteFinancialTransactionsByIds(ids.map(Number));
+      return res.status(200).json({ success, message: "Parcelas excluídas com sucesso" });
+    } catch (err) {
+      console.error("Erro no batch delete:", err);
+      return res.status(500).json({ message: "Erro ao excluir parcelas em lote" });
+    }
+  });
+
+  // Atualização em lote por IDs
+  app.post("/api/financial/transactions/batch-update", async (req, res) => {
+    try {
+      const { ids, updates } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Lista de IDs inválida" });
+      }
+      const sanitizedUpdates = { ...updates };
+      if (sanitizedUpdates.amount !== undefined) {
+        sanitizedUpdates.amount = sanitizeMonetaryAmount(sanitizedUpdates.amount);
+      }
+      const updatedList = await storage.updateFinancialTransactionsByIds(ids.map(Number), sanitizedUpdates);
+      return res.status(200).json({ success: true, updated: updatedList });
+    } catch (err) {
+      console.error("Erro no batch update:", err);
+      return res.status(500).json({ message: "Erro ao atualizar parcelas em lote" });
+    }
+  });
+
+  // Helper para obter a data de amanhã no fuso de São Paulo (YYYY-MM-DD)
+  function getTomorrowDateStr(): { tomorrowStr: string; todayStr: string; formattedTomorrow: string } {
+    const spFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    });
+    const now = new Date();
+    const parts = spFormatter.formatToParts(now);
+    const y = parseInt(parts.find(p => p.type === "year")?.value || "2026", 10);
+    const m = parseInt(parts.find(p => p.type === "month")?.value || "8", 10) - 1;
+    const d = parseInt(parts.find(p => p.type === "day")?.value || "21", 10);
+
+    const todayDate = new Date(y, m, d, 12, 0, 0);
+    const tomorrowDate = new Date(y, m, d + 1, 12, 0, 0);
+
+    const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}-${String(todayDate.getDate()).padStart(2, "0")}`;
+    const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, "0")}-${String(tomorrowDate.getDate()).padStart(2, "0")}`;
+    const formattedTomorrow = `${String(tomorrowDate.getDate()).padStart(2, "0")}/${String(tomorrowDate.getMonth() + 1).padStart(2, "0")}/${tomorrowDate.getFullYear()}`;
+
+    return { tomorrowStr, todayStr, formattedTomorrow };
+  }
+
+  // Pré-visualização de contas que vencem amanhã
+  app.get("/api/financial/due-tomorrow-preview", async (req, res) => {
+    try {
+      const { tomorrowStr, formattedTomorrow } = getTomorrowDateStr();
+      const allTx = await storage.getFinancialTransactions();
+      const dueTomorrow = allTx.filter(t => t.dueDate === tomorrowStr && t.status !== "pago");
+
+      const despesas = dueTomorrow.filter(t => t.type === "despesa");
+      const receitas = dueTomorrow.filter(t => t.type === "receita");
+
+      const totalDespesas = despesas.reduce((acc, t) => acc + t.amount, 0);
+      const totalReceitas = receitas.reduce((acc, t) => acc + t.amount, 0);
+
+      return res.status(200).json({
+        targetDate: tomorrowStr,
+        formattedDate: formattedTomorrow,
+        totalItems: dueTomorrow.length,
+        despesas,
+        receitas,
+        totalDespesas,
+        totalReceitas,
+        saldoPrevisto: totalReceitas - totalDespesas
+      });
+    } catch (err) {
+      console.error("Erro ao obter pré-visualização de vencimentos:", err);
+      return res.status(500).json({ message: "Erro ao consultar vencimentos de amanhã" });
+    }
+  });
+
+  // Função para compor e enviar o alerta no WhatsApp do Paulo
+  async function sendFinancialDueAlertToPaulo(customPhone?: string): Promise<{ success: boolean; message: string; totalItems: number }> {
+    const { tomorrowStr, formattedTomorrow } = getTomorrowDateStr();
+    const allTx = await storage.getFinancialTransactions();
+    const dueTomorrow = allTx.filter(t => t.dueDate === tomorrowStr && t.status !== "pago");
+
+    const rawOwner = customPhone || aiConfig.ownerPhone || "555196682257";
+    let ownerClean = rawOwner.replace(/\D/g, "");
+    if (ownerClean.length >= 10 && !ownerClean.startsWith("55")) {
+      ownerClean = `55${ownerClean}`;
+    }
+
+    if (dueTomorrow.length === 0) {
+      const noDebtMsg = `🔔 *DUMAR FINANCEIRO — AVISO DE VENCIMENTOS* 🔔
+
+Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${formattedTomorrow}*). Tudo em dia no fluxo de caixa! ✨
+
+🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
+      await sendWhatsAppMessageViaEvolution(ownerClean, noDebtMsg, "dumar_comercial");
+      return { success: true, message: "Aviso enviado: sem contas para amanhã", totalItems: 0 };
+    }
+
+    const despesas = dueTomorrow.filter(t => t.type === "despesa");
+    const receitas = dueTomorrow.filter(t => t.type === "receita");
+
+    const totalDespesas = despesas.reduce((acc, t) => acc + t.amount, 0);
+    const totalReceitas = receitas.reduce((acc, t) => acc + t.amount, 0);
+    const saldoPrevisto = totalReceitas - totalDespesas;
+
+    let textMsg = `🔔 *ALERTA FINANCEIRO DUMAR — VENCIMENTOS DE AMANHÃ* 🔔\n`;
+    textMsg += `Olá Paulo! Segue o resumo das contas que vencem amanhã (*${formattedTomorrow}*):\n\n`;
+
+    if (despesas.length > 0) {
+      textMsg += `⬇️ *CONTAS A PAGAR (${despesas.length}):*\n`;
+      despesas.forEach((d, idx) => {
+        const supInfo = d.supplierName ? ` [${d.supplierName}]` : "";
+        const methodInfo = d.paymentMethod ? ` (${d.paymentMethod})` : "";
+        textMsg += `• *${d.description}*${supInfo} — R$ ${d.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${methodInfo}\n`;
+      });
+      textMsg += `👉 *Total a Pagar:* R$ ${totalDespesas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n`;
+    }
+
+    if (receitas.length > 0) {
+      textMsg += `⬆️ *RECEITAS A RECEBER (${receitas.length}):*\n`;
+      receitas.forEach((r, idx) => {
+        const methodInfo = r.paymentMethod ? ` (${r.paymentMethod})` : "";
+        textMsg += `• *${r.description}* — R$ ${r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${methodInfo}\n`;
+      });
+      textMsg += `👉 *Total a Receber:* R$ ${totalReceitas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n`;
+    }
+
+    textMsg += `📊 *Saldo Previsto do Dia:* ${saldoPrevisto >= 0 ? "+" : ""}${saldoPrevisto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\n`;
+    textMsg += `🔗 *Acessar Painel Financeiro:* https://dumarplanejados.com.br/crm`;
+
+    console.log(`[Alerta Financeiro] Enviando resumo de contas de amanhã para o Paulo (${ownerClean})...`);
+    const { success } = await sendWhatsAppMessageViaEvolution(ownerClean, textMsg, "dumar_comercial");
+
+    return { success, message: "Alerta enviado com sucesso para o WhatsApp do Paulo", totalItems: dueTomorrow.length };
+  }
+
+  // Rota para disparar o alerta financeiro manualmente
+  app.post("/api/financial/send-due-alerts", async (req, res) => {
+    try {
+      const { phone } = req.body;
+      const result = await sendFinancialDueAlertToPaulo(phone);
+      return res.status(200).json(result);
+    } catch (err) {
+      console.error("Erro ao enviar alerta financeiro:", err);
+      return res.status(500).json({ success: false, message: "Erro ao enviar alerta via WhatsApp" });
+    }
+  });
+
+  // AGENDADOR AUTOMÁTICO DIÁRIO DE ALERTAS FINANCEIROS (Às 08:30 da manhã)
+  let lastFinancialAlertDate = "";
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      const spParts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).formatToParts(now);
+
+      const y = spParts.find(p => p.type === "year")?.value;
+      const m = spParts.find(p => p.type === "month")?.value;
+      const d = spParts.find(p => p.type === "day")?.value;
+      const hour = parseInt(spParts.find(p => p.type === "hour")?.value || "0", 10);
+      const minute = parseInt(spParts.find(p => p.type === "minute")?.value || "0", 10);
+
+      const todayStr = `${y}-${m}-${d}`;
+
+      // Dispara às 08:30 da manhã se ainda não disparou hoje
+      if (hour === 8 && minute >= 30 && minute <= 45 && lastFinancialAlertDate !== todayStr) {
+        lastFinancialAlertDate = todayStr;
+        console.log(`[Robô Financeiro Diário] Executando rotina matinal de alertas de vencimento para ${todayStr}...`);
+        await sendFinancialDueAlertToPaulo();
+      }
+    } catch (schedErr) {
+      console.error("[Robô Financeiro Diário] Erro no ciclo de agendamento:", schedErr);
+    }
+  }, 60 * 1000); // Checa a cada 1 minuto
+
+
+
+  // --- FORNECEDORES (CRM SUPPLIERS) ---
+
+  app.get("/api/suppliers", async (req, res) => {
+    try {
+      const suppliersList = await storage.getSuppliers();
+      return res.status(200).json(suppliersList);
+    } catch (err) {
+      console.error("Erro ao obter fornecedores:", err);
+      return res.status(500).json({ message: "Erro ao obter fornecedores" });
+    }
+  });
+
+  app.post("/api/suppliers", async (req, res) => {
+    const { name, tradeName, cnpjCpf, category, phone, email, contactPerson, pixKey, notes } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Nome do fornecedor é obrigatório" });
+    }
+
+    try {
+      const newSupplier = await storage.createSupplier({
+        name: name.trim(),
+        tradeName: tradeName ? tradeName.trim() : "",
+        cnpjCpf: cnpjCpf ? cnpjCpf.trim() : "",
+        category: category || "materia_prima",
+        phone: phone ? phone.trim() : "",
+        email: email ? email.trim() : "",
+        contactPerson: contactPerson ? contactPerson.trim() : "",
+        pixKey: pixKey ? pixKey.trim() : "",
+        notes: notes ? notes.trim() : "",
+        active: true,
+        createdAt: new Date().toISOString()
+      });
+      return res.status(201).json(newSupplier);
+    } catch (err) {
+      console.error("Erro ao criar fornecedor:", err);
+      return res.status(500).json({ message: "Erro ao criar fornecedor" });
+    }
+  });
+
+  app.patch("/api/suppliers/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+
+    try {
+      const updated = await storage.updateSupplier(id, req.body);
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error("Erro ao atualizar fornecedor:", err);
+      return res.status(500).json({ message: "Erro ao atualizar fornecedor" });
+    }
+  });
+
+  app.delete("/api/suppliers/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+
+    try {
+      const deleted = await storage.deleteSupplier(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Fornecedor não encontrado" });
+      }
+      return res.status(200).json({ message: "Fornecedor excluído com sucesso" });
+    } catch (err) {
+      console.error("Erro ao excluir fornecedor:", err);
+      return res.status(500).json({ message: "Erro ao excluir fornecedor" });
     }
   });
 
@@ -1010,12 +1378,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minute: "2-digit"
       });
       
+      const savedMediaUrl = (fullMedia && fullMedia.startsWith("data:"))
+        ? saveBase64MediaToFile(fullMedia, mimeType || "image/jpeg", mediaType === "image" ? "img" : "doc")
+        : fullMedia;
+
       const newMessage = {
         sender: "agent" as const,
         type: "media" as const,
         mediaType,
         mimeType,
-        mediaUrl: fullMedia,
+        mediaUrl: savedMediaUrl || fullMedia,
         fileName,
         text: caption || (mediaType === "image" ? "📷 Foto do projeto" : `📄 ${fileName}`),
         timestamp,
@@ -1073,6 +1445,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Erro ao enviar áudio na Evolution API:", e);
       }
 
+      const savedAudioUrl = saveBase64MediaToFile(audioBase64, "audio/mp3", "audio");
+
       const currentHistory = typeof lead.chatHistory === "string" ? JSON.parse(lead.chatHistory || "[]") : (lead.chatHistory || []);
       const timestamp = new Date().toLocaleTimeString("pt-BR", {
         timeZone: "America/Sao_Paulo",
@@ -1083,7 +1457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newMessage = {
         sender: "agent" as const,
         type: "audio" as const,
-        audioUrl: audioBase64.startsWith("data:") ? audioBase64 : `data:audio/mp3;base64,${audioBase64}`,
+        audioUrl: savedAudioUrl || (audioBase64.startsWith("data:") ? audioBase64 : `data:audio/mp3;base64,${audioBase64}`),
         text: "🎵 Mensagem de Voz",
         timestamp,
         deliveredViaEvolution: evoSuccess
@@ -1121,37 +1495,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     activePreset: "qualificador",
     welcomeMessage: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar? E qual ambiente você gostaria de planejar?",
     systemPrompt: `Você é a Consultora Comercial da equipe de projetos da Dumar Móveis Planejados (móveis sob medida de alto padrão 100% MDF com ferragens amortecidas).
-Seu objetivo é conduzir um atendimento ágil, caloroso, altamente persuasivo e humanizado no WhatsApp, qualificando o cliente e avançando para validação da diretoria ou agendamento de visita técnica / projeto 3D.
+Seu objetivo é conduzir um atendimento ágil, elegante, caloroso e consultivo no WhatsApp, ouvindo o cliente com interesse genuíno e coletando os detalhes para que o Paulo Vargas e nossos projetistas desenvolvam a proposta 3D personalizada.
 
-REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
-1. SAUDAÇÃO INICIAL & APRESENTAÇÃO:
-   - Se você AINDA NÃO sabe o nome do cliente (ou se for desconhecido/apelido), apresente-se sempre assim:
-     "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?"
-   - Se você já sabe o nome (Ex: "Henrique"), use o nome dele cordialmente:
-     "Olá, {nome}! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Qual ambiente você gostaria de planejar hoje?"
-2. MENSAGENS CURTAS E DIRETAS (MÁXIMO 2 A 3 FRASES): NUNCA envie blocos de texto ou parágrafos longos. Escreva exatamente como uma pessoa real conversa no WhatsApp.
-3. UMA PERGUNTA POR VEZ (ESCUTA ATIVA & MICRO-COMPROMISSOS):
-   - Nunca faça mais de uma pergunta na mesma mensagem.
-   - Sempre valide e acolha o que o cliente acabou de dizer antes de fazer a próxima pergunta.
-   - Siga a cadência natural:
-     Passo 1: Confirmar o nome e acolher com entusiasmo.
-     Passo 2: Entender quais ambientes ele deseja planejar (Cozinha, Quarto/Suíte, Banheiro, Sala, Casa toda, etc.).
-     Passo 3: Saber a cidade/bairro do imóvel e se é casa ou apartamento.
-     Passo 4: Perguntar se já possui a planta com medidas ou fotos do cômodo.
-     Passo 5: Sondar investimento previsto ou encaminhar para a aprovação da diretoria (Paulo Vargas).
-4. PROIBIDO COLAR ENDEREÇO OU CONVITE REPETITIVO DE CAFÉ:
-   - NUNCA cole o endereço completo do escritório ("Av. Santa Catarina, 551...") nem convide para café a cada mensagem de sondagem.
-   - O endereço só deve ser mencionado se o cliente perguntar expressamente onde fica a loja ou quando o agendamento presencial for efetivamente concluído.
-5. ATENDIMENTO EXCLUSIVO & DIRETORIA (PAULO VARGAS):
-   - O fundador e diretor executivo da Dumar é o Paulo Vargas.
-   - Se o cliente citar o Paulo, múltiplos ambientes ou valores de investimento (ex: R$ 25 mil, 30k, 50k), acolha com entusiasmo de atendimento VIP e informe que está abrindo o projeto com o Paulo para priorizar a proposta dele.
-6. SIGILO COMERCIAL & VALORES:
-   - NUNCA passe valores fechados de cabeça. Explique que como é 100% sob medida, o projeto é desenhado para se adequar ao investimento e ao espaço dele.
-7. LINKS DE PORTFÓLIO E VÍDEOS:
-   - Fotos de projetos: https://dumarplanejados.com.br/#portfolio
-   - Vídeos de projetos e bastidores: https://dumarplanejados.com.br/#videos
-8. ENCERRAMENTOS E RESPEITO AO TEMPO:
-   - Se o cliente disser que vai deixar para depois, que não pode falar agora ou agradecer, despeça-se com elegância e carinho sem insistir.`,
+FILOSOFIA DE ATENDIMENTO CONSULTIVO:
+
+1. SAUDAÇÃO & APRESENTAÇÃO:
+   - Se ainda NÃO sabe o nome do cliente: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?"
+   - Se já sabe o nome (Ex: {nome}): "Olá, {nome}! Tudo bem? Qual ambiente você gostaria de planejar hoje?"
+
+2. ESCUTA ATIVA & REAÇÃO AO AMBIENTE:
+   - Reaja com entusiasmo e bom gosto ao ambiente citado pelo cliente (Ex: "Cozinha é maravilhoso planejar! É o coração da casa ✨").
+   - Em seguida, pergunte sobre o espaço de forma natural:
+     👉 "Você já tem as medidas, planta ou fotos do espaço, ou prefere que a gente te auxilie com a medição?"
+
+3. COLETA NATURAL DE MEDIDAS E FOTOS (OU VISITA TÉCNICA PRESENCIAL):
+   - Se o cliente disser que JÁ TEM as medidas, fotos ou planta:
+     👉 Peça imediatamente para ele enviar no chat: "Que maravilha! Pode me mandar as medidas, a planta ou fotos do espaço aqui pelo WhatsApp? Já analiso para adiantarmos aos nossos projetistas! 📐📸"
+   - Se o cliente disser que NÃO TEM as medidas, se o imóvel está em obras ou se o cliente pedir VISITA NO LOCAL (Ex: "quando podem vir aqui?", "podem vir medir?"):
+     👉 Acolha com entusiasmo: "Com certeza, {nome}! Realizamos a visita técnica no seu imóvel para medir tudo certinho sem custo nenhum. Vou verificar com o Paulo Vargas (nosso diretor) a disponibilidade da nossa equipe para agendarmos o melhor dia. Você prefere no período da manhã ou da tarde? Você também é super bem-vindo(a) para tomar um café no nosso escritório comercial em Balneário Arroio do Silva e conversarmos pessoalmente se preferir!"
+   - Quando o cliente ENVIAR as medidas/fotos ou rascunho (Ex: "20x30", "3x4", foto do cômodo):
+     👉 Entenda que dimensões de imóveis são em metros (ex: 20m², 3m x 4m).
+     👉 Elogie o espaço com bom gosto e pergunte sobre o estilo ou detalhes essenciais (Ex: "Excelente espaço, {nome}! Dá para criar um projeto incrível com painel ripado, rack suspenso e iluminação em LED. Tem algum detalhe que você faz questão na sua sala?").
+
+4. ENCAMINHAMENTO PARA A EQUIPE & PAULO VARGAS:
+   - Após coletar as informações do espaço ou alinhar o agendamento da visita:
+     👉 Finalize avisando que o Paulo Vargas e nossa equipe entrarão em contato para dar andamento ao projeto:
+     👉 "Perfeito, {nome}! Já repassei todos esses detalhes para o Paulo Vargas e nossa equipe de projetos. Em breve entraremos em contato com você por aqui para alinharmos os próximos passos! ✨"
+
+5. PROIBIÇÕES RIGOROSAS (NUNCA FAÇA):
+   - 🚫 NUNCA diga que não realizamos visitas ao local ou que o atendimento é apenas à distância. A Dumar REALIZA SIM visitas técnicas no local e possui escritório comercial físico para atendimento e conversas com clientes.
+   - 🚫 NUNCA mencione que temos "mostruários", "amostragens" ou "showroom de fábrica". O escritório comercial é para atendimento, reuniões e alinhamento de projetos.
+   - 🚫 NUNCA dê instruções caseiras para o cliente medir com fita métrica/régua. Se o cliente não tem medidas ou pede visita, acolha a visita técnica gratuita ou convide para o escritório comercial.
+   - 🚫 NUNCA interprete medidas de cômodos como centímetros (ex: "20x30" é um ambiente amplo em metros, e não 20cm x 30cm).
+   - 🚫 NUNCA gere resumos em formato de formulário ou ticket de suporte com marcadores/bullets (Ex: NÃO use "- **Ambiente:** ...", "- **Cidade:** ...", "- **Medidas:** ..."). Fale sempre em texto fluido e humanizado.
+   - 🚫 NUNCA faça interrogatórios em sequência burocrática (uma pergunta atrás da outra). Escute o que o cliente respondeu antes de fazer a próxima pergunta.
+   - 🚫 NUNCA passe valores, orçamentos, tabelas ou parcelas em R$. Esclareça com naturalidade que a proposta 3D e o orçamento são 100% gratuitos e sem compromisso.
+   - 🚫 NUNCA envie listas de múltipla escolha como "(moderno, clássico, escandinavo)".
+   - 🚫 Mantenha mensagens curtas (máximo 2 a 3 frases por mensagem) e no máximo UMA pergunta por vez.`,
     businessHours: {
       days: ["seg", "ter", "qua", "qui", "sex", "sab"],
       workDaysText: "Segunda a Sexta das 08:30 às 12:00 e das 13:30 às 18:00; Sábado das 08:30 às 12:00 (Domingos e Feriados fechado)",
@@ -1372,17 +1752,21 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
           compiledPrompt += `\n\n🧠 MEMÓRIA DE CONTEXTO & RETOMADA DE CONVERSA (CLIENTE EM ANDAMENTO):
 - Este cliente JÁ conversou conosco anteriormente. NUNCA faça saudação de primeiro contato ("Seja bem-vindo à Dumar") nem pergunte o nome dele novamente.
 - Se o cliente mandou apenas uma saudação curta (Ex: "Oi", "Voltei", "Boa tarde", "E aí", "Tudo bem?"):
-  👉 Acolha o retorno chamando-o pelo nome e RETOME O ASSUNTO DE ONDE PARARAM (Ex: "Olá, ${isGenericName ? "" : clientName}! Que bom falar com você de novo. 😊 Estávamos conversando sobre o projeto de ${roomsStr}. Você conseguiu a planta baixa ou fotos do espaço para continuarmos?").
+  👉 Acolha o retorno chamando-o pelo nome e RETOME O ASSUNTO DE ONDE PARARAM DE FORMA SUTIL (Ex: "Olá, ${isGenericName ? "" : clientName}! Que bom falar com você de novo. 😊 Estávamos conversando sobre o projeto de ${roomsStr}. Você já tem uma ideia das medidas ou fotos do espaço, ou prefere que a gente te ajude com a medição?").
 - Se o cliente enviou uma dúvida ou continuou a falar de onde parou:
-  👉 Vá 100% DIRETO AO ASSUNTO, acolha o que ele falou em 1 frase e faça UMA única pergunta direta para avançar o projeto.`;
+  👉 Vá 100% DIRETO AO ASSUNTO, acolha o que ele falou em 1 frase e faça UMA única pergunta consultiva para avançar o projeto.`;
         }
 
-        compiledPrompt += `\n- Mantenha mensagens curtas (máximo 2 frases) no estilo ágil e humanizado do WhatsApp.`;
+        compiledPrompt += `\n- Mantenha mensagens curtas (máximo 2 a 3 frases) no estilo ágil e humanizado do WhatsApp.`;
       }
       
-      compiledPrompt += `\n\nPROIBIÇÃO RIGOROSA:
-- NUNCA mencione o endereço da loja ("Av. Santa Catarina, 551...") nem convide para "tomar um café no escritório" enquanto estiver apenas conversando ou tirando dúvidas.
-- Fale sobre os móveis sob medida, qualidade 100% MDF com ferragens amortecidas e faça UMA única pergunta direta.`;
+      compiledPrompt += `\n\nPROIBIÇÕES RIGOROSAS:
+- NUNCA formate a resposta como lista ou formulário de ticket (Ex: NÃO use "- **Ambiente:** ...", "- **Cidade:** ...", "- **Medidas:** ..."). Responda sempre como uma conversa de WhatsApp em texto corrido e natural.
+- Se o cliente disse que tem as medidas ou fotos, PEÇA para ele enviar no WhatsApp antes de mudar de assunto.
+- A Dumar REALIZA SIM visitas técnicas no imóvel do cliente e possui escritório comercial para conversar pessoalmente e alinhar projetos. Se o cliente pedir visita ou não tiver medidas, acolha a visita técnica com o Paulo Vargas ou convide para o escritório comercial para conversar. NUNCA mencione mostruários/amostras, NUNCA diga que o atendimento é apenas à distância nem mande o cliente medir com régua/fita métrica.
+- NUNCA passe valores, orçamentos, parcelas ou estimativas de preço em R$. Se perguntarem sobre preço ou cobrança de orçamento, diga com naturalidade que a apresentação do projeto 3D e o orçamento são 100% gratuitos e sem compromisso, desenhados sob medida pelo Paulo Vargas e nossos projetistas.
+- NUNCA faça perguntas em lista de múltipla escolha como "(moderno, clássico, escandinavo)".
+- NUNCA envie links genéricos de vídeo/portfólio se o cliente já enviou uma referência própria.`;
 
       // Injetar contexto de ambientes já detectados
       if (extraContext?.rooms && extraContext.rooms.length > 0) {
@@ -1444,6 +1828,12 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
               rawContent = rawContent.replace(/\(?Av\.?\s+Santa\s+Catarina[^)]*\)?/gi, "").trim();
               rawContent = rawContent.replace(/\s{2,}/g, " ").trim();
             }
+
+            // Sanitização de segurança: bloquear valores em R$ gerados acidentalmente pela IA
+            if (/R\$\s*\d+/i.test(rawContent) || /parcelas\s+de/i.test(rawContent)) {
+              rawContent = "Nosso orçamento e apresentação do projeto 3D são 100% gratuitos e sem compromisso! Como cada projeto é feito sob medida para o seu espaço, o Paulo Vargas e nossos projetistas desenham a proposta exata para você. Você já tem uma ideia das medidas dessa parede?";
+            }
+
             if (rawContent.length > 0) {
               generatedAnswer = rawContent;
               break; // Sucesso com o modelo
@@ -1979,14 +2369,35 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
   function extractCustomerNameFromText(text: string, currentLeadName?: string): string | null {
     if (!text) return null;
     const trimmed = text.trim();
+    if (trimmed.length < 2 || trimmed.length > 50) return null;
 
-    // 1. Padrão Estrito com Gatilho Explícito: "Meu nome é Henrique", "Me chamo Carlos", "Sou o Henrique", "Pode me chamar de Mariana", "Aqui é o Pedro"
-    const introMatch = trimmed.match(/(?:meu\s+nome\s+(?:é|e)|me\s+chamo|sou\s+(?:o|a)|pode\s+me\s+chamar\s+de|aqui\s+(?:é|e)\s+(?:o|a)?)\s+([A-ZÀ-Úa-zà-ú]{2,}(?:\s+[A-ZÀ-Úa-zà-ú]{2,})?)/i);
+    const forbiddenWords = [
+      "cliente", "amigo", "senhor", "senhora", "marcenaria", "dumar", "projeto", 
+      "cozinha", "sala", "quarto", "banheiro", "orcamento", "orçamento", "planta",
+      "sim", "não", "nao", "bom dia", "boa tarde", "boa noite", "olá", "ola", "oi",
+      "medidas", "fotos", "casa", "apartamento", "apto", "valor", "preço", "preco",
+      "ararangua", "araranguá", "criciuma", "criciúma", "centro", "tenho", "já envio",
+      "obrigado", "obrigada", "valeu", "ver em tela cheia"
+    ];
+
+    // 1. Padrão Estrito com Gatilho Explícito: "Meu nome é Henrique Linhares Junqueira", "Me chamo Carlos", "Aqui é o Pedro"
+    const introMatch = trimmed.match(/(?:meu\s+nome\s+(?:é|e)|me\s+chamo|sou\s+(?:o|a)|pode\s+me\s+chamar\s+de|aqui\s+(?:é|e)\s+(?:o|a)?)\s+([A-ZÀ-Úa-zà-ú]+(?:\s+[A-ZÀ-Úa-zà-ú]+){0,4})/i);
     if (introMatch && introMatch[1]) {
       const raw = introMatch[1].trim();
-      const forbiddenWords = ["cliente", "amigo", "senhor", "senhora", "marcenaria", "dumar", "projeto", "cozinha", "sala", "quarto", "banheiro", "orcamento", "orçamento", "planta"];
-      if (!forbiddenWords.includes(raw.toLowerCase())) {
-        return raw.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+      if (!forbiddenWords.some(fw => raw.toLowerCase().includes(fw))) {
+        return raw.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+      }
+    }
+
+    // 2. Se a mensagem for diretamente 1 a 4 palavras que parecem um nome próprio (ex: "Henrique Linhares Junqueira", "Mariana Souza", "Carlos")
+    // e não contém dígitos, pontuações ou palavras do vocabulário comum de marcenaria
+    const words = trimmed.split(/\s+/);
+    if (words.length >= 1 && words.length <= 4) {
+      const isOnlyLetters = words.every(w => /^[A-ZÀ-Úa-zà-ú]{2,}$/.test(w));
+      const containsForbidden = words.some(w => forbiddenWords.includes(w.toLowerCase()));
+      
+      if (isOnlyLetters && !containsForbidden) {
+        return words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
       }
     }
 
@@ -2033,6 +2444,10 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
           // Extrair conteúdo da mensagem (Texto, Áudio, Imagem, PDF)
           let msgContent = "Nova mensagem no WhatsApp";
           let msgType: "text" | "audio" | "image" | "document" = "text";
+          let mediaUrl: string | undefined = undefined;
+          let audioUrl: string | undefined = undefined;
+          let fileName: string | undefined = undefined;
+          let mediaType: "image" | "document" | "audio" | undefined = undefined;
 
           if (messageData.message?.conversation) {
             msgContent = messageData.message.conversation;
@@ -2040,9 +2455,10 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
             msgContent = messageData.message.extendedTextMessage.text;
           } else if (messageData.message?.audioMessage) {
             msgType = "audio";
+            mediaType = "audio";
             msgContent = "🎵 Áudio de Voz Enviado";
 
-            // Tentativa de transcrição de áudio com Whisper da Groq
+            // Tentativa de transcrição de áudio com Whisper da Groq e gravação em disco
             try {
               let audioBuffer: Buffer | null = null;
               let mimeType = messageData.message.audioMessage.mimetype || "audio/ogg; codecs=opus";
@@ -2071,8 +2487,11 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
                 }
               }
 
-              // 3. Executar Transcrição com Whisper
+              // Salvar áudio localmente para streaming e reprodução no CRM
               if (audioBuffer) {
+                audioUrl = saveBase64MediaToFile(audioBuffer.toString("base64"), mimeType, "audio");
+
+                // 3. Executar Transcrição com Whisper
                 const transcribed = await transcribeAudioWithWhisper(audioBuffer, mimeType);
                 if (transcribed && transcribed.trim().length > 0) {
                   msgContent = `🎵 [Áudio]: "${transcribed.trim()}"`;
@@ -2085,15 +2504,99 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
           } else if (messageData.message?.imageMessage) {
             msgContent = messageData.message.imageMessage.caption || "📷 Imagem Enviada";
             msgType = "image";
+            mediaType = "image";
+
+            // Baixar e salvar a imagem enviada pelo cliente no WhatsApp
+            try {
+              let imgMime = messageData.message.imageMessage.mimetype || "image/jpeg";
+              let rawBase64 = messageData.base64 || messageData.message?.imageMessage?.base64 || null;
+
+              // 1. Tentar endpoint dedicado da Evolution API
+              if (!rawBase64) {
+                const mediaRes = await fetch(`${EVOLUTION_URL}/chat/getBase64FromMediaMessage/dumar_comercial`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", apikey: EVOLUTION_KEY },
+                  body: JSON.stringify({ message: messageData, convertToMp4: false })
+                });
+
+                if (mediaRes.ok) {
+                  const mediaJson: any = await mediaRes.json();
+                  rawBase64 = mediaJson.base64 || mediaJson.data?.base64 || mediaJson.media?.base64 || null;
+                  if (mediaJson.mimetype) imgMime = mediaJson.mimetype;
+                }
+              }
+
+              // 2. Se obteve o base64 completo, salvar em disco
+              if (rawBase64) {
+                mediaUrl = saveBase64MediaToFile(rawBase64, imgMime, "img");
+              }
+
+              // 3. Se não obteve e tiver URL de download direta
+              if (!mediaUrl && messageData.message.imageMessage.url) {
+                try {
+                  const downloadRes = await fetch(messageData.message.imageMessage.url);
+                  if (downloadRes.ok) {
+                    const arrBuf = await downloadRes.arrayBuffer();
+                    mediaUrl = saveBase64MediaToFile(Buffer.from(arrBuf).toString("base64"), imgMime, "img");
+                  }
+                } catch (e) {
+                  // Fallback para thumbnail abaixo
+                }
+              }
+
+              // 4. Fallback imediato garantido: jpegThumbnail embutido no payload
+              if (!mediaUrl && messageData.message.imageMessage.jpegThumbnail) {
+                const thumbB64 = typeof messageData.message.imageMessage.jpegThumbnail === "string"
+                  ? messageData.message.imageMessage.jpegThumbnail
+                  : Buffer.from(messageData.message.imageMessage.jpegThumbnail).toString("base64");
+                mediaUrl = saveBase64MediaToFile(thumbB64, "image/jpeg", "img_thumb");
+              }
+            } catch (imgErr) {
+              console.error("Erro ao processar/salvar imagem recebida:", imgErr);
+            }
           } else if (messageData.message?.documentMessage) {
-            msgContent = messageData.message.documentMessage.fileName || "📄 Documento PDF Enviado";
+            const docName = String(messageData.message.documentMessage.fileName || "📄 Documento PDF");
+            fileName = docName;
+            msgContent = docName;
             msgType = "document";
+            mediaType = "document";
+
+            // Baixar e salvar documento/PDF
+            try {
+              const docMime = messageData.message.documentMessage.mimetype || "application/pdf";
+              const mediaRes = await fetch(`${EVOLUTION_URL}/chat/getBase64FromMediaMessage/dumar_comercial`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", apikey: EVOLUTION_KEY },
+                body: JSON.stringify({ message: messageData })
+              });
+
+              if (mediaRes.ok) {
+                const mediaJson: any = await mediaRes.json();
+                if (mediaJson.base64) {
+                  mediaUrl = saveBase64MediaToFile(mediaJson.base64, mediaJson.mimetype || docMime, "doc");
+                }
+              }
+            } catch (docErr) {
+              console.error("Erro ao processar documento recebido:", docErr);
+            }
           }
 
           const rawTs = messageData.messageTimestamp;
           const timestamp = rawTs 
             ? new Date(Number(rawTs) * 1000).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })
             : new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+
+          const newChatEntry = {
+            sender: isFromMe ? ("agent" as const) : ("client" as const),
+            text: msgContent,
+            timestamp,
+            type: msgType,
+            ...(mediaUrl ? { mediaUrl } : {}),
+            ...(audioUrl ? { audioUrl } : {}),
+            ...(fileName ? { fileName } : {}),
+            ...(mediaType ? { mediaType } : {}),
+            isHuman: isFromMe ? true : undefined
+          };
 
           // =========================================================================
           // TRATAMENTO EXCLUSIVO DE COMANDOS DO DIRETOR (PAULO VARGAS)
@@ -2222,15 +2725,7 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
               utmCampaign: origin.campaign,
               rooms: JSON.stringify(detectedRooms.length > 0 ? detectedRooms : ["Móveis Planejados"]),
               checklist: JSON.stringify({ briefing: false, medicao: false, orcamento: false }),
-              chatHistory: JSON.stringify([
-                { 
-                  sender: isFromMe ? "agent" : "client", 
-                  text: msgContent, 
-                  timestamp, 
-                  type: msgType,
-                  isHuman: isFromMe ? true : undefined
-                }
-              ]),
+              chatHistory: JSON.stringify([newChatEntry]),
               lastCustomerMessageAt: new Date().toISOString(),
               aiPaused: isFromMe ? true : false,
               appointmentStatus: "none",
@@ -2242,16 +2737,7 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
               ? JSON.parse(targetLead.chatHistory || "[]") 
               : (targetLead.chatHistory || []);
 
-            const updatedHistory = [
-              ...currentHistory, 
-              { 
-                sender: isFromMe ? "agent" : "client", 
-                text: msgContent, 
-                timestamp, 
-                type: msgType,
-                isHuman: isFromMe ? true : undefined
-              }
-            ];
+            const updatedHistory = [...currentHistory, newChatEntry];
             
             let existingRooms: string[] = [];
             try {
@@ -2263,14 +2749,23 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
 
             const nameToUpdate = spokenName && spokenName !== targetLead.name ? spokenName : targetLead.name;
 
+            // Se um lead frio/contato futuro/não responde enviar mensagem nova, reativa para 'em_atendimento'
+            let newStage = targetLead.stage;
+            if (!isFromMe && ["contato_futuro", "freezer", "nao_responde"].includes(targetLead.stage)) {
+              newStage = "em_atendimento";
+              console.log(`Webhook Evolution: Lead ${targetLead.name} reativado de '${targetLead.stage}' para 'em_atendimento'.`);
+            }
+
             targetLead = await storage.updateLead(targetLead.id, {
               name: nameToUpdate,
+              stage: newStage,
               chatHistory: JSON.stringify(updatedHistory),
               rooms: JSON.stringify(combinedRooms),
               lastCustomerMessageAt: new Date().toISOString(),
               ...(isFromMe ? { aiPaused: true } : {})
             });
           }
+
 
           // DISPARAR MOTOR DE IA COMERCIAL SE ATIVO GLOBALMENTE E HABILITADO ESPECIFICAMENTE NO BOTÃO DESTE LEAD
           if (!isFromMe && aiConfig.botEnabled && targetLead) {
@@ -2281,7 +2776,7 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
             const lastMsgWasHuman = lastAgentMsg?.isHuman === true;
             
             const isLeadAiActive = targetLead.aiPaused === false && !lastMsgWasHuman;
-            const isAllowedStage = ["entrada", "briefing"].includes(targetLead.stage || "entrada");
+            const isAllowedStage = ["entrada", "em_atendimento", "briefing"].includes(targetLead.stage || "entrada");
 
             if (isLeadAiActive && isAllowedStage) {
               try {
@@ -2324,29 +2819,27 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
                 const lowerReply = replyText.toLowerCase();
                 const lowerMsg = msgContent.toLowerCase();
 
-                // Detecção Semântica de Gatilhos VIP & Agendamento
+                // Detecção Semântica de Gatilhos de Agendamento Real
                 const isExplicitAppointment = lowerReply.includes("está agendado") || 
                                               lowerReply.includes("agendado:") || 
                                               lowerReply.includes("agendamento confirmado") ||
                                               lowerReply.includes("marcado para") ||
                                               lowerReply.includes("marcada para") ||
-                                              lowerMsg.includes("agendar") ||
-                                              lowerMsg.includes("marcar") ||
-                                              lowerMsg.includes("visita técnica") ||
-                                              lowerMsg.includes("pode vir medir");
+                                              (lowerMsg.includes("agendar") && (lowerMsg.includes("às") || lowerMsg.includes("as") || lowerMsg.includes("h") || lowerMsg.includes("dia") || lowerMsg.includes("feira"))) ||
+                                              (lowerMsg.includes("marcar") && (lowerMsg.includes("visita") || lowerMsg.includes("reunião") || lowerMsg.includes("horário"))) ||
+                                              lowerMsg.includes("visita técnica");
 
-                const mentionsPaulo = lowerMsg.includes("paulo") || lowerReply.includes("paulo vargas");
-                const mentionsHighValue = lowerMsg.includes("mil") || lowerMsg.includes("k") || /\b\d{2,3}\.?000\b/.test(lowerMsg) || lowerMsg.includes("25");
-                const hasMultipleRooms = targetRooms.length >= 2 || lowerMsg.includes("casa toda") || lowerMsg.includes("apartamento todo");
+                const mentionsPaulo = lowerMsg.includes("paulo vargas") || lowerMsg.includes("falar com o paulo");
+                const mentionsHighValue = /\b(50|60|70|80|90|100|150|200)\s*(mil|k)\b/i.test(lowerMsg);
 
-                // Calcular estimativa interna e classificação de Lead VIP
+                // Calcular estimativa interna para o CRM
                 const leadEstimate = calculateLeadEstimatedValue(targetRooms);
-                const isVipOpportunity = isExplicitAppointment || mentionsPaulo || mentionsHighValue || hasMultipleRooms;
 
+                // A resposta ao cliente SEMPRE preserva o fluxo inteligente e consultivo da IA
                 let finalReplyToClient = replyText;
 
-                // SE FOR GATILHO VIP OU AGENDAMENTO -> ACIONAR VALIDAÇÃO EXECUTIVA COM O PAULO
-                if (isVipOpportunity && aiConfig.requireOwnerApproval !== false) {
+                // SE HOUVER AGENDAMENTO REAL OU SOLICITAÇÃO EXPLÍCITA -> ACIONAR DIRETORIA/AGENDA
+                if (isExplicitAppointment && targetLead.appointmentStatus !== "pending_approval" && targetLead.appointmentStatus !== "confirmed") {
                   const targetAppointmentDate = calculateTargetAppointmentDate(`${msgContent} ${replyText}`);
                   const timeMatch = (lowerReply + " " + lowerMsg).match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
                   let extractedTime = "14:00";
@@ -2355,41 +2848,35 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
                     else if (timeMatch[3]) extractedTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
                   }
 
-                  // Salvar estado pendente no Lead
-                  await storage.updateLead(targetLead.id, {
-                    appointmentStatus: "pending_approval",
-                    appointmentDetails: JSON.stringify({
-                      date: targetAppointmentDate,
-                      time: extractedTime,
-                      rooms: targetRooms,
-                      estimatedValue: leadEstimate.estimatedValue,
-                      summary: msgContent
-                    })
-                  });
+                  if (aiConfig.requireOwnerApproval !== false) {
+                    // Salvar estado pendente no Lead
+                    await storage.updateLead(targetLead.id, {
+                      appointmentStatus: "pending_approval",
+                      appointmentDetails: JSON.stringify({
+                        date: targetAppointmentDate,
+                        time: extractedTime,
+                        rooms: targetRooms,
+                        estimatedValue: leadEstimate.estimatedValue,
+                        summary: msgContent
+                      })
+                    });
 
-                  // Resposta acolhedora e personalizada de atendimento VIP (sem valores)
-                  if (mentionsPaulo || mentionsHighValue || hasMultipleRooms) {
-                    finalReplyToClient = `Excelente, ${targetLead.name}! Com esses ambientes e esse investimento, estou alinhando agora com o Paulo Vargas (nosso diretor) para priorizarmos seu projeto e vermos a melhor data de atendimento. Um minutinho que já te confirmo por aqui! ✨`;
-                  } else {
-                    finalReplyToClient = `Perfeito, ${targetLead.name}! Estou verificando a confirmação de agenda com a nossa diretoria para *${targetAppointmentDate} às ${extractedTime}*. Em instantes te confirmo por aqui!`;
-                  }
+                    // DISPARAR NOTIFICAÇÃO EXECUTIVA NO WHATSAPP DO PAULO
+                    try {
+                      const ownerPhone = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
+                      const allText = history.map((m: any) => m.text).join(" ") + " " + msgContent;
+                      const cityMatch = allText.match(/(?:ararangu[aá]|crici[uú]ma|balne[aá]rio\s+arroio\s+do\s+silva|tubar[aã]o|i[cç]ara|sombrio|turvo|morro\s+da\s+fuma[cç]a|urussanga|forquilhinha|maracaj[aá]|meleiro|santa\s+rosa\s+do\s+sul|passo\s+de\s+torres|praia\s+grande|florian[oó]polis|porto\s+alegre)/i);
+                      const locationStr = cityMatch ? cityMatch[0].toUpperCase() : "Balneário Arroio do Silva / Criciúma";
 
-                  // DISPARAR NOTIFICAÇÃO EXECUTIVA VIP NO WHATSAPP DO PAULO
-                  try {
-                    const ownerPhone = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
-                    const allText = history.map((m: any) => m.text).join(" ") + " " + msgContent;
-                    const cityMatch = allText.match(/(?:ararangu[aá]|crici[uú]ma|balne[aá]rio\s+arroio\s+do\s+silva|tubar[aã]o|i[cç]ara|sombrio|turvo|morro\s+da\s+fuma[cç]a|urussanga|forquilhinha|maracaj[aá]|meleiro|santa\s+rosa\s+do\s+sul|passo\s+de\s+torres|praia\s+grande|florian[oó]polis|porto\s+alegre)/i);
-                    const locationStr = cityMatch ? cityMatch[0].toUpperCase() : "Balneário Arroio do Silva / Criciúma";
+                      const propMatch = allText.match(/\b(casa|apartamento|apto|cobertura|sala\s+comercial)\b/i);
+                      const propertyTypeStr = propMatch ? propMatch[0].toUpperCase() : "Imóvel";
+                      const roomsStr = (targetRooms && targetRooms.length > 0) ? targetRooms.join(", ") : "Móveis Planejados";
 
-                    const propMatch = allText.match(/\b(casa|apartamento|apto|cobertura|sala\s+comercial)\b/i);
-                    const propertyTypeStr = propMatch ? propMatch[0].toUpperCase() : "Imóvel";
-                    const roomsStr = (targetRooms && targetRooms.length > 0) ? targetRooms.join(", ") : "Móveis Planejados";
+                      const vipBadge = (leadEstimate.isVip || mentionsHighValue || mentionsPaulo) 
+                        ? "🚨 *OPORTUNIDADE VIP (DIRETORIA DUMAR)* 💎✨" 
+                        : "📅 *SOLICITAÇÃO DE AGENDAMENTO* ✨";
 
-                    const vipBadge = (leadEstimate.isVip || mentionsHighValue || mentionsPaulo) 
-                      ? "🚨 *OPORTUNIDADE VIP (DIRETORIA DUMAR)* 💎✨" 
-                      : "📅 *SOLICITAÇÃO DE AGENDAMENTO* ✨";
-
-                    const notifyMsg = `${vipBadge}
+                      const notifyMsg = `${vipBadge}
 
 👤 *Cliente:* ${targetLead.name}
 📱 *WhatsApp:* ${targetLead.phone}
@@ -2407,40 +2894,33 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
 
 🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
 
-                    console.log(`IA Comercial Dumar: Notificando Paulo (${ownerPhone}) para aprovação de agendamento VIP...`);
-                    await sendWhatsAppMessageViaEvolution(ownerPhone, notifyMsg, "dumar_comercial");
-                  } catch (notifyErr) {
-                    console.error("Erro ao enviar notificação de agendamento para o Paulo:", notifyErr);
-                  }
-                } else if (isExplicitAppointment && aiConfig.requireOwnerApproval === false) {
-                  // Modo direto sem aprovação
-                  const targetAppointmentDate = calculateTargetAppointmentDate(`${msgContent} ${replyText}`);
-                  const timeMatch = lowerReply.match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
-                  let extractedTime = "14:00";
-                  if (timeMatch) {
-                    if (timeMatch[1]) extractedTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
-                    else if (timeMatch[3]) extractedTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
-                  }
+                      console.log(`IA Comercial Dumar: Notificando Paulo (${ownerPhone}) para aprovação de agendamento...`);
+                      await sendWhatsAppMessageViaEvolution(ownerPhone, notifyMsg, "dumar_comercial");
+                    } catch (notifyErr) {
+                      console.error("Erro ao enviar notificação de agendamento para o Paulo:", notifyErr);
+                    }
+                  } else {
+                    // Modo direto sem aprovação
+                    await storage.createCalendarEvent({
+                      title: `Reunião Projetista - ${targetLead.name}`,
+                      date: targetAppointmentDate,
+                      time: extractedTime,
+                      type: "evento",
+                      priority: "alta",
+                      leadId: targetLead.id,
+                      notes: `Agendado automaticamente pela IA via WhatsApp: "${replyText.slice(0, 140)}..."`,
+                      completed: false
+                    });
 
-                  await storage.createCalendarEvent({
-                    title: `Reunião Projetista - ${targetLead.name}`,
-                    date: targetAppointmentDate,
-                    time: extractedTime,
-                    type: "evento",
-                    priority: "alta",
-                    leadId: targetLead.id,
-                    notes: `Agendado automaticamente pela IA via WhatsApp: "${replyText.slice(0, 140)}..."`,
-                    completed: false
-                  });
-
-                  await storage.updateLead(targetLead.id, { 
-                    stage: "briefing",
-                    appointmentStatus: "confirmed",
-                    checklist: JSON.stringify({
-                      ...targetChecklist,
-                      dataAgendamento: `${targetAppointmentDate} ${extractedTime}`
-                    })
-                  });
+                    await storage.updateLead(targetLead.id, { 
+                      stage: "briefing",
+                      appointmentStatus: "confirmed",
+                      checklist: JSON.stringify({
+                        ...targetChecklist,
+                        dataAgendamento: `${targetAppointmentDate} ${extractedTime}`
+                      })
+                    });
+                  }
                 }
 
                 console.log(`IA Comercial Dumar: Enviando resposta para ${targetLead.name} (${targetLead.phone}): "${finalReplyToClient.slice(0, 60)}..."`);
@@ -2457,7 +2937,14 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
                 });
 
                 const historyWithBot = [...history, { sender: "agent", text: finalReplyToClient, timestamp: botTimestamp, isAi: true, sentAt: Date.now(), deliveredViaEvolution: evoSuccess }];
-                await storage.updateLead(targetLead.id, { chatHistory: JSON.stringify(historyWithBot) });
+                
+                // Se o lead ainda estava em 'entrada', move automaticamente para 'em_atendimento'
+                const stageAfterAiReply = targetLead.stage === "entrada" ? "em_atendimento" : targetLead.stage;
+
+                await storage.updateLead(targetLead.id, { 
+                  chatHistory: JSON.stringify(historyWithBot),
+                  stage: stageAfterAiReply
+                });
               } catch (aiErr) {
                 console.error("Erro ao processar resposta automática da IA:", aiErr);
               }
@@ -2466,6 +2953,7 @@ REGRAS SUPREMAS DE CONVERSÃO & INSIDE SALES NO WHATSAPP:
             }
           }
         }
+
       }
       return res.status(200).json({ status: "received" });
     } catch (err) {

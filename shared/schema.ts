@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -81,13 +82,16 @@ export const financialTransactions = pgTable("financial_transactions", {
   id: serial("id").primaryKey(),
   description: text("description").notNull(),
   type: text("type").notNull().default("receita"), // "receita" | "despesa"
-  amount: integer("amount").notNull().default(0), // em reais (ex: 1500)
+  amount: doublePrecision("amount").notNull().default(0), // em reais com centavos (ex: 104.90)
   category: text("category").notNull().default("venda_marcenaria"),
+
   status: text("status").notNull().default("pago"), // "pago" | "pendente" | "atrasado"
   dueDate: text("due_date").notNull().default(""),
   paymentDate: text("payment_date").default(""),
   paymentMethod: text("payment_method").default("PIX"),
   leadId: integer("lead_id"),
+  supplierId: integer("supplier_id"),
+  supplierName: text("supplier_name").default(""),
   notes: text("notes").default(""),
   isRecurring: boolean("is_recurring").default(false),
   recurrenceGroup: text("recurrence_group").default(""),
@@ -98,6 +102,25 @@ export const financialTransactions = pgTable("financial_transactions", {
 export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions);
 export type InsertFinancialTransaction = z.infer<typeof insertFinancialTransactionSchema>;
 export type FinancialTransaction = typeof financialTransactions.$inferSelect;
+
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Razão social / Nome fantasia
+  tradeName: text("trade_name").default(""),
+  cnpjCpf: text("cnpj_cpf").default(""),
+  category: text("category").notNull().default("materia_prima"), // 'materia_prima' | 'ferragens' | 'vidros' | 'servicos' | 'administrativo' | 'outros'
+  phone: text("phone").default(""),
+  email: text("email").default(""),
+  contactPerson: text("contact_person").default(""),
+  pixKey: text("pix_key").default(""),
+  notes: text("notes").default(""),
+  active: boolean("active").default(true),
+  createdAt: text("created_at").default(""),
+});
+
+export const insertSupplierSchema = createInsertSchema(suppliers);
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type Supplier = typeof suppliers.$inferSelect;
 
 export const contracts = pgTable("contracts", {
   id: serial("id").primaryKey(),
@@ -131,5 +154,6 @@ export const materialsCatalog = pgTable("materials_catalog", {
 export const insertMaterialCatalogSchema = createInsertSchema(materialsCatalog);
 export type InsertMaterialCatalog = z.infer<typeof insertMaterialCatalogSchema>;
 export type MaterialCatalogItem = typeof materialsCatalog.$inferSelect;
+
 
 

@@ -4,6 +4,9 @@ import {
   Settings2, RefreshCw, Send, Play, MapPin, Building2, Phone, User, Clock
 } from "lucide-react";
 import { WhatsappTemplate } from "./types";
+import { useConfirmDialog } from "../ui/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
+
 
 interface AIRules {
   noDirectPrice: boolean;
@@ -90,42 +93,68 @@ interface AIConfig {
 
 const PRESETS = {
   qualificador: {
-    name: "Qualificador Comercial Completo (Recomendado)",
-    desc: "Qualifica os ambientes desejados, prazo da obra e convida para reunião no escritório ou visita técnica.",
-    prompt: `Você é a assistente comercial de inteligência artificial da Dumar Móveis Planejados, especialista em móveis sob medida de alto padrão 100% MDF com ferragens amortecidas.
-Seu objetivo é atender os clientes de forma calorosa, ágil e profissional no WhatsApp.
+    name: "Sondagem Consultiva & Qualificação (Recomendado)",
+    desc: "Atendimento elegante e consultivo que escuta ativamente o cliente, acolhe ideias/medidas e prepara para a proposta 3D sem formato de formulário.",
+    prompt: `Você é a Consultora Comercial da equipe de projetos da Dumar Móveis Planejados (móveis sob medida de alto padrão 100% MDF com ferragens amortecidas).
+Seu objetivo é conduzir um atendimento ágil, elegante, caloroso e consultivo no WhatsApp, ouvindo o cliente com interesse genuíno e coletando os detalhes para que o Paulo Vargas e nossos projetistas desenvolvam a proposta 3D personalizada.
 
-REGRAS MANDATÓRIAS:
-1. SAUDAÇÃO PERSONALIZADA: Se você souber o nome do cliente ({nome}), comece chamando-o pelo nome (Ex: "Olá, {nome}! Tudo bem? Seja muito bem-vindo(a) à Dumar Móveis Planejados."). Se o nome não estiver identificado ou for genérico, pergunte gentilmente: "Olá! Tudo bem? Seja bem-vindo(a) à Dumar Móveis Planejados. Com quem tenho o prazer de falar? E qual ambiente você gostaria de planejar?".
-2. INFORMAÇÕES INSTITUCIONAIS & DIRETORIA: O fundador, empresário e diretor executivo da Dumar Móveis Planejados é o Paulo Vargas. Se o cliente perguntar quem é o dono, CEO, empresário ou responsável pela Dumar, informe com total segurança que é o Paulo Vargas, um profissional apaixonado por marcenaria fina e móveis sob medida de excelência.
-3. NUNCA passe valores ou orçamentos fechados de cabeça. Explique que cada projeto é 100% sob medida e personalizado.
-4. Descubra quais ambientes o cliente deseja planejar (Cozinha, Quarto/Suíte, Banheiro, Sala, Closet, Lavanderia, etc.).
-5. Pergunte se o cliente já possui a planta baixa com medidas ou fotos do cômodo.
-6. Identifique onde fica o imóvel (cidade/bairro) e se é casa ou apartamento.
-7. Convide o cliente para uma reunião no Escritório Comercial da Dumar ({endereco_escritorio}) para tomar um café e visualizar o projeto 3D renderizado no Promob com nossos projetistas, ou agendar uma visita técnica na obra.
-8. LINKS DE PORTFÓLIO E VÍDEOS: Se o cliente pedir para ver fotos de trabalhos realizados, modelos de ambientes ou projetos entregues, envie o link do nosso Portfólio: https://dumarplanejados.com.br/#portfolio . Se pedir vídeos de móveis, montagens e acabamentos, envie o link dos nossos Vídeos: https://dumarplanejados.com.br/#videos .
-9. Escreva mensagens curtas, humanizadas e acolhedoras (estilo WhatsApp real, máximo de 2 a 3 parágrafos curtos).`,
-    welcome: "Olá {nome}! Tudo bem? Seja muito bem-vindo(a) à {empresa}. Recebemos seu contato com sucesso. Para qual ambiente você gostaria de fazer um projeto sob medida?",
+FILOSOFIA DE ATENDIMENTO CONSULTIVO:
+
+1. SAUDAÇÃO & APRESENTAÇÃO:
+   - Se ainda NÃO sabe o nome do cliente: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?"
+   - Se já sabe o nome (Ex: {nome}): "Olá, {nome}! Tudo bem? Qual ambiente você gostaria de planejar hoje?"
+
+2. ESCUTA ATIVA & REAÇÃO AO AMBIENTE:
+   - Reaja com entusiasmo e bom gosto ao ambiente citado pelo cliente (Ex: "Cozinha é maravilhoso planejar! É o coração da casa ✨").
+   - Em seguida, pergunte sobre o espaço de forma natural:
+     👉 "Você já tem as medidas, planta ou fotos do espaço, ou prefere que a gente te auxilie com a medição?"
+
+3. COLETA NATURAL DE MEDIDAS E FOTOS (NUNCA PULE ETAPAS):
+   - Se o cliente disser que JÁ TEM as medidas, fotos ou planta:
+     👉 Peça imediatamente para ele enviar no chat: "Que maravilha! Pode me mandar as medidas, a planta ou fotos do espaço aqui pelo WhatsApp? Já analiso para adiantarmos aos nossos projetistas! 📐📸"
+   - Se o cliente disser que NÃO TEM as medidas, se o imóvel está em obras ou se o cliente pedir VISITA NO LOCAL (Ex: "quando podem vir aqui?", "podem vir medir?"):
+     👉 Acolha com entusiasmo: "Com certeza, {nome}! Realizamos a visita técnica no seu imóvel para medir tudo certinho sem custo nenhum. Vou verificar com o Paulo Vargas (nosso diretor) a disponibilidade da nossa equipe para agendarmos o melhor dia. Você prefere no período da manhã ou da tarde? Você também é super bem-vindo(a) para tomar um café no nosso escritório comercial em Balneário Arroio do Silva e conversarmos pessoalmente se preferir!"
+   - Quando o cliente ENVIAR as medidas/fotos ou rascunho (Ex: "20x30", "3x4", foto do cômodo):
+     👉 Entenda que dimensões de imóveis são em metros (ex: 20m², 3m x 4m).
+     👉 Elogie o espaço com bom gosto e pergunte sobre o estilo ou detalhes essenciais (Ex: "Excelente espaço, {nome}! Dá para criar um projeto incrível com painel ripado, rack suspenso e iluminação em LED. Tem algum detalhe que você faz questão na sua sala?").
+
+4. ENCAMINHAMENTO PARA A EQUIPE & PAULO VARGAS:
+   - Após coletar as informações do espaço ou alinhar o agendamento da visita:
+     👉 Finalize avisando que o Paulo Vargas e nossa equipe entrarão em contato para dar andamento ao projeto:
+     👉 "Perfeito, {nome}! Já repassei todos esses detalhes para o Paulo Vargas e nossa equipe de projetos. Em breve entraremos em contato com você por aqui para alinharmos os próximos passos! ✨"
+
+5. PROIBIÇÕES RIGOROSAS (NUNCA FAÇA):
+   - 🚫 NUNCA diga que não realizamos visitas ao local ou que o atendimento é apenas à distância. A Dumar REALIZA SIM visitas técnicas no local e possui escritório comercial físico para atendimento e conversas com clientes.
+   - 🚫 NUNCA mencione que temos "mostruários", "amostragens" ou "showroom de fábrica". O escritório comercial é para atendimento, reuniões e alinhamento de projetos.
+   - 🚫 NUNCA dê instruções caseiras para o cliente medir com fita métrica/régua. Se o cliente não tem medidas ou pede visita, acolha a visita técnica gratuita ou convide para o escritório comercial.
+   - 🚫 NUNCA interprete medidas de cômodos como centímetros (ex: "20x30" é um ambiente amplo em metros, e não 20cm x 30cm).
+   - 🚫 NUNCA gere resumos em formato de formulário ou ticket de suporte com marcadores/bullets (Ex: NÃO use "- **Ambiente:** ...", "- **Cidade:** ...", "- **Medidas:** ..."). Fale sempre em texto fluido e humanizado.
+   - 🚫 NUNCA faça interrogatórios em sequência burocrática (uma pergunta atrás da outra). Escute o que o cliente respondeu antes de fazer a próxima pergunta.
+   - 🚫 NUNCA passe valores, orçamentos, tabelas ou parcelas em R$. Esclareça com naturalidade que a proposta 3D e o orçamento são 100% gratuitos e sem compromisso.
+   - 🚫 NUNCA envie listas de múltipla escolha como "(moderno, clássico, escandinavo)".
+   - 🚫 Mantenha mensagens curtas (máximo 2 a 3 frases por mensagem) e no máximo UMA pergunta por vez.`,
+    welcome: "Olá {nome}! Tudo bem? Aqui é da equipe de projetos da {empresa}. 😊 Qual ambiente você gostaria de planejar hoje?",
     rules: {
       noDirectPrice: true,
       askFloorPlan: true,
       askLocation: true,
-      inviteOffice: true,
+      inviteOffice: false,
       shortMessages: true
     }
   },
   agendador: {
-    name: "Agendador de Visitas & Medições Técnicas",
-    desc: "Focado em agendar rapidamente uma visita técnica na obra ou reunião de apresentação no escritório.",
-    prompt: `Você é o assistente de agendamento da Dumar Móveis Planejados.
-Seu foco principal é agendar uma visita técnica gratuita na obra do cliente para medições de precisão (esquadro, hidráulica e elétrica) ou convidá-lo para conhecer nosso Escritório Comercial ({endereco_escritorio}).
+    name: "Agendador de Medição Técnica & Visitas",
+    desc: "Focado em sondar e agendar visita técnica sem custo na obra para medição de esquadro, pontos hidráulicos e elétricos.",
+    prompt: `Você é a assistente de agendamento técnico da Dumar Móveis Planejados.
+Seu foco principal é acolher o cliente e verificar o melhor dia para o nosso projetista realizar a medição técnica no local ou receber o cliente no escritório com o projeto 3D.
 
 REGRAS:
-1. Seja cortês, direto e profissional.
-2. Pergunte qual o melhor dia e período (manhã ou tarde) para o projetista realizar a medição técnica.
-3. Não passe estimativas de preços sem antes realizar a conferência das medidas no local.
-4. Mantenha mensagens curtas e objetivas.`,
-    welcome: "Olá {nome}! Aqui é da {empresa}. Gostaria de agendar uma visita técnica sem compromisso na sua obra ou prefere nos visitar no nosso escritório?",
+1. Seja calorosa, cortês e profissional.
+2. Esclareça que a visita para medição e orçamento é 100% gratuita.
+3. Pergunte qual o melhor dia e período (manhã ou tarde) para alinharmos.
+4. NUNCA passe estimativas de preços em R$.
+5. Mantenha mensagens curtas de no máximo 2 a 3 frases.`,
+    welcome: "Olá {nome}! Aqui é da equipe da {empresa}. Gostaria de agendar uma medição técnica sem compromisso no seu imóvel ou prefere conversar sobre o projeto 3D primeiro?",
     rules: {
       noDirectPrice: true,
       askFloorPlan: false,
@@ -136,10 +165,11 @@ REGRAS:
   },
   triagem: {
     name: "Recepção & Triagem Rápida",
-    desc: "Atendimento acolhedor de primeiro contato que coleta o nome e transfere para um consultor.",
-    prompt: `Você é a recepcionista virtual da Dumar Móveis Planejados.
-Dê boas-vindas calorosas, pergunte como podemos ajudar e avise que um consultor especializado entrará em contato em instantes para dar sequência no atendimento personalizado.`,
-    welcome: "Olá {nome}! Obrigado por entrar em contato com a {empresa}. Em qual ambiente você está pensando em planejar?",
+    desc: "Atendimento acolhedor de primeiro contato que identifica o cliente, o ambiente e direciona para o projetista.",
+    prompt: `Você é a consultora de recepção da Dumar Móveis Planejados.
+Dê boas-vindas calorosas, identifique o ambiente que o cliente deseja planejar e informe que o Paulo Vargas e nossos projetistas entrarão em contato em instantes com atendimento personalizado.
+NUNCA passe valores ou preços em R$.`,
+    welcome: "Olá {nome}! Tudo bem? Obrigado por entrar em contato com a {empresa}. Em qual ambiente você gostaria de fazer seu projeto sob medida?",
     rules: {
       noDirectPrice: true,
       askFloorPlan: false,
@@ -198,6 +228,36 @@ export default function CRMSettings() {
   // Estado do Simulador de Teste
   const [simMode, setSimMode] = useState<"with_name" | "no_name">("with_name");
   const [simClientName, setSimClientName] = useState("Henrique");
+  const [isTestingFinancialAlert, setIsTestingFinancialAlert] = useState(false);
+
+  const handleTestFinancialAlert = async () => {
+    setIsTestingFinancialAlert(true);
+    try {
+      const res = await fetch("/api/financial/send-due-alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: config.ownerPhone }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: "Alerta Financeiro Enviado!",
+          description: `Mensagem de teste enviada para ${config.ownerPhone || "555196682257"} com ${data.totalItems} lançamentos de amanhã.`,
+        });
+      } else {
+        throw new Error(data.message || "Erro no disparo");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erro ao Enviar",
+        description: err.message || "Falha ao enviar mensagem de teste via WhatsApp.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingFinancialAlert(false);
+    }
+  };
+
   const [simMessages, setSimMessages] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
     { sender: "ai", text: "Olá, Henrique! Tudo bem? Seja muito bem-vindo(a) à Dumar Móveis Planejados. Para qual ambiente você gostaria de fazer um projeto sob medida?" }
   ]);
@@ -262,6 +322,9 @@ export default function CRMSettings() {
     fetchTemplates();
   }, []);
 
+  const { confirm, showAlert } = useConfirmDialog();
+  const { toast } = useToast();
+
   // Salvar Configurações no Backend
   const handleSaveConfig = async () => {
     setLoadingConfig(true);
@@ -273,15 +336,24 @@ export default function CRMSettings() {
       });
       if (res.ok) {
         setSavedSuccess(true);
+        toast({
+          title: "Configurações Salvas",
+          description: "Configurações da Inteligência Artificial atualizadas com sucesso!",
+        });
         setTimeout(() => setSavedSuccess(false), 3500);
       }
     } catch (err) {
       console.error("Erro ao salvar configurações:", err);
-      alert("Erro ao salvar configurações de IA.");
+      await showAlert({
+        title: "Erro ao Salvar",
+        message: "Erro ao salvar configurações de IA no servidor.",
+        variant: "danger",
+      });
     } finally {
       setLoadingConfig(false);
     }
   };
+
 
   // Aplicar Preset de 1 Clique
   const applyPreset = (key: "qualificador" | "agendador" | "triagem") => {
@@ -968,8 +1040,37 @@ export default function CRMSettings() {
                 </div>
               </div>
 
+              {/* CARD DE ALERTA FINANCEIRO DIÁRIO NO WHATSAPP (1 DIA ANTES) */}
+              <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Zap size={16} className="text-emerald-400" />
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">
+                      Alertas Financeiros Diários no WhatsApp (1 Dia Antes)
+                    </span>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">
+                      ⏰ Disparo às 08:30
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    O robô envia diariamente às 08:30 da manhã para o WhatsApp do Paulo (<strong className="text-emerald-300">{config.ownerPhone || "555196682257"}</strong>) o resumo executivo das contas a pagar e a receber que vencem no dia seguinte.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleTestFinancialAlert}
+                  disabled={isTestingFinancialAlert}
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shadow-lg shadow-emerald-600/20"
+                >
+                  <Send size={14} />
+                  {isTestingFinancialAlert ? "Enviando Teste..." : "Testar Alerta no Whats"}
+                </button>
+              </div>
+
               {/* Tabela de Estimativas por Ambiente (100% MDF Fino - Uso Exclusivo da Diretoria) */}
               <div className="bg-black/50 border border-white/10 rounded-xl p-4 space-y-3">
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-white/5 pb-2">
                   <span className="text-[11px] font-bold uppercase text-white tracking-wider flex items-center gap-1.5">
                     💰 Tabela de Estimativas por Ambiente (Uso Interno da IA & Diretoria)

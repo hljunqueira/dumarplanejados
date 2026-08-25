@@ -62,6 +62,7 @@ export default function CRMSidebar({
     { id: "kanban", label: "Funil de Vendas", icon: Users, path: "/crm/funil" },
     { id: "agenda", label: "Agenda", icon: CalendarIcon, path: "/crm/agenda" },
     { id: "financeiro", label: "Gestão Financeira", icon: FileText, path: "/crm/financeiro" },
+    { id: "mensagens", label: "Automação & IA", icon: Bot, path: "/crm/automacao" },
     { id: "configuracoes", label: "Configurações", icon: Settings, path: "/crm/configuracoes" },
   ];
 
@@ -72,7 +73,10 @@ export default function CRMSidebar({
   const navItems = allNavItems.filter(item => {
     if (isAdmin) return true;
     if (item.id === "configuracoes") {
-      return userPermissions.includes("configuracoes") || userPermissions.includes("usuarios") || userPermissions.includes("mensagens");
+      return userPermissions.includes("configuracoes") || userPermissions.includes("usuarios");
+    }
+    if (item.id === "mensagens") {
+      return userPermissions.includes("mensagens") || userPermissions.includes("automacao") || userPermissions.includes("ia") || userPermissions.includes("configuracoes");
     }
     return userPermissions.includes(item.id);
   });
@@ -141,7 +145,7 @@ export default function CRMSidebar({
           <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activeSection === item.id || (item.id === "configuracoes" && activeSection === "mensagens");
+              const isActive = activeSection === item.id;
               return (
                 <button
                   key={item.id}

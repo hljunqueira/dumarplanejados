@@ -1105,28 +1105,28 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
       {/* MODAL DE CRIAÇÃO / EDIÇÃO NO ESTILO GOOGLE CALENDAR (LARGO COM GRIDS) */}
       {showEventModal && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[250] flex items-center justify-center p-3 sm:p-5 animate-fade-in overflow-y-auto">
-          <div className="bg-[#1a1b1e] border border-white/15 rounded-3xl w-full max-w-4xl shadow-2xl animate-scale-in text-left overflow-hidden my-4 sm:my-8 flex flex-col max-h-[90vh]">
+          <div className="bg-[#18191c] border border-white/15 rounded-3xl w-full max-w-4xl shadow-2xl animate-scale-in text-left overflow-hidden my-4 sm:my-8 flex flex-col max-h-[92vh]">
             {/* Header: Botão Fechar à Esquerda + Título/Status + Botão Salvar */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/40 flex-shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/50 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setShowEventModal(false)}
-                  className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                  className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X size={20} />
                 </button>
-                <h3 className="text-xs sm:text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                  <CalendarIcon size={16} className="text-blue-400" />
+                <h3 className="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-2">
+                  <CalendarIcon size={18} className="text-blue-400" />
                   {editingEventId ? "Editar Compromisso" : "Novo Compromisso na Agenda"}
                 </h3>
               </div>
               
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setShowEventModal(false)}
-                  className="text-xs font-semibold text-gray-400 hover:text-white px-3 py-1.5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer hidden sm:block"
+                  className="text-xs font-semibold text-gray-400 hover:text-white px-3.5 py-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer hidden sm:block"
                 >
                   Cancelar
                 </button>
@@ -1134,7 +1134,7 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                   type="button"
                   onClick={handleSaveEvent}
                   disabled={saving || !eventTitle.trim()}
-                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-extrabold px-6 py-2 rounded-full transition-all shadow-lg shadow-blue-600/30 cursor-pointer flex items-center gap-1.5"
+                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-extrabold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-600/30 cursor-pointer flex items-center gap-2"
                 >
                   {saving ? "Salvando..." : "Salvar Compromisso"}
                 </button>
@@ -1150,55 +1150,55 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                   onChange={e => setEventTitle(e.target.value)}
                   placeholder="Adicionar título do compromisso (ex: Apresentação Projeto 3D)"
                   required
-                  className="w-full bg-transparent border-b border-white/15 pb-2.5 text-xl sm:text-2xl font-medium text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-transparent border-b border-white/15 pb-3 text-lg sm:text-2xl font-semibold text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
                   autoFocus
                 />
               </div>
 
               {/* Pills de Tipo: Evento / Tarefa / Anotação */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setEventType("evento")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     eventType === "evento"
-                      ? "bg-blue-600/30 text-blue-300 border border-blue-500/50 shadow"
+                      ? "bg-blue-600/30 text-blue-300 border border-blue-500/60 shadow-lg shadow-blue-600/20"
                       : "bg-white/5 text-gray-400 hover:text-gray-200 border border-white/5"
                   }`}
                 >
-                  Reunião / Visita
+                  🤝 Reunião / Visita
                 </button>
                 <button
                   type="button"
                   onClick={() => setEventType("tarefa")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     eventType === "tarefa"
-                      ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 shadow"
+                      ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/60 shadow-lg shadow-emerald-600/20"
                       : "bg-white/5 text-gray-400 hover:text-gray-200 border border-white/5"
                   }`}
                 >
-                  Tarefa
+                  ✅ Tarefa
                 </button>
                 <button
                   type="button"
                   onClick={() => setEventType("nota")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     eventType === "nota"
-                      ? "bg-amber-600/30 text-amber-300 border border-amber-500/50 shadow"
+                      ? "bg-amber-600/30 text-amber-300 border border-amber-500/60 shadow-lg shadow-amber-600/20"
                       : "bg-white/5 text-gray-400 hover:text-gray-200 border border-white/5"
                   }`}
                 >
-                  Anotação / Lembrete
+                  📝 Anotação / Lembrete
                 </button>
               </div>
 
               {/* GRID PRINCIPAL DE 2 COLUNAS */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-1">
                 {/* COLUNA ESQUERDA: Data, Horários, Duração Rápida & Conflitos */}
-                <div className="lg:col-span-7 space-y-4 bg-black/40 p-5 rounded-2xl border border-white/10">
+                <div className="lg:col-span-7 space-y-5 bg-black/40 p-5 rounded-2xl border border-white/10">
                   {/* Linha: Ícone Relógio + Dia Inteiro + Switch */}
-                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                    <div className="flex items-center gap-3 text-sm text-gray-200 font-bold">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div className="flex items-center gap-2.5 text-sm text-gray-200 font-bold">
                       <Clock size={18} className="text-blue-400" />
                       <span>Dia inteiro</span>
                     </div>
@@ -1214,24 +1214,26 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                     </label>
                   </div>
 
-                  {/* Grid de Início e Término */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {/* Card Início */}
-                    <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
-                          <CalendarDays size={12} />
+                  {/* BLOCOS DE DATA E HORÁRIO BEM ESPAÇADOS SEM QUEBRAS */}
+                  <div className="space-y-3.5">
+                    {/* Bloco Início */}
+                    <div className="bg-white/[0.04] p-3.5 sm:p-4 rounded-2xl border border-white/10 space-y-2.5">
+                      <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
+                        <span className="text-blue-400 flex items-center gap-1.5">
+                          <CalendarDays size={14} />
                           Data de Início
                         </span>
                         {!isAllDay && eventType !== "nota" && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Clock size={12} />
                             Horário
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between gap-2.5">
-                        <div className="relative flex-1 bg-black/50 border border-white/10 hover:border-blue-500/40 transition-colors rounded-xl px-3 py-2 cursor-pointer">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                        {/* Seletor de Data */}
+                        <div className="relative flex-1 bg-black/60 border border-white/15 hover:border-blue-500/50 transition-colors rounded-xl px-3.5 py-2.5 cursor-pointer flex items-center justify-between">
                           <input
                             type="date"
                             value={eventDate}
@@ -1241,70 +1243,80 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                             }}
                             className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
                           />
-                          <span className="text-xs text-gray-200 hover:text-blue-400 font-semibold truncate block capitalize">
+                          <span className="text-xs sm:text-sm text-gray-200 font-semibold truncate capitalize">
                             {formatExtensiveDate(eventDate)}
                           </span>
+                          <CalendarDays size={15} className="text-gray-400 flex-shrink-0" />
                         </div>
 
+                        {/* Seletor de Horário com largura confortável */}
                         {!isAllDay && eventType !== "nota" && (
-                          <input
-                            type="time"
-                            value={eventTime}
-                            onChange={e => handleTimeOrDurationChange(e.target.value, eventDuration)}
-                            className="bg-black/80 border border-blue-500/40 focus:border-blue-400 rounded-xl px-2.5 py-2 text-white font-mono text-xs font-bold focus:outline-none cursor-pointer text-center min-w-[78px] shadow-inner"
-                          />
+                          <div className="w-full sm:w-36 flex-shrink-0">
+                            <input
+                              type="time"
+                              value={eventTime}
+                              onChange={e => handleTimeOrDurationChange(e.target.value, eventDuration)}
+                              className="w-full bg-black/70 border border-blue-500/50 focus:border-blue-400 rounded-xl px-3 py-2.5 text-white font-mono text-sm font-bold focus:outline-none cursor-pointer text-center shadow-inner"
+                            />
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Card Término */}
+                    {/* Bloco Término */}
                     {!isAllDay && eventType !== "nota" ? (
-                      <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                            <CalendarDays size={12} />
+                      <div className="bg-white/[0.04] p-3.5 sm:p-4 rounded-2xl border border-white/10 space-y-2.5">
+                        <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
+                          <span className="text-emerald-400 flex items-center gap-1.5">
+                            <CalendarDays size={14} />
                             Data de Término
                           </span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Clock size={12} />
                             Horário
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2.5">
-                          <div className="relative flex-1 bg-black/50 border border-white/10 hover:border-emerald-500/40 transition-colors rounded-xl px-3 py-2 cursor-pointer">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                          {/* Seletor de Data */}
+                          <div className="relative flex-1 bg-black/60 border border-white/15 hover:border-emerald-500/50 transition-colors rounded-xl px-3.5 py-2.5 cursor-pointer flex items-center justify-between">
                             <input
                               type="date"
                               value={eventEndDate}
                               onChange={e => setEventEndDate(e.target.value)}
                               className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
                             />
-                            <span className="text-xs text-gray-200 hover:text-emerald-400 font-semibold truncate block capitalize">
+                            <span className="text-xs sm:text-sm text-gray-200 font-semibold truncate capitalize">
                               {formatExtensiveDate(eventEndDate)}
                             </span>
+                            <CalendarDays size={15} className="text-gray-400 flex-shrink-0" />
                           </div>
 
-                          <input
-                            type="time"
-                            value={eventEndTime}
-                            onChange={e => {
-                              setEventEndTime(e.target.value);
-                              setEventDuration("custom");
-                            }}
-                            className="bg-black/80 border border-emerald-500/40 focus:border-emerald-400 rounded-xl px-2.5 py-2 text-white font-mono text-xs font-bold focus:outline-none cursor-pointer text-center min-w-[78px] shadow-inner"
-                          />
+                          {/* Seletor de Horário com largura confortável */}
+                          <div className="w-full sm:w-36 flex-shrink-0">
+                            <input
+                              type="time"
+                              value={eventEndTime}
+                              onChange={e => {
+                                setEventEndTime(e.target.value);
+                                setEventDuration("custom");
+                              }}
+                              className="w-full bg-black/70 border border-emerald-500/50 focus:border-emerald-400 rounded-xl px-3 py-2.5 text-white font-mono text-sm font-bold focus:outline-none cursor-pointer text-center shadow-inner"
+                            />
+                          </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 flex items-center justify-center text-xs text-gray-400">
-                        Compromisso para o dia todo
+                      <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5 text-center text-xs text-gray-400 font-medium">
+                        🌙 Compromisso configurado para o dia todo
                       </div>
                     )}
                   </div>
 
                   {/* DURAÇÃO RÁPIDA (GRADE DE PRESETS) */}
                   {!isAllDay && eventType !== "nota" && (
-                    <div className="space-y-2 pt-2 border-t border-white/5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                    <div className="space-y-2.5 pt-3 border-t border-white/10">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
                         Duração Rápida (1 Clique)
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1315,9 +1327,9 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                               key={preset.value}
                               type="button"
                               onClick={() => handleTimeOrDurationChange(eventTime, preset.value)}
-                              className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                              className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between min-h-[58px] ${
                                 isSelected
-                                  ? "bg-blue-600/30 border-blue-500 text-white shadow-md"
+                                  ? "bg-blue-600/30 border-blue-500 text-white shadow-lg shadow-blue-600/20"
                                   : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
                               }`}
                             >
@@ -1336,18 +1348,18 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
 
                   {/* ALERTA DE CONFLITO DE HORÁRIO EM TEMPO REAL */}
                   {timeConflict && (
-                    <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300 flex items-start gap-3 animate-fade-in">
-                      <AlertTriangle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 flex items-start gap-3 animate-fade-in">
+                      <AlertTriangle size={20} className="text-amber-400 flex-shrink-0 mt-0.5" />
                       <div className="text-xs leading-relaxed">
-                        <strong className="text-red-200 block font-bold">Atenção: Conflito de Horário!</strong>
+                        <strong className="text-white block font-bold">Atenção: Conflito de Horário!</strong>
                         Já existe <em>"{timeConflict.conflictingEvent.title}"</em> agendado das {timeConflict.conflictingEvent.time} às {timeConflict.conflictingEvent.endTime || "término"} neste dia.
-                        <div className="mt-1.5">
+                        <div className="mt-2">
                           👉 <button 
                             type="button" 
                             onClick={() => handleTimeOrDurationChange(timeConflict.suggestedStart, eventDuration)}
                             className="underline font-bold text-amber-300 hover:text-white cursor-pointer"
                           >
-                            Clique aqui para ajustar para {timeConflict.suggestedStart}
+                            Clique aqui para ajustar automaticamente para {timeConflict.suggestedStart}
                           </button>
                         </div>
                       </div>
@@ -1358,14 +1370,14 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                 {/* COLUNA DIREITA: Cliente Lead, Local, Prioridade & Notas */}
                 <div className="lg:col-span-5 space-y-4 bg-white/[0.03] p-5 rounded-2xl border border-white/10">
                   {/* Seção Conta */}
-                  <div className="flex items-center gap-3 pb-3 border-b border-white/5">
-                    <div className="w-8 h-8 rounded-full bg-black border border-white/15 flex items-center justify-center text-[10px] font-bold text-white tracking-tighter">
-                      Dumar
+                  <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                    <div className="w-9 h-9 rounded-xl bg-black border border-white/20 flex items-center justify-center text-[10px] font-black text-amber-400 tracking-wider">
+                      DUMAR
                     </div>
                     <div>
-                      <div className="text-xs text-gray-200 font-medium">dumarmoveisplanejados@gmail.com</div>
-                      <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                      <div className="text-xs text-gray-200 font-bold">dumarmoveisplanejados@gmail.com</div>
+                      <div className="text-[10px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
                         Minha agenda (Dumar CRM)
                       </div>
                     </div>
@@ -1373,14 +1385,14 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
 
                   {/* Vincular Cliente Lead */}
                   <div>
-                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                      <Users size={13} className="text-amber-400" />
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                      <Users size={14} className="text-amber-400" />
                       Cliente Vinculado (Lead)
                     </label>
                     <select
                       value={eventLeadId}
                       onChange={e => setEventLeadId(e.target.value)}
-                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                      className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
                       <option value="">Nenhum cliente selecionado</option>
                       {leads.map(l => (
@@ -1391,13 +1403,13 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
 
                   {/* Prioridade */}
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
                       Prioridade
                     </label>
                     <select
                       value={eventPriority}
                       onChange={e => setEventPriority(e.target.value as any)}
-                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                      className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer font-medium"
                     >
                       <option value="alta">🚨 Alta (VIP 💎)</option>
                       <option value="media">⚡ Média (Padrão)</option>
@@ -1405,25 +1417,44 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                     </select>
                   </div>
 
-                  {/* Local da Reunião / Obra */}
+                  {/* Local da Reunião / Obra com atalhos rápidos */}
                   <div>
-                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                      <MapPin size={13} className="text-red-400" />
-                      Local do Compromisso
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                        <MapPin size={14} className="text-red-400" />
+                        Local do Compromisso
+                      </label>
+                    </div>
                     <input
                       type="text"
                       value={eventLocation}
                       onChange={e => setEventLocation(e.target.value)}
-                      placeholder="Ex: Escritório Comercial (Av. Santa Catarina, 551) ou Obra"
-                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                      placeholder="Ex: Escritório Comercial ou Obra do Cliente"
+                      className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-2"
                     />
+                    {/* Botões de preenchimento rápido de local */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setEventLocation("Escritório Comercial Dumar (Av. Santa Catarina, 551)")}
+                        className="text-[10px] font-semibold bg-white/5 hover:bg-white/10 text-gray-300 px-2.5 py-1 rounded-lg border border-white/10 transition-colors cursor-pointer"
+                      >
+                        🏢 Escritório Dumar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEventLocation("Obra / Residência do Cliente")}
+                        className="text-[10px] font-semibold bg-white/5 hover:bg-white/10 text-gray-300 px-2.5 py-1 rounded-lg border border-white/10 transition-colors cursor-pointer"
+                      >
+                        📍 Na Obra do Cliente
+                      </button>
+                    </div>
                   </div>
 
                   {/* Notas e Observações Técnicas */}
                   <div>
-                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                      <AlignLeft size={13} className="text-gray-400" />
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                      <AlignLeft size={14} className="text-gray-400" />
                       Notas / Detalhes de Marcenaria
                     </label>
                     <textarea
@@ -1431,7 +1462,7 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                       onChange={e => setEventNotes(e.target.value)}
                       placeholder="Anotações sobre projeto 3D, medição de cozinha, amostras de MDF..."
                       rows={3}
-                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none scrollbar-thin"
+                      className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none scrollbar-thin"
                     />
                   </div>
                 </div>

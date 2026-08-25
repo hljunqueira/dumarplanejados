@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { CheckCircle2, QrCode, RefreshCw, AlertCircle, LogOut, Trash2 } from "lucide-react";
+import { useConfirmDialog } from "../ui/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface Instance {
   name?: string;
@@ -8,6 +10,7 @@ interface Instance {
   connectionStatus?: string;
   phone?: string;
   number?: string;
+  ownerJid?: string;
 }
 
 interface CRMConnectionsProps {
@@ -25,25 +28,38 @@ export default function CRMConnections({}: CRMConnectionsProps) {
   const [syncingChats, setSyncingChats] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
+  const { confirm, showAlert } = useConfirmDialog();
+  const { toast } = useToast();
+
   const handleSyncChats = async () => {
     setSyncingChats(true);
     setSyncMessage(null);
     try {
-      const res = await fetch("/api/evolution/sync-recent-chats", {
+      const res = await fetch("/api/evolution/sync-chats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ instanceName: "dumar_comercial" })
       });
       const data = await res.json();
       if (res.ok) {
-        setSyncMessage(data.message || "Conversas sincronizadas com sucesso!");
-        setTimeout(() => setSyncMessage(null), 6000);
+        setSyncMessage(`✅ Sucesso! ${data.synced || 0} conversas/contatos sincronizados com o Funil do CRM.`);
+        toast({
+          title: "Conversas Sincronizadas",
+          description: `${data.synced || 0} conversas sincronizadas com sucesso.`,
+        });
       } else {
-        alert(data.error || "Erro ao sincronizar conversas.");
+        await showAlert({
+          title: "Aviso de Sincronização",
+          message: data.error || "Erro ao sincronizar conversas.",
+          variant: "warning",
+        });
       }
-    } catch (err) {
-      console.error(err);
-      alert("Falha de conexão ao sincronizar conversas.");
+    } catch (e) {
+      await showAlert({
+        title: "Falha de Conexão",
+        message: "Falha de conexão ao sincronizar conversas do WhatsApp.",
+        variant: "danger",
+      });
     } finally {
       setSyncingChats(false);
     }
@@ -64,34 +80,28 @@ export default function CRMConnections({}: CRMConnectionsProps) {
     }
   };
 
-  // Restaurar QR code do localStorage se houver
   useEffect(() => {
-    try {
-      const savedQR = localStorage.getItem("crm_whatsapp_qrcode");
-      if (savedQR) setQrCodeData(savedQR);
-    } catch (e) {
-      console.error(e);
-    }
     fetchInstances();
+    const interval = setInterval(fetchInstances, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleGenerateQR = async () => {
+  const handleGenerateQR = async (instName = "dumar_comercial") => {
     setLoadingQR(true);
+    setQrCodeData(null);
     try {
       const res = await fetch("/api/evolution/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instanceName: "dumar_comercial" })
+        body: JSON.stringify({ instanceName: instName })
       });
+
       if (res.ok) {
         const data = await res.json();
-        if (data.qrcode) {
-          setQrCodeData(data.qrcode);
-          try {
-            localStorage.setItem("crm_whatsapp_qrcode", data.qrcode);
-          } catch (e) {
-            console.error(e);
-          }
+        const code = data.base64 || data.qrcode?.base64 || data.code;
+        if (code) {
+          setQrCodeData(code);
+          try { localStorage.setItem("crm_whatsapp_qrcode", code); } catch(e){}
         }
       }
     } catch (err) {
@@ -102,9 +112,14 @@ export default function CRMConnections({}: CRMConnectionsProps) {
   };
 
   const handleDisconnect = async (instName = "dumar_comercial") => {
-    if (!window.confirm("Deseja desconectar esta conta do WhatsApp e resetar a instância? Você precisará ler um novo QR Code.")) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Desconectar WhatsApp",
+      message: "Deseja realmente desconectar esta conta do WhatsApp e resetar a instância?\nVocê precisará ler um novo QR Code para restabelecer a conexão.",
+      variant: "danger",
+      confirmText: "Sim, Desconectar",
+    });
+
+    if (!ok) return;
 
     setDisconnecting(true);
     try {
@@ -117,13 +132,24 @@ export default function CRMConnections({}: CRMConnectionsProps) {
         setQrCodeData(null);
         try { localStorage.removeItem("crm_whatsapp_qrcode"); } catch(e){}
         await fetchInstances();
-        alert("Instância desconectada e resetada com sucesso!");
+        toast({
+          title: "WhatsApp Desconectado",
+          description: "Instância desconectada e resetada com sucesso!",
+        });
       } else {
-        alert("Erro ao desconectar instância.");
+        await showAlert({
+          title: "Erro ao Desconectar",
+          message: "Não foi possível desconectar a instância.",
+          variant: "danger",
+        });
       }
     } catch (err) {
       console.error("Erro ao desconectar:", err);
-      alert("Falha na comunicação com o servidor ao desconectar.");
+      await showAlert({
+        title: "Erro de Conexão",
+        message: "Falha na comunicação com o servidor ao desconectar.",
+        variant: "danger",
+      });
     } finally {
       setDisconnecting(false);
     }
@@ -192,10 +218,11 @@ export default function CRMConnections({}: CRMConnectionsProps) {
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button 
-            onClick={handleGenerateQR}
+            onClick={() => handleGenerateQR()}
             disabled={loadingQR}
             className="bg-white hover:bg-neutral-200 text-black font-bold text-xs py-2.5 px-5 rounded-xl flex items-center gap-2 cursor-pointer transition-all shadow-lg shadow-white/10"
           >
+
             <QrCode size={16} />
             {loadingQR ? "Gerando QR Code Real..." : "Conectar Novo Número (Scan QR Real)"}
           </button>

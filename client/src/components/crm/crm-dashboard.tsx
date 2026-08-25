@@ -41,6 +41,7 @@ const CHANNEL_COLORS: { [key: string]: string } = {
 
 const STAGE_LABELS: { [key: string]: { label: string; color: string } } = {
   entrada: { label: "Entrada", color: "#3b82f6" },
+  em_atendimento: { label: "Em Atendimento", color: "#6366f1" },
   nao_responde: { label: "Não Responde", color: "#f59e0b" },
   briefing: { label: "Briefing & Medição", color: "#8b5cf6" },
   "3d": { label: "Projeto 3D", color: "#e2e8f0" },
@@ -48,8 +49,12 @@ const STAGE_LABELS: { [key: string]: { label: string; color: string } } = {
   contrato: { label: "Contrato Fechado", color: "#10b981" },
   fabrica: { label: "Fábrica & Corte", color: "#f97316" },
   montagem: { label: "Montagem", color: "#ec4899" },
-  posvenda: { label: "Pós-Venda", color: "#14b8a6" }
+  posvenda: { label: "Pós-Venda", color: "#14b8a6" },
+  freezer: { label: "Freezer", color: "#22d3ee" },
+  cancelado: { label: "Cancelados", color: "#ef4444" },
+  contato_futuro: { label: "Contato Futuro", color: "#34d399" }
 };
+
 
 export default function CRMDashboard({
   leads,

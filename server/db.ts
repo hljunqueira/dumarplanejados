@@ -86,6 +86,74 @@ export async function initDbTables() {
         appointment_details TEXT DEFAULT '{}'
       );
 
+      CREATE TABLE IF NOT EXISTS financial_transactions (
+        id SERIAL PRIMARY KEY,
+        description TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        category TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pendente',
+        due_date TEXT NOT NULL,
+        payment_date TEXT,
+        payment_method TEXT,
+        lead_id INTEGER,
+        supplier_id INTEGER,
+        supplier_name TEXT,
+        notes TEXT,
+        created_at TEXT DEFAULT ''
+      );
+
+      ALTER TABLE financial_transactions ADD COLUMN IF NOT EXISTS supplier_id INTEGER;
+      ALTER TABLE financial_transactions ADD COLUMN IF NOT EXISTS supplier_name TEXT;
+      ALTER TABLE financial_transactions ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT FALSE;
+      ALTER TABLE financial_transactions ADD COLUMN IF NOT EXISTS recurrence_group TEXT DEFAULT '';
+      ALTER TABLE financial_transactions ADD COLUMN IF NOT EXISTS installment_index INTEGER DEFAULT 1;
+      ALTER TABLE financial_transactions ALTER COLUMN amount TYPE double precision;
+
+
+      CREATE TABLE IF NOT EXISTS suppliers (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        trade_name TEXT,
+        cnpj_cpf TEXT,
+        category TEXT NOT NULL DEFAULT 'geral',
+        phone TEXT,
+        email TEXT,
+        contact_person TEXT,
+        pix_key TEXT,
+        notes TEXT,
+        active BOOLEAN DEFAULT TRUE,
+        created_at TEXT DEFAULT ''
+      );
+
+      CREATE TABLE IF NOT EXISTS materials_catalog (
+        id SERIAL PRIMARY KEY,
+        category TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        is_default BOOLEAN DEFAULT FALSE,
+        created_at TEXT DEFAULT ''
+      );
+
+      CREATE TABLE IF NOT EXISTS ai_config (
+        id SERIAL PRIMARY KEY,
+        active_preset TEXT DEFAULT 'qualificador',
+        system_prompt TEXT DEFAULT '',
+        welcome_message TEXT DEFAULT '',
+        rules TEXT DEFAULT '{}',
+        schedule TEXT DEFAULT '{}',
+        voice_settings TEXT DEFAULT '{}',
+        updated_at TEXT DEFAULT ''
+      );
+
+      CREATE TABLE IF NOT EXISTS whatsapp_templates (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        category TEXT DEFAULT 'geral',
+        created_at TEXT DEFAULT ''
+      );
+
       -- Migração automática de novas colunas na tabela leads
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS construction_photos TEXT DEFAULT '[]';
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS materials TEXT DEFAULT '{}';
@@ -107,3 +175,4 @@ export async function initDbTables() {
     console.error("Erro ao inicializar tabelas no banco:", err);
   }
 }
+

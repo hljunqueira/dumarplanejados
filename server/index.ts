@@ -1,8 +1,25 @@
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
+import fs from "fs";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Garantir diretório de uploads para mídias do chat e documentos
+const uploadsDir = path.join(process.cwd(), "uploads", "chat");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Servir mídias estáticas de /uploads e /api/uploads (para compatibilidade com proxy reverso Caddy e Vite)
+const staticUploadsMiddleware = express.static(path.join(process.cwd(), "uploads"), {
+  maxAge: "7d",
+  immutable: true
+});
+app.use("/uploads", staticUploadsMiddleware);
+app.use("/api/uploads", staticUploadsMiddleware);
+
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");

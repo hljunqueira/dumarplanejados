@@ -5,6 +5,8 @@ import BudgetPage from "@/pages/budget-page";
 import AppointmentPage from "@/pages/appointment-page";
 import ContactPage from "@/pages/contact-page";
 import CRMPage from "@/pages/crm-page";
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
+import { Toaster } from "@/components/ui/toaster";
 
 import { captureAndStoreUtms } from "@/lib/utm-tracker";
 
@@ -15,7 +17,7 @@ export default function App() {
   }, []);
 
   return (
-    <>
+    <ConfirmDialogProvider>
       <div className="noise-overlay" />
       <Router>
         <Route path="/" component={HomePage} />
@@ -25,6 +27,8 @@ export default function App() {
         <Route path="/crm/:section?" component={CRMPage} />
         <Route path="/crm" component={CRMPage} />
       </Router>
-    </>
+      <Toaster />
+    </ConfirmDialogProvider>
   );
 }
+

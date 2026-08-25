@@ -35,18 +35,28 @@ O sistema da **Dumar Móveis Planejados** é uma plataforma completa criada excl
 
 ## 🎯 2. Funil de Vendas e Produção (Kanban da Marcenaria)
 
-O coração operacional do CRM é o quadro Kanban. Ele organiza os clientes nas 8 etapas exatas da marcenaria sob medida:
+O coração operacional do CRM é o quadro Kanban. Ele organiza os clientes nas 13 etapas exatas da marcenaria sob medida:
 
 ```
-┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-│ 1. Entrada   │ → │ 2. Briefing  │ → │ 3. Projeto   │ → │ 4. Orçamento │
-│   de Leads   │   │  & Medição   │   │  3D Promob   │   │ Apresentação │
-└──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘
-       ↓
-┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-│ 5. Contrato  │ → │ 6. Fábrica   │ → │ 7. Entrega   │ → │ 8. Pós-Venda │
-│  & Fechamento│   │  Plano Corte │   │  & Montagem  │   │  Garantia 5A │
-└──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│ 1. Entrada      │ → │ 2. Em Atend.    │ → │ 3. Não Responde │ → │ 4. Briefing     │
+│   de Leads      │   │  (Triagem)      │   │  (Tentativas)   │   │  & Medição      │
+└─────────────────┘   └─────────────────┘   └─────────────────┘   └─────────────────┘
+        ↓
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│ 5. Projeto 3D   │ → │ 6. Apresentação │ → │ 7. Contrato     │ → │ 8. Fábrica      │
+│   Promob        │   │  & Orçamento    │   │  & Fechamento   │   │  Plano de Corte │
+└─────────────────┘   └─────────────────┘   └─────────────────┘   └─────────────────┘
+        ↓
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│ 9. Entrega      │ → │ 10. Pós-Venda   │ → │ 11. Freezer     │ → │ 12. Cancelados  │
+│  & Montagem     │   │  Garantia 5A    │   │  Leads Frios    │   │   / Perdidos    │
+└─────────────────┘   └─────────────────┘   └─────────────────┘   └─────────────────┘
+        ↓
+┌─────────────────┐
+│ 13. Contato     │
+│   Futuro (Obra) │
+└─────────────────┘
 ```
 
 ### Como Operar o Funil:
@@ -63,9 +73,10 @@ O coração operacional do CRM é o quadro Kanban. Ele organiza os clientes nas 
 
 #### 🔄 Mover o Cliente de Etapa:
 - Basta **clicar e arrastar** o card do cliente para a coluna correspondente conforme o projeto for avançando.
-- *Exemplo*: Quando o marceneiro foi na obra e tirou as medidas, arraste de *Briefing & Medição* para *Projeto 3D Promob*.
+- *Exemplo*: Quando iniciar conversa com o cliente que entrou, mova para *Em Atendimento*. Quando o marceneiro foi na obra e tirou as medidas, arraste de *Briefing & Medição* para *Projeto 3D Promob*.
 
 ---
+
 
 ## 💬 3. Ficha do Cliente e WhatsApp Integrado
 

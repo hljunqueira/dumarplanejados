@@ -18,10 +18,13 @@ import CRMFinanceiro from "@/components/crm/crm-financeiro";
 import CRMSettings from "@/components/crm/crm-settings";
 import CRMConfiguracoes from "@/components/crm/crm-configuracoes";
 import CRMConfirmModal from "@/components/crm/crm-confirm-modal";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 // --- COLUNAS DO FUNIL OPERACIONAL ---
 const STAGES = [
   { id: "entrada", title: "Leads de Entrada", color: "border-t-blue-500" },
+  { id: "em_atendimento", title: "Em Atendimento", color: "border-t-indigo-500" },
   { id: "nao_responde", title: "Não Responde", color: "border-t-amber-500" },
   { id: "briefing", title: "Briefing & Medição", color: "border-t-purple-500" },
   { id: "3d", title: "Projeto 3D (Promob)", color: "border-t-white" },
@@ -31,16 +34,22 @@ const STAGES = [
   { id: "montagem", title: "Entrega & Montagem", color: "border-t-pink-500" },
   { id: "posvenda", title: "Pós-Venda & Assist.", color: "border-t-green-500" },
   { id: "freezer", title: "Freezer (Leads Frios)", color: "border-t-cyan-400" },
-  { id: "cancelado", title: "Cancelados / Perdidos", color: "border-t-red-500" }
+  { id: "cancelado", title: "Cancelados / Perdidos", color: "border-t-red-500" },
+  { id: "contato_futuro", title: "Contato Futuro", color: "border-t-emerald-400" }
 ];
+
 
 export default function CRMPage() {
   const [matchRoute, paramsRoute] = useRoute("/crm/:section?");
   const [, setLocation] = useLocation();
 
+  const { confirm, showAlert } = useConfirmDialog();
+  const { toast } = useToast();
+
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return !!localStorage.getItem("crm_username");
   });
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [currentUser, setCurrentUser] = useState<{ 
@@ -85,8 +94,11 @@ export default function CRMPage() {
 
     const canAccess = (sec: string) => {
       if (isAdmin) return true;
-      if (sec === "configuracoes" || sec === "mensagens") {
-        return userPerms.includes("configuracoes") || userPerms.includes("usuarios") || userPerms.includes("mensagens");
+      if (sec === "configuracoes") {
+        return userPerms.includes("configuracoes") || userPerms.includes("usuarios");
+      }
+      if (sec === "mensagens") {
+        return userPerms.includes("mensagens") || userPerms.includes("automacao") || userPerms.includes("ia") || userPerms.includes("configuracoes");
       }
       return userPerms.includes(sec);
     };
@@ -99,7 +111,7 @@ export default function CRMPage() {
       else if (s === "conexoes" || s === "configuracoes" || s === "whatsapp" || s === "usuarios") targetSec = "configuracoes";
       else if (s === "agenda") targetSec = "agenda";
       else if (s === "financeiro" || s === "contratos") targetSec = "financeiro";
-      else if (s === "mensagens") targetSec = "mensagens";
+      else if (s === "mensagens" || s === "automacao" || s === "ia" || s === "bot") targetSec = "mensagens";
       else if (s === "perfil") targetSec = "perfil";
 
       if (targetSec === "perfil" || canAccess(targetSec)) {
@@ -211,24 +223,37 @@ export default function CRMPage() {
         const data = await res.json();
         const userData = data.user || {
           username: data.username || username,
-          name: data.username || username,
-          role: "admin",
-          permissions: ["dashboard", "kanban", "agenda", "financeiro", "mensagens", "configuracoes", "usuarios"]
+          name: data.name || data.username || username,
+          role: data.role || "admin",
+          permissions: data.permissions || ["dashboard", "kanban", "agenda", "financeiro", "mensagens", "configuracoes", "usuarios"]
         };
 
         setIsAuthenticated(true);
         setCurrentUser(userData);
         localStorage.setItem("crm_username", userData.username);
         localStorage.setItem("crm_user_data", JSON.stringify(userData));
+        toast({
+          title: "Bem-vindo ao CRM",
+          description: `Login efetuado com sucesso como ${userData.name || userData.username}.`,
+        });
       } else {
         const err = await res.json().catch(() => ({ message: "Credenciais inválidas!" }));
-        alert(err.message || "Credenciais inválidas!");
+        await showAlert({
+          title: "Erro de Autenticação",
+          message: err.message || "Credenciais de acesso inválidas.",
+          variant: "danger",
+        });
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao realizar login");
+      await showAlert({
+        title: "Erro ao Conectar",
+        message: "Falha de conexão com o servidor de autenticação.",
+        variant: "danger",
+      });
     }
   };
+
 
   // --- FILTROS ---
   const filteredLeads = leads.filter(lead => {
@@ -284,16 +309,29 @@ export default function CRMPage() {
         if (selectedLead && String(selectedLead.id) === String(targetId)) {
           setSelectedLead(null);
         }
+        toast({
+          title: "Lead Removido",
+          description: "O contato foi excluído do CRM com sucesso.",
+        });
         await fetchLeads();
       } else {
         const errJson = await res.json().catch(() => ({ message: "Erro ao excluir" }));
-        alert(errJson.message || "Erro ao excluir lead do banco de dados");
+        await showAlert({
+          title: "Erro ao Excluir",
+          message: errJson.message || "Erro ao excluir lead do banco de dados.",
+          variant: "danger",
+        });
       }
     } catch (err) {
       console.error("Erro de rede ao excluir lead:", err);
-      alert("Erro ao excluir lead do banco de dados");
+      await showAlert({
+        title: "Erro de Conexão",
+        message: "Falha de rede ao excluir lead do banco de dados.",
+        variant: "danger",
+      });
     }
   };
+
 
   const handleDeleteLead = (leadId: string) => {
     setDeleteConfirmLeadId(leadId);
@@ -482,8 +520,8 @@ export default function CRMPage() {
                 {activeSection === "kanban" && "Funil de Vendas"}
                 {activeSection === "agenda" && "Agenda"}
                 {activeSection === "financeiro" && "Financeiro"}
-                {activeSection === "mensagens" && "Mensagens"}
-                {activeSection === "configuracoes" && "Conexões"}
+                {activeSection === "mensagens" && "Automação & IA"}
+                {activeSection === "configuracoes" && "Configurações"}
                 {activeSection === "perfil" && "Meu Perfil"}
               </h2>
             </div>

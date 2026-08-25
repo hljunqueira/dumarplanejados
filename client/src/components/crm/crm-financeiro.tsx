@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   DollarSign, FileText, CheckCircle2, Clock, AlertCircle, TrendingUp, 
   TrendingDown, Plus, Search, Filter, Trash2, Edit3, Download, Check, 
   ArrowUpRight, ArrowDownRight, Tag, Calendar, CreditCard, UserCheck, X,
-  Layers, Zap
+  Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare
 } from "lucide-react";
-import { Lead } from "./types";
 
+import { Lead } from "./types";
+import { Supplier } from "@shared/schema";
+import { useConfirmDialog } from "../ui/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
 import CRMContractsView from "./crm-contracts-view";
+import CRMSuppliersModal from "./crm-suppliers-modal";
 
 export interface FinancialTransaction {
   id: number;
@@ -20,9 +24,32 @@ export interface FinancialTransaction {
   paymentDate?: string;
   paymentMethod: string;
   leadId?: number | null;
+  supplierId?: number | null;
+  supplierName?: string;
+  isRecurring?: boolean;
+  recurrenceGroup?: string;
+  installmentIndex?: number;
   notes?: string;
   createdAt?: string;
 }
+
+export interface RecurrenceGroupSummary {
+  groupId: string;
+  baseTitle: string;
+  category: string;
+  type: "receita" | "despesa";
+  supplierName?: string;
+  supplierId?: number | null;
+  paymentMethod: string;
+  monthlyAmount: number;
+  totalAmount: number;
+  paidCount: number;
+  totalCount: number;
+  nextDueDate: string;
+  nextPendingTx?: FinancialTransaction;
+  transactions: FinancialTransaction[];
+}
+
 
 interface CRMFinanceiroProps {
   leads: Lead[];
@@ -44,6 +71,7 @@ const CATEGORIES = [
 export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroProps) {
   const [financialTab, setFinancialTab] = useState<"cashflow" | "contracts">("cashflow");
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [suppliersList, setSuppliersList] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -51,10 +79,36 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   const [typeFilter, setTypeFilter] = useState<"all" | "receita" | "despesa">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "pago" | "pendente" | "atrasado">("all");
   const [periodFilter, setPeriodFilter] = useState<"all" | "this_month" | "last_month" | "year">("all");
+  const [sortBy, setSortBy] = useState<"due_asc" | "due_desc" | "amount_desc" | "amount_asc" | "status">("due_asc");
+  const [groupByRecurring, setGroupByRecurring] = useState<boolean>(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [isSendingAlert, setIsSendingAlert] = useState(false);
+
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSuppliersModalOpen, setIsSuppliersModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<FinancialTransaction | null>(null);
+
+  // Modal Edição de Grupo Recorrente
+  const [editingGroup, setEditingGroup] = useState<RecurrenceGroupSummary | null>(null);
+  const [groupFormBaseTitle, setGroupFormBaseTitle] = useState("");
+  const [groupFormAmount, setGroupFormAmount] = useState("");
+  const [groupFormCategory, setGroupFormCategory] = useState("");
+  const [groupFormSupplierId, setGroupFormSupplierId] = useState("");
+  const [groupFormSupplierName, setGroupFormSupplierName] = useState("");
+  const [groupFormPaymentMethod, setGroupFormPaymentMethod] = useState("PIX");
+  const [groupFormScope, setGroupFormScope] = useState<"all" | "pending">("all");
 
   // Form State
   const [formType, setFormType] = useState<"receita" | "despesa">("receita");
@@ -66,18 +120,51 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   const [formPaymentDate, setFormPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [formPaymentMethod, setFormPaymentMethod] = useState("PIX");
   const [formLeadId, setFormLeadId] = useState<string>("");
+  const [formSupplierId, setFormSupplierId] = useState<string>("");
+  const [formSupplierName, setFormSupplierName] = useState<string>("");
   const [formNotes, setFormNotes] = useState("");
   const [formIsRecurring, setFormIsRecurring] = useState(false);
   const [formRecurringMonths, setFormRecurringMonths] = useState<number>(12);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+
+  const { confirm, showAlert } = useConfirmDialog();
+  const { toast } = useToast();
+
+  // Helper para normalizar valores monetários digitados (suporta "104,90", "104.90", "1.250,00", etc.)
+  const parseMonetaryInput = (val: string): number => {
+    if (!val) return 0;
+    let clean = val.toString().replace(/R\$\s?/, "").trim();
+    if (clean.includes(",") && clean.includes(".")) {
+      clean = clean.replace(/\./g, "").replace(",", ".");
+    } else if (clean.includes(",")) {
+      clean = clean.replace(",", ".");
+    }
+    const parsed = parseFloat(clean);
+    return isNaN(parsed) ? 0 : parseFloat(parsed.toFixed(2));
+  };
+
+
   // Atalhos Rápidos de Despesas Fixas (Custos Fixos Dumar)
-  const applyFixedExpensePreset = (preset: { desc: string; category: string; amount?: string; method?: string }) => {
+  const applyFixedExpensePreset = (preset: { desc: string; category: string; amount?: string; method?: string; supplierKeyword?: string }) => {
     setFormType("despesa");
     setFormDescription(preset.desc);
     setFormCategory(preset.category);
     if (preset.amount) setFormAmount(preset.amount);
     if (preset.method) setFormPaymentMethod(preset.method);
+    
+    // Tenta encontrar fornecedor cadastrado correspondente
+    if (preset.supplierKeyword && suppliersList.length > 0) {
+      const match = suppliersList.find(s => 
+        s.name.toLowerCase().includes(preset.supplierKeyword!.toLowerCase()) || 
+        (s.tradeName && s.tradeName.toLowerCase().includes(preset.supplierKeyword!.toLowerCase()))
+      );
+      if (match) {
+        setFormSupplierId(match.id.toString());
+        setFormSupplierName(match.tradeName || match.name);
+      }
+    }
+    
     setFormIsRecurring(true);
     setFormStatus("pendente");
   };
@@ -98,8 +185,22 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     }
   };
 
+  // Carregar fornecedores para dropdown
+  const fetchSuppliers = async () => {
+    try {
+      const res = await fetch("/api/suppliers");
+      if (res.ok) {
+        const data = await res.json();
+        setSuppliersList(data);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar lista de fornecedores:", err);
+    }
+  };
+
   useEffect(() => {
     fetchTransactions();
+    fetchSuppliers();
   }, []);
 
   // Abrir Modal de Novo Lançamento
@@ -115,6 +216,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     setFormPaymentDate(today);
     setFormPaymentMethod("PIX");
     setFormLeadId("");
+    setFormSupplierId("");
+    setFormSupplierName("");
     setFormNotes("");
     setFormIsRecurring(false);
     setFormRecurringMonths(12);
@@ -133,6 +236,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     setFormPaymentDate(tx.paymentDate || new Date().toISOString().split("T")[0]);
     setFormPaymentMethod(tx.paymentMethod || "PIX");
     setFormLeadId(tx.leadId ? tx.leadId.toString() : "");
+    setFormSupplierId(tx.supplierId ? tx.supplierId.toString() : "");
+    setFormSupplierName(tx.supplierName || "");
     setFormNotes(tx.notes || "");
     setFormIsRecurring(Boolean((tx as any).isRecurring));
     setFormRecurringMonths(12);
@@ -142,7 +247,25 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   // Salvar (Criar ou Atualizar)
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formDescription || !formAmount) return;
+    const numericAmount = parseMonetaryInput(formAmount);
+
+    if (!formDescription.trim()) {
+      await showAlert({
+        title: "Descrição Obrigatória",
+        message: "Por favor, informe a descrição do lançamento.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    if (numericAmount <= 0) {
+      await showAlert({
+        title: "Valor Inválido",
+        message: "Por favor, digite um valor maior que zero (ex: 104,90 ou 1500).",
+        variant: "warning",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -150,16 +273,18 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
       let res;
       if (editingTx) {
         const payload = {
-          description: formDescription,
+          description: formDescription.trim(),
           type: formType,
-          amount: Number(formAmount),
+          amount: numericAmount,
           category: formCategory,
           status: formStatus,
           dueDate: formDueDate,
           paymentDate: formStatus === "pago" ? formPaymentDate : "",
           paymentMethod: formPaymentMethod,
           leadId: formLeadId ? Number(formLeadId) : null,
-          notes: formNotes
+          supplierId: formSupplierId ? Number(formSupplierId) : null,
+          supplierName: formSupplierName.trim(),
+          notes: formNotes.trim()
         };
         res = await fetch(`/api/financial/transactions/${editingTx.id}`, {
           method: "PATCH",
@@ -169,15 +294,17 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
       } else if (formIsRecurring && formType === "despesa") {
         // Criação de lote de despesas fixas recorrentes
         const payload = {
-          description: formDescription,
+          description: formDescription.trim(),
           type: formType,
-          amount: Number(formAmount),
+          amount: numericAmount,
           category: formCategory,
           status: formStatus,
           baseDueDate: formDueDate,
           paymentMethod: formPaymentMethod,
           monthsCount: formRecurringMonths,
-          notes: formNotes
+          supplierId: formSupplierId ? Number(formSupplierId) : null,
+          supplierName: formSupplierName.trim(),
+          notes: formNotes.trim()
         };
         res = await fetch("/api/financial/transactions/recurring", {
           method: "POST",
@@ -186,16 +313,18 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
         });
       } else {
         const payload = {
-          description: formDescription,
+          description: formDescription.trim(),
           type: formType,
-          amount: Number(formAmount),
+          amount: numericAmount,
           category: formCategory,
           status: formStatus,
           dueDate: formDueDate,
           paymentDate: formStatus === "pago" ? formPaymentDate : "",
           paymentMethod: formPaymentMethod,
           leadId: formLeadId ? Number(formLeadId) : null,
-          notes: formNotes
+          supplierId: formSupplierId ? Number(formSupplierId) : null,
+          supplierName: formSupplierName.trim(),
+          notes: formNotes.trim()
         };
         res = await fetch("/api/financial/transactions", {
           method: "POST",
@@ -206,13 +335,26 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
 
       if (res.ok) {
         setIsModalOpen(false);
+        toast({
+          title: editingTx ? "Lançamento Atualizado" : "Lançamento Realizado",
+          description: `${formDescription} (${numericAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}) salvo com sucesso!`,
+        });
         fetchTransactions();
       } else {
-        alert("Erro ao salvar lançamento financeiro.");
+        const errJson = await res.json().catch(() => ({}));
+        await showAlert({
+          title: "Erro ao Salvar",
+          message: errJson.message || "Erro ao salvar lançamento financeiro.",
+          variant: "danger",
+        });
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao conectar com o servidor.");
+      await showAlert({
+        title: "Erro de Conexão",
+        message: "Erro ao conectar com o servidor.",
+        variant: "danger",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -234,6 +376,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
       });
 
       if (res.ok) {
+        toast({
+          title: nextStatus === "pago" ? "Título Baixado" : "Status Alterado",
+          description: `Lançamento marcado como ${nextStatus === "pago" ? "Pago" : "Pendente"}.`,
+        });
         fetchTransactions();
       }
     } catch (err) {
@@ -243,30 +389,216 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
 
   // Excluir Lançamento
   const handleDeleteTransaction = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir este lançamento financeiro?")) return;
+    const ok = await confirm({
+      title: "Excluir Lançamento Financeiro",
+      message: "Tem certeza que deseja excluir este lançamento financeiro?\nEsta operação removerá o registro do fluxo de caixa.",
+      variant: "danger",
+      confirmText: "Sim, Excluir",
+    });
+
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/financial/transactions/${id}`, {
         method: "DELETE"
       });
       if (res.ok) {
+        toast({
+          title: "Lançamento Excluído",
+          description: "O lançamento financeiro foi removido com sucesso.",
+        });
         fetchTransactions();
+      } else {
+        await showAlert({
+          title: "Erro ao Excluir",
+          message: "Não foi possível excluir o lançamento.",
+          variant: "danger",
+        });
       }
     } catch (err) {
       console.error("Erro ao excluir transação:", err);
+      await showAlert({
+        title: "Erro de Conexão",
+        message: "Falha ao conectar com o servidor.",
+        variant: "danger",
+      });
+    }
+  };
+
+  // Abrir Modal de Edição de Grupo Recorrente
+  const handleOpenEditGroupModal = (group: RecurrenceGroupSummary) => {
+    setEditingGroup(group);
+    setGroupFormBaseTitle(group.baseTitle);
+    setGroupFormAmount(String(group.monthlyAmount));
+    setGroupFormCategory(group.category);
+    setGroupFormSupplierId(group.supplierId ? String(group.supplierId) : "");
+    setGroupFormSupplierName(group.supplierName || "");
+    setGroupFormPaymentMethod(group.paymentMethod || "PIX");
+    setGroupFormScope("all");
+  };
+
+  // Salvar Alterações em Lote de Grupo Recorrente (Valor, Nome, etc.)
+  const handleSaveEditGroup = async () => {
+    if (!editingGroup) return;
+    const numAmount = parseMonetaryInput(groupFormAmount);
+    if (numAmount <= 0) {
+      toast({
+        title: "Valor Inválido",
+        description: "Informe um valor maior que zero para as parcelas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const updates: any = {
+        amount: numAmount,
+        category: groupFormCategory,
+        paymentMethod: groupFormPaymentMethod,
+        supplierId: groupFormSupplierId ? parseInt(groupFormSupplierId) : null,
+        supplierName: groupFormSupplierName.trim() || null,
+      };
+
+      const targetTxs = groupFormScope === "pending"
+        ? editingGroup.transactions.filter(t => t.status !== "pago")
+        : editingGroup.transactions;
+
+      const idsToUpdate = targetTxs.map(t => t.id);
+
+      const res = await fetch("/api/financial/transactions/batch-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: idsToUpdate, updates }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao atualizar parcelas");
+
+      // Se alterou o título base, atualiza as descrições preservando o índice (ex: "Internet Fibra (1/12)")
+      if (groupFormBaseTitle.trim() && groupFormBaseTitle.trim() !== editingGroup.baseTitle) {
+        await Promise.all(
+          targetTxs.map((t, idx) => {
+            const instSuffix = ` (${t.installmentIndex || (idx + 1)}/${editingGroup.totalCount})`;
+            return fetch(`/api/financial/transactions/${t.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ description: `${groupFormBaseTitle.trim()}${instSuffix}` }),
+            });
+          })
+        );
+      }
+
+      toast({
+        title: "Lote Atualizado",
+        description: `Todas as parcelas de "${groupFormBaseTitle || editingGroup.baseTitle}" foram atualizadas para ${numAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}!`,
+      });
+
+      setEditingGroup(null);
+      fetchTransactions();
+    } catch (err) {
+      console.error("Erro ao salvar grupo recorrente:", err);
+      toast({
+        title: "Erro na Atualização",
+        description: "Não foi possível salvar as alterações das parcelas.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Excluir TODAS as Parcelas do Grupo
+  const handleDeleteRecurringGroup = async (group: RecurrenceGroupSummary) => {
+    const ok = await confirm({
+      title: `Excluir Todas as ${group.totalCount} Parcelas?`,
+      message: `Tem certeza que deseja excluir TODAS as ${group.totalCount} parcelas de "${group.baseTitle}"?\nEsta ação removerá definitivamente todo o lote de custos recorrentes do fluxo de caixa.`,
+      variant: "danger",
+      confirmText: `Sim, Excluir ${group.totalCount} Parcelas`,
+      cancelText: "Cancelar",
+    });
+
+    if (!ok) return;
+
+    try {
+      const ids = group.transactions.map(t => t.id);
+      const res = await fetch("/api/financial/transactions/batch-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao excluir lote de parcelas");
+
+      toast({
+        title: "Lote Excluído",
+        description: `Todas as ${group.totalCount} parcelas de "${group.baseTitle}" foram excluídas com sucesso.`,
+      });
+
+      setTransactions(prev => prev.filter(t => !ids.includes(t.id)));
+    } catch (err) {
+      console.error("Erro ao excluir lote:", err);
+      toast({
+        title: "Erro ao Excluir",
+        description: "Não foi possível excluir o lote de parcelas.",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+  // Enviar Resumo de Contas do Dia Seguinte no WhatsApp do Paulo
+  const handleSendWhatsAppAlert = async () => {
+    const ok = await confirm({
+      title: "Enviar Resumo de Contas no WhatsApp?",
+      message: "Deseja enviar agora o resumo executivo das contas que vencem amanhã diretamente no WhatsApp do Paulo?\nO sistema enviará a lista detalhada com valores, forma de pagamento e saldo projetado.",
+      confirmText: "Sim, Enviar via WhatsApp",
+      cancelText: "Cancelar",
+    });
+
+    if (!ok) return;
+
+    setIsSendingAlert(true);
+    try {
+      const res = await fetch("/api/financial/send-due-alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: "Alerta Enviado no WhatsApp!",
+          description: `Resumo enviado com sucesso para o Paulo (${data.totalItems} lançamentos de amanhã).`,
+        });
+      } else {
+        throw new Error(data.message || "Erro ao disparar alerta");
+      }
+    } catch (err: any) {
+      console.error("Erro ao enviar alerta via WhatsApp:", err);
+      toast({
+        title: "Erro no Envio",
+        description: err.message || "Não foi possível enviar a mensagem pelo WhatsApp.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingAlert(false);
     }
   };
 
   // Exportar para CSV
   const handleExportCSV = () => {
     if (filteredTransactions.length === 0) {
-      alert("Nenhum lançamento para exportar.");
+      showAlert({
+        title: "Exportação Vazia",
+        message: "Nenhum lançamento financeiro para exportar com os filtros atuais.",
+        variant: "info",
+      });
       return;
     }
 
-    let csv = "ID,Data Vencimento,Data Pagamento,Tipo,Descricao,Categoria,Valor (R$),Status,Forma Pagamento,Observacoes\n";
+    let csv = "ID,Data Vencimento,Data Pagamento,Tipo,Descricao,Categoria,Fornecedor,Valor (R$),Status,Forma Pagamento,Observacoes\n";
     filteredTransactions.forEach(t => {
-      csv += `"${t.id}","${t.dueDate || ''}","${t.paymentDate || ''}","${t.type}","${t.description.replace(/"/g, '""')}","${t.category}","${t.amount}","${t.status}","${t.paymentMethod}","${(t.notes || '').replace(/"/g, '""')}"\n`;
+      csv += `"${t.id}","${t.dueDate || ''}","${t.paymentDate || ''}","${t.type}","${t.description.replace(/"/g, '""')}","${t.category}","${(t.supplierName || '').replace(/"/g, '""')}","${t.amount}","${t.status}","${t.paymentMethod}","${(t.notes || '').replace(/"/g, '""')}"\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -275,12 +607,17 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     a.href = url;
     a.download = `financeiro_dumar_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+    toast({
+      title: "Exportação Concluída",
+      description: "Arquivo CSV gerado com sucesso!",
+    });
   };
 
   // Filtragem dos lançamentos
   const filteredTransactions = transactions.filter(t => {
     const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (t.supplierName && t.supplierName.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (t.notes && t.notes.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesType = typeFilter === "all" || t.type === typeFilter;
@@ -302,6 +639,136 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
 
     return matchesSearch && matchesType && matchesStatus && matchesPeriod;
   });
+
+  // Agrupamento & Ordenação Inteligente de Lançamentos
+  const displayRows = useMemo(() => {
+    if (!groupByRecurring) {
+      const singleList = filteredTransactions.map(tx => ({ type: "single" as const, tx }));
+      singleList.sort((a, b) => {
+        if (sortBy === "due_asc") return (a.tx.dueDate || "9999").localeCompare(b.tx.dueDate || "9999");
+        if (sortBy === "due_desc") return (b.tx.dueDate || "").localeCompare(a.tx.dueDate || "");
+        if (sortBy === "amount_desc") return b.tx.amount - a.tx.amount;
+        if (sortBy === "amount_asc") return a.tx.amount - b.tx.amount;
+        if (sortBy === "status") {
+          const w = (s: string) => (s === "atrasado" ? 0 : s === "pendente" ? 1 : 2);
+          return w(a.tx.status) - w(b.tx.status);
+        }
+        return (a.tx.dueDate || "9999").localeCompare(b.tx.dueDate || "9999");
+      });
+      return singleList;
+    }
+
+    const groupMap = new Map<string, FinancialTransaction[]>();
+    const singles: FinancialTransaction[] = [];
+
+    const getRecurrenceKey = (tx: FinancialTransaction) => {
+      if (tx.recurrenceGroup && tx.recurrenceGroup.trim().length > 0) {
+        const base = tx.description.replace(/\s*\(\d+\/\d+\)\s*$/, "").trim();
+        return { isRecurring: true, key: tx.recurrenceGroup, baseTitle: base || tx.description };
+      }
+      
+      const match = tx.description.match(/^(.*?)\s*\((\d+)\/(\d+)\)$/);
+      if (match || tx.isRecurring || tx.notes?.includes("Recorrente")) {
+        const base = match ? match[1].trim() : tx.description.replace(/\s*\(\d+\/\d+\)\s*$/, "").trim();
+        const key = `group-${tx.type}-${tx.category}-${base.toLowerCase()}-${tx.amount}`;
+        return { isRecurring: true, key, baseTitle: base };
+      }
+
+      return { isRecurring: false, key: "", baseTitle: tx.description };
+    };
+
+    for (const tx of filteredTransactions) {
+      const { isRecurring, key } = getRecurrenceKey(tx);
+      if (isRecurring && key) {
+        if (!groupMap.has(key)) groupMap.set(key, []);
+        groupMap.get(key)!.push(tx);
+      } else {
+        singles.push(tx);
+      }
+    }
+
+    type DisplayRowType = 
+      | { type: "single"; tx: FinancialTransaction }
+      | { type: "group"; group: RecurrenceGroupSummary };
+
+    const rows: DisplayRowType[] = [];
+
+    groupMap.forEach((txList, gKey) => {
+      txList.sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || "") || ((a.installmentIndex || 0) - (b.installmentIndex || 0)));
+
+      const { baseTitle } = getRecurrenceKey(txList[0]);
+      const first = txList[0];
+      const paidCount = txList.filter(t => t.status === "pago").length;
+      const totalCount = txList.length;
+      const totalAmount = txList.reduce((sum, t) => sum + t.amount, 0);
+      const monthlyAmount = first.amount;
+      
+      const pendingTxs = txList.filter(t => t.status !== "pago");
+      const nextPending = pendingTxs[0];
+      const nextDueDate = nextPending ? nextPending.dueDate : txList[txList.length - 1].dueDate;
+
+      rows.push({
+        type: "group",
+        group: {
+          groupId: gKey,
+          baseTitle,
+          category: first.category,
+          type: first.type,
+          supplierName: first.supplierName,
+          supplierId: first.supplierId,
+          paymentMethod: first.paymentMethod,
+          monthlyAmount,
+          totalAmount,
+          paidCount,
+          totalCount,
+          nextDueDate,
+          nextPendingTx: nextPending,
+          transactions: txList
+        }
+      });
+    });
+
+    for (const s of singles) {
+      rows.push({ type: "single", tx: s });
+    }
+
+    // Ordenação configurável das linhas principais
+    rows.sort((a, b) => {
+      const dateA = a.type === "group" ? (a.group.nextDueDate || "9999") : (a.tx.dueDate || "9999");
+      const dateB = b.type === "group" ? (b.group.nextDueDate || "9999") : (b.tx.dueDate || "9999");
+
+      const amtA = a.type === "group" ? a.group.monthlyAmount : a.tx.amount;
+      const amtB = b.type === "group" ? b.group.monthlyAmount : b.tx.amount;
+
+      if (sortBy === "due_asc") {
+        return (dateA || "9999").localeCompare(dateB || "9999");
+      }
+      if (sortBy === "due_desc") {
+        return (dateB || "").localeCompare(dateA || "");
+      }
+      if (sortBy === "amount_desc") {
+        return amtB - amtA;
+      }
+      if (sortBy === "amount_asc") {
+        return amtA - amtB;
+      }
+      if (sortBy === "status") {
+        const getWeight = (row: DisplayRowType) => {
+          if (row.type === "group") {
+            return row.group.paidCount < row.group.totalCount ? 1 : 2;
+          }
+          return row.tx.status === "atrasado" ? 0 : row.tx.status === "pendente" ? 1 : 2;
+        };
+        return getWeight(a) - getWeight(b);
+      }
+      return (dateA || "9999").localeCompare(dateB || "9999");
+    });
+
+    return rows;
+  }, [filteredTransactions, groupByRecurring, sortBy]);
+
+
+
 
   // Métricas Calculadas
   const totalReceitasPagas = transactions
@@ -516,6 +983,36 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
             </button>
 
             <button
+              onClick={handleSendWhatsAppAlert}
+              disabled={isSendingAlert}
+              className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
+              title="Enviar no WhatsApp do Paulo o resumo executivo das contas que vencem amanhã"
+            >
+              <Zap size={15} className="text-emerald-400" />
+              {isSendingAlert ? "Enviando no WhatsApp..." : "Avisar Paulo no Whats (Amanhã)"}
+            </button>
+
+            <button
+              onClick={() => setIsSuppliersModalOpen(true)}
+              className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/10"
+            >
+              <Truck size={15} /> Fornecedores & Parceiros
+            </button>
+
+            <button
+              onClick={() => setGroupByRecurring(prev => !prev)}
+              className={`font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border ${
+                groupByRecurring 
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10" 
+                  : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
+              }`}
+              title="Agrupar ou desagrupar parcelas e custos fixos recorrentes"
+            >
+              <Repeat size={15} className={groupByRecurring ? "text-amber-400" : ""} />
+              {groupByRecurring ? "Recorrências: Agrupadas" : "Recorrências: Expandidas"}
+            </button>
+
+            <button
               onClick={handleExportCSV}
               className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border border-white/10"
             >
@@ -524,8 +1021,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
           </div>
         </div>
 
-        {/* FILTROS & BUSCA */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-black/30 p-3 rounded-xl border border-white/5">
+        {/* FILTROS, BUSCA & ORDENAÇÃO */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-black/30 p-3 rounded-xl border border-white/5">
           {/* Busca */}
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -578,7 +1075,24 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
               <option value="year" className="bg-neutral-900">Este Ano</option>
             </select>
           </div>
+
+          {/* Ordenação Inteligente por Data e Valor */}
+          <div>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              className="w-full bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none cursor-pointer"
+              title="Escolha o critério de ordenação da tabela"
+            >
+              <option value="due_asc" className="bg-neutral-900 text-white">📅 Vencimento (Próximo 1º)</option>
+              <option value="due_desc" className="bg-neutral-900 text-white">📅 Vencimento (Distante 1º)</option>
+              <option value="amount_desc" className="bg-neutral-900 text-white">💰 Maior Valor (R$)</option>
+              <option value="amount_asc" className="bg-neutral-900 text-white">💰 Menor Valor (R$)</option>
+              <option value="status" className="bg-neutral-900 text-white">⚡ Pendentes Primeiro</option>
+            </select>
+          </div>
         </div>
+
 
         {/* TABELA DE LANÇAMENTOS */}
         <div className="overflow-x-auto">
@@ -587,7 +1101,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
               <tr className="border-b border-white/10 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-4">Vencimento</th>
                 <th className="py-3 px-4">Tipo</th>
-                <th className="py-3 px-4">Descrição</th>
+                <th className="py-3 px-4">Descrição / Fornecedor</th>
                 <th className="py-3 px-4">Categoria</th>
                 <th className="py-3 px-4">Pagamento</th>
                 <th className="py-3 px-4">Valor (R$)</th>
@@ -596,9 +1110,272 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredTransactions.map(tx => {
+              {displayRows.map(row => {
+                if (row.type === "group") {
+                  const { group } = row;
+                  const isExpanded = expandedGroups.has(group.groupId);
+                  const isReceita = group.type === "receita";
+                  const isAllPaid = group.paidCount === group.totalCount;
+
+                  const todayStr = new Date().toISOString().split("T")[0];
+                  const tomorrowDate = new Date();
+                  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+                  const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
+
+                  const isGroupToday = group.nextDueDate === todayStr && group.paidCount < group.totalCount;
+                  const isGroupTomorrow = group.nextDueDate === tomorrowStr && group.paidCount < group.totalCount;
+
+                  const categoryObj = CATEGORIES.find(c => c.id === group.category);
+                  const categoryLabel = categoryObj ? categoryObj.label : group.category;
+
+                  return (
+
+                    <React.Fragment key={`frag-group-${group.groupId}`}>
+                      {/* LINHA MASTER AGRUPADA */}
+                      <tr 
+                        onClick={() => toggleGroup(group.groupId)}
+                        className={`transition-all cursor-pointer border-l-4 shadow-sm ${
+                          isGroupToday 
+                            ? "bg-red-950/30 hover:bg-red-950/50 border-l-rose-500" 
+                            : isGroupTomorrow 
+                            ? "bg-amber-950/30 hover:bg-amber-950/50 border-l-amber-400" 
+                            : "bg-neutral-900/80 hover:bg-neutral-800/90 border-l-amber-500"
+                        }`}
+                      >
+                        {/* Vencimento Próxima Parcela */}
+                        <td className="py-3.5 px-4 text-gray-200 font-bold text-[11px]">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-amber-400 transition-transform">
+                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </span>
+                            <div>
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className="text-[9px] text-gray-400 block font-normal">Próx. Vencimento:</span>
+                                {isGroupToday && (
+                                  <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1.5 py-0.2 rounded border border-rose-500/40 animate-pulse">
+                                    🚨 Vence Hoje
+                                  </span>
+                                )}
+                                {isGroupTomorrow && (
+                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.2 rounded border border-amber-500/40">
+                                    ⚠️ Vence Amanhã
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-white font-bold">{group.nextDueDate ? new Date(group.nextDueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</span>
+                            </div>
+                          </div>
+                        </td>
+
+
+                        {/* Tipo */}
+                        <td className="py-3.5 px-4">
+                          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1.5 ${
+                            isReceita 
+                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
+                              : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                          }`}>
+                            <Repeat size={11} className={isReceita ? "text-emerald-400" : "text-amber-400"} />
+                            {isReceita ? "Receita Recorrente" : "Custo Fixo Recorrente"}
+                          </span>
+                        </td>
+
+                        {/* Descrição & Resumo */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-white text-xs">{group.baseTitle}</span>
+                            <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
+                              <Layers size={10} /> {group.totalCount} Meses
+                            </span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                              isAllPaid 
+                                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
+                                : "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                            }`}>
+                              {group.paidCount} de {group.totalCount} Pagas ({Math.round((group.paidCount / group.totalCount) * 100)}%)
+                            </span>
+                          </div>
+
+                          {group.supplierName && (
+                            <div className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
+                              <Truck size={11} className="text-amber-400" /> Fornecedor: {group.supplierName}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Categoria */}
+                        <td className="py-3.5 px-4 text-gray-300 text-[11px] max-w-[150px] truncate">
+                          {categoryLabel}
+                        </td>
+
+                        {/* Forma de Pagamento */}
+                        <td className="py-3.5 px-4 text-gray-300 text-[11px]">
+                          {group.paymentMethod || "PIX"}
+                        </td>
+
+                        {/* Valor */}
+                        <td className={`py-3.5 px-4 font-black text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
+                          <div>{isReceita ? "+" : "-"} {group.monthlyAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
+                          <div className="text-[10px] font-normal text-gray-400">Total: {group.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+                          {group.nextPendingTx ? (
+                            <button
+                              onClick={() => handleToggleStatus(group.nextPendingTx!)}
+                              title="Clique para dar baixa na próxima parcela pendente"
+                              className="text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1.5 shadow-sm"
+                            >
+                              <Clock size={11} /> Baixar ({group.nextPendingTx.installmentIndex || 1}ª)
+                            </button>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                              <CheckCircle2 size={11} /> 100% Pago
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Ações */}
+                        <td className="py-3.5 px-4 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleOpenEditGroupModal(group)}
+                            className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer inline-flex items-center"
+                            title="Editar valor e dados de todas as parcelas"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteRecurringGroup(group)}
+                            className="p-1.5 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer inline-flex items-center"
+                            title={`Excluir todas as ${group.totalCount} parcelas deste grupo`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+
+                          <button
+                            onClick={() => toggleGroup(group.groupId)}
+                            className="px-2.5 py-1 text-[11px] font-bold text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-white/10"
+                            title={isExpanded ? "Recolher parcelas" : "Expandir parcelas"}
+                          >
+                            {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                            {isExpanded ? "Ocultar" : `Ver ${group.totalCount}x`}
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* SUB-TABELA ANINHADA DE PARCELAS QUANDO EXPANDIDO */}
+                      {isExpanded && (
+                        <tr className="bg-black/60 border-l-4 border-l-amber-500/40 animate-fade-in">
+                          <td colSpan={8} className="p-3 pl-6 sm:pl-8">
+                            <div className="bg-[#111111] border border-white/10 rounded-xl p-3.5 shadow-inner space-y-2.5">
+                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-2">
+                                <span className="flex items-center gap-1.5 text-amber-300 font-extrabold">
+                                  <Layers size={13} /> Parcelas de {group.baseTitle} ({group.paidCount}/{group.totalCount} Pagas)
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-gray-400 hidden sm:inline">Total: <strong className="text-white">{group.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
+                                  
+                                  <button
+                                    onClick={() => handleOpenEditGroupModal(group)}
+                                    className="px-2.5 py-1 text-[10px] font-bold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/25 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-amber-500/30"
+                                    title="Editar valor de todas as parcelas"
+                                  >
+                                    <Edit3 size={11} /> Editar Grupo ({group.totalCount}x)
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleDeleteRecurringGroup(group)}
+                                    className="px-2.5 py-1 text-[10px] font-bold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/25 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-rose-500/30"
+                                    title="Excluir todas as parcelas"
+                                  >
+                                    <Trash2 size={11} /> Excluir Todas ({group.totalCount}x)
+                                  </button>
+                                </div>
+                              </div>
+
+
+                              <div className="divide-y divide-white/5">
+                                {group.transactions.map((subTx, idx) => {
+                                  const isSubPaid = subTx.status === "pago";
+                                  const instNum = subTx.installmentIndex || (idx + 1);
+                                  return (
+                                    <div key={subTx.id} className="py-2 flex items-center justify-between text-xs hover:bg-white/5 px-2.5 rounded-lg transition-colors">
+                                      <div className="flex items-center gap-3">
+                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] border ${
+                                          isSubPaid 
+                                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
+                                            : "bg-white/5 text-gray-400 border-white/10"
+                                        }`}>
+                                          {instNum}
+                                        </span>
+                                        <div>
+                                          <span className="font-semibold text-white text-xs">{subTx.description}</span>
+                                          <div className="text-[10px] text-gray-400">
+                                            Vencimento: <strong className="text-gray-200">{subTx.dueDate ? new Date(subTx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</strong>
+                                            {subTx.paymentDate && <span className="ml-2 text-emerald-400 font-medium">· Pago em: {new Date(subTx.paymentDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-3">
+                                        <span className={`font-bold text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
+                                          {subTx.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                        </span>
+
+                                        <button
+                                          onClick={() => handleToggleStatus(subTx)}
+                                          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all ${
+                                            isSubPaid 
+                                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20" 
+                                              : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                                          }`}
+                                        >
+                                          {isSubPaid ? "✅ Pago" : "⏳ Pendente"}
+                                        </button>
+
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            onClick={() => handleOpenEditModal(subTx)}
+                                            className="p-1 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
+                                            title="Editar Parcela"
+                                          >
+                                            <Edit3 size={13} />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteTransaction(subTx.id)}
+                                            className="p-1 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded transition-colors"
+                                            title="Excluir Parcela"
+                                          >
+                                            <Trash2 size={13} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                }
+
+                // RENDERIZAÇÃO DE ITEM AVULSO (SINGLE)
+                const tx = row.tx;
                 const isReceita = tx.type === "receita";
                 const isPaid = tx.status === "pago";
+
+                const todayStr = new Date().toISOString().split("T")[0];
+                const tomorrowDate = new Date();
+                tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+                const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
+
+                const isDueToday = tx.dueDate === todayStr && !isPaid;
+                const isDueTomorrow = tx.dueDate === tomorrowStr && !isPaid;
 
                 const categoryObj = CATEGORIES.find(c => c.id === tx.category);
                 const categoryLabel = categoryObj ? categoryObj.label : tx.category;
@@ -606,17 +1383,39 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 const linkedLead = tx.leadId ? leads.find(l => String(l.id) === String(tx.leadId)) : null;
 
                 return (
-                  <tr key={tx.id} className="hover:bg-white/5 transition-colors">
+                  <tr 
+                    key={`tx-${tx.id}`} 
+                    className={`transition-colors ${
+                      isDueToday 
+                        ? "bg-red-950/20 hover:bg-red-950/30" 
+                        : isDueTomorrow 
+                        ? "bg-amber-950/20 hover:bg-amber-950/30" 
+                        : "hover:bg-white/5"
+                    }`}
+                  >
                     {/* Vencimento */}
                     <td className="py-3.5 px-4 text-gray-300 font-semibold text-[11px]">
-                      {tx.dueDate ? new Date(tx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{tx.dueDate ? new Date(tx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</span>
+                        {isDueToday && (
+                          <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1.5 py-0.2 rounded border border-rose-500/40 animate-pulse">
+                            🚨 Vence Hoje
+                          </span>
+                        )}
+                        {isDueTomorrow && (
+                          <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.2 rounded border border-amber-500/40">
+                            ⚠️ Vence Amanhã
+                          </span>
+                        )}
+                      </div>
                     </td>
+
 
                     {/* Tipo Badge */}
                     <td className="py-3.5 px-4">
                       <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1 ${
                         isReceita 
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
                           : "bg-rose-500/10 text-rose-400 border-rose-500/20"
                       }`}>
                         {isReceita ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
@@ -624,7 +1423,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                       </span>
                     </td>
 
-                    {/* Descrição & Lead */}
+                    {/* Descrição & Lead / Fornecedor */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-bold text-white text-xs">{tx.description}</span>
@@ -634,13 +1433,21 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                           </span>
                         )}
                       </div>
+
+                      {tx.supplierName && (
+                        <div className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
+                          <Truck size={11} className="text-amber-400" /> Fornecedor: {tx.supplierName}
+                        </div>
+                      )}
+
                       {linkedLead && (
-                        <div className="text-[10px] text-amber-400/90 font-medium flex items-center gap-1 mt-0.5">
+                        <div className="text-[10px] text-blue-400 font-medium flex items-center gap-1 mt-0.5">
                           <UserCheck size={11} /> Cliente: {linkedLead.name}
                         </div>
                       )}
+
                       {tx.notes && (
-                        <div className="text-[10px] text-gray-500 truncate max-w-[200px] mt-0.5">{tx.notes}</div>
+                        <div className="text-[10px] text-gray-500 truncate max-w-[220px] mt-0.5">{tx.notes}</div>
                       )}
                     </td>
 
@@ -698,13 +1505,14 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 );
               })}
 
-              {filteredTransactions.length === 0 && !loading && (
+              {displayRows.length === 0 && !loading && (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-gray-500 italic">
                     Nenhum lançamento financeiro encontrado com os filtros aplicados.
                   </td>
                 </tr>
               )}
+
 
               {loading && (
                 <tr>
@@ -790,12 +1598,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 <div>
                   <label className="block text-gray-300 font-semibold mb-1">Valor (R$) *</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     required
                     value={formAmount}
                     onChange={e => setFormAmount(e.target.value)}
-                    placeholder="0.00"
+                    placeholder="Ex: 104,90 ou 1500"
                     className="w-full bg-black/50 border border-white/10 rounded-xl py-2 px-3 text-white font-bold focus:outline-none focus:border-amber-400/50"
                   />
                 </div>
@@ -845,7 +1652,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </div>
               </div>
 
-              {/* LINHA 3: GRID DE 4 COLUNAS (Status, Data Pgto, Cliente Lead 2 cols) */}
+              {/* LINHA 3: GRID DE 4 COLUNAS (Status, Data Pgto, Cliente Lead ou Fornecedor) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Status */}
                 <div>
@@ -873,9 +1680,9 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                   />
                 </div>
 
-                {/* Vínculo com Lead do CRM (2 colunas) */}
-                <div className="sm:col-span-2 lg:col-span-2">
-                  <label className="block text-gray-300 font-semibold mb-1">Vincular a Cliente/Lead (Opcional)</label>
+                {/* Vínculo com Lead do CRM (2 colunas para receita, 1 col para despesa) */}
+                <div className={formType === "receita" ? "sm:col-span-2 lg:col-span-2" : ""}>
+                  <label className="block text-gray-300 font-semibold mb-1">Vincular a Cliente/Lead</label>
                   <select
                     value={formLeadId}
                     onChange={e => setFormLeadId(e.target.value)}
@@ -889,6 +1696,39 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                     ))}
                   </select>
                 </div>
+
+                {/* Vínculo com Fornecedor (apenas se despesa) */}
+                {formType === "despesa" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-gray-300 font-semibold">Fornecedor / Parceiro</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsSuppliersModalOpen(true)}
+                        className="text-[10px] text-amber-400 hover:underline flex items-center gap-0.5"
+                      >
+                        + Cadastrar
+                      </button>
+                    </div>
+                    <select
+                      value={formSupplierId}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setFormSupplierId(val);
+                        const match = suppliersList.find(s => s.id.toString() === val);
+                        setFormSupplierName(match ? (match.tradeName || match.name) : "");
+                      }}
+                      className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
+                    >
+                      <option value="" className="bg-neutral-900">Nenhum fornecedor vinculado</option>
+                      {suppliersList.map(sup => (
+                        <option key={sup.id} value={sup.id} className="bg-neutral-900">
+                          {sup.tradeName || sup.name} {sup.cnpjCpf ? `(${sup.cnpjCpf})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* ATALHOS RÁPIDOS DE CUSTOS FIXOS (Grid de 5 colunas em tela cheia) */}
@@ -903,11 +1743,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-0.5">
                     {[
-                      { label: "🏢 Aluguel Galpão", desc: "Aluguel Galpão & Escritório", category: "administrativo", amount: "2500", method: "Boleto" },
-                      { label: "⚡ Energia Elétrica", desc: "Energia Elétrica / Luz (Celesc)", category: "administrativo", amount: "550", method: "Boleto" },
-                      { label: "📊 Contador", desc: "Honorários Contábeis Mensalidade", category: "administrativo", amount: "600", method: "PIX" },
-                      { label: "🌐 Hospedagem/VPS", desc: "Servidor VPS / Hospedagem & Domínio", category: "administrativo", amount: "150", method: "Cartão de Crédito" },
-                      { label: "📶 Internet Fibra", desc: "Internet Fibra Óptica & Telefonia", category: "administrativo", amount: "180", method: "Boleto" },
+                      { label: "🏢 Aluguel Galpão", desc: "Aluguel Galpão & Escritório", category: "administrativo", amount: "2500", method: "Boleto", supplierKeyword: "Aluguel" },
+                      { label: "⚡ Energia Elétrica", desc: "Energia Elétrica / Luz (Celesc)", category: "administrativo", amount: "550", method: "Boleto", supplierKeyword: "Celesc" },
+                      { label: "📊 Contador", desc: "Honorários Contábeis Mensalidade", category: "administrativo", amount: "600", method: "PIX", supplierKeyword: "Contador" },
+                      { label: "🌐 Hospedagem/VPS", desc: "Servidor VPS / Hospedagem & Domínio", category: "administrativo", amount: "150", method: "Cartão de Crédito", supplierKeyword: "Hospedagem" },
+                      { label: "📶 Internet Fibra", desc: "Internet Fibra Óptica & Telefonia", category: "administrativo", amount: "180", method: "Boleto", supplierKeyword: "Internet" },
                     ].map((preset, idx) => (
                       <button
                         key={idx}
@@ -987,7 +1827,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                   rows={2}
                   value={formNotes}
                   onChange={e => setFormNotes(e.target.value)}
-                  placeholder="Número de nota fiscal, comprovante ou observação..."
+                  placeholder="Número de nota fiscal, comprovante, chave PIX ou observação..."
                   className="w-full bg-black/50 border border-white/10 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-amber-400/50"
                 />
               </div>
@@ -1014,8 +1854,184 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
           </div>
         </div>
       )}
+
+      {/* MODAL EDITAR GRUPO RECORRENTE EM LOTE */}
+      {editingGroup && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
+          <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-xl p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-in max-h-[92vh] overflow-y-auto scrollbar-thin">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Repeat size={18} className="text-amber-400" />
+                Editar Lote Recorrente ({editingGroup.totalCount}x Meses)
+              </h3>
+              <button
+                onClick={() => setEditingGroup(null)}
+                className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Título Base */}
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">Título / Descrição Base *</label>
+                <input
+                  type="text"
+                  value={groupFormBaseTitle}
+                  onChange={e => setGroupFormBaseTitle(e.target.value)}
+                  placeholder="Ex: Internet Fibra Óptica, Aluguel do Galpão..."
+                  className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white focus:outline-none focus:border-amber-400/50"
+                />
+              </div>
+
+              {/* Valor por Parcela */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">Novo Valor da Parcela (R$) *</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">R$</span>
+                    <input
+                      type="text"
+                      value={groupFormAmount}
+                      onChange={e => setGroupFormAmount(e.target.value)}
+                      placeholder="104,90"
+                      className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-white font-black text-sm focus:outline-none focus:border-amber-400/50"
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">Ex: digite <strong className="text-amber-300">104,90</strong> ou <strong className="text-amber-300">104.90</strong></p>
+                </div>
+
+                {/* Forma de Pagamento */}
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">Forma de Pagamento</label>
+                  <select
+                    value={groupFormPaymentMethod}
+                    onChange={e => setGroupFormPaymentMethod(e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
+                  >
+                    <option value="PIX" className="bg-neutral-900">PIX</option>
+                    <option value="Boleto" className="bg-neutral-900">Boleto Bancário</option>
+                    <option value="Cartão de Crédito" className="bg-neutral-900">Cartão de Crédito</option>
+                    <option value="Cartão de Débito" className="bg-neutral-900">Cartão de Débito</option>
+                    <option value="Transferência (TED)" className="bg-neutral-900">Transferência (TED)</option>
+                    <option value="Dinheiro" className="bg-neutral-900">Dinheiro</option>
+                    <option value="Cheque" className="bg-neutral-900">Cheque</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Categoria */}
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">Categoria Financeira</label>
+                <select
+                  value={groupFormCategory}
+                  onChange={e => setGroupFormCategory(e.target.value)}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
+                >
+                  {CATEGORIES.map(c => (
+                    <option key={c.id} value={c.id} className="bg-neutral-900">{c.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Fornecedor */}
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">Fornecedor / Parceiro Vinculado</label>
+                <select
+                  value={groupFormSupplierId}
+                  onChange={e => {
+                    const supId = e.target.value;
+                    setGroupFormSupplierId(supId);
+                    const sup = suppliersList.find(s => String(s.id) === supId);
+                    setGroupFormSupplierName(sup ? (sup.tradeName || sup.name) : "");
+                  }}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
+                >
+                  <option value="" className="bg-neutral-900">Nenhum / Não informado</option>
+                  {suppliersList.map(s => (
+                    <option key={s.id} value={String(s.id)} className="bg-neutral-900">
+                      {s.tradeName || s.name} ({s.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Escopo da Alteração */}
+              <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-2">
+                <label className="block text-gray-300 font-bold">Aplicar Alterações Em:</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGroupFormScope("all")}
+                    className={`py-2 px-3 rounded-lg font-bold text-xs border text-left transition-all cursor-pointer ${
+                      groupFormScope === "all"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                        : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
+                    }`}
+                  >
+                    <div>🔁 Todas as {editingGroup.totalCount} Parcelas</div>
+                    <div className="text-[10px] font-normal opacity-80">Atualiza todo o contrato</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGroupFormScope("pending")}
+                    className={`py-2 px-3 rounded-lg font-bold text-xs border text-left transition-all cursor-pointer ${
+                      groupFormScope === "pending"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                        : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
+                    }`}
+                  >
+                    <div>⏳ Apenas Pendentes ({editingGroup.totalCount - editingGroup.paidCount})</div>
+                    <div className="text-[10px] font-normal opacity-80">Preserva parcelas já pagas</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex items-center gap-3 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditingGroup(null)}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveEditGroup}
+                  disabled={isSubmitting}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-black bg-amber-500 hover:bg-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
+                >
+                  {isSubmitting ? "Salvando em Lote..." : `Salvar Alterações no Lote`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE GESTÃO DE FORNECEDORES & PARCEIROS */}
+
+      <CRMSuppliersModal
+        isOpen={isSuppliersModalOpen}
+        onClose={() => {
+          setIsSuppliersModalOpen(false);
+          fetchSuppliers();
+        }}
+        onSelectSupplier={(supplier) => {
+          setFormSupplierId(supplier.id.toString());
+          setFormSupplierName(supplier.tradeName || supplier.name);
+          setIsSuppliersModalOpen(false);
+          fetchSuppliers();
+        }}
+        selectedSupplierId={formSupplierId ? Number(formSupplierId) : null}
+      />
         </>
       )}
     </div>
   );
 }
+

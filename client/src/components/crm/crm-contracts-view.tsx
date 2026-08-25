@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import { Lead } from "./types";
 import { ContractData, getDefaultContractData, buildClause3PaymentText, PaymentPlanType } from "@/lib/contract-generator";
+import { useConfirmDialog } from "../ui/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
 import CRMMateriaisModal from "./crm-materiais-modal";
 import logoDumar from "@/assets/logo1.jpeg";
 
@@ -18,6 +20,12 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const { confirm, showAlert } = useConfirmDialog();
+  const { toast } = useToast();
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Modal de Edição / Visualização do Contrato
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,6 +40,7 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
   // Modal de Catálogo de Materiais
   const [isMaterialsModalOpen, setIsMaterialsModalOpen] = useState(false);
   const [targetMaterialCategory, setTargetMaterialCategory] = useState<string>("all");
+
 
   // Buscar contratos da API REST (com fallback localStorage)
   const fetchContracts = async () => {
@@ -241,13 +250,26 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
       ...prev,
       memorial: {
         ...prev.memorial,
-        projectImages: prev.memorial.projectImages.filter((_, i) => i !== index)
+        projectImages: (prev.memorial?.projectImages || []).filter((_, i) => i !== index)
       }
     }));
   };
 
-  // Salvar Contrato na API & State
+
+  // Salvar Contrato (Local e Backend)
   const handleSaveContract = async () => {
+    if (!currentContract.clientName.trim()) {
+      await showAlert({
+        title: "Nome do Cliente Obrigatório",
+        message: "Por favor, preencha o Nome do Contratante para salvar o contrato.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    let savedBackendId = currentContract.id;
+
     try {
       const payload = {
         contractNumber: currentContract.contractNumber,
@@ -256,19 +278,23 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
         leadId: currentContract.leadId ? Number(currentContract.leadId) : null,
         clientName: currentContract.clientName,
         clientCpfCnpj: currentContract.clientCpfCnpj,
-        clientAddress: `${currentContract.clientAddress}, ${currentContract.clientBairro} - ${currentContract.clientCidadeUf}`,
+        clientAddress: currentContract.clientAddress,
         clientPhone: currentContract.clientPhone,
-        totalValue: currentContract.totalValue,
-        downPayment: currentContract.downPayment,
+        totalValue: Number(currentContract.totalValue) || 0,
+        downPayment: Number(currentContract.downPayment) || 0,
         dataJson: JSON.stringify(currentContract)
       };
 
       if (currentContract.id) {
-        await fetch(`/api/contracts/${currentContract.id}`, {
+        const res = await fetch(`/api/contracts/${currentContract.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
+        if (res.ok) {
+          const dbC = await res.json();
+          savedBackendId = dbC.id;
+        }
       } else {
         const res = await fetch("/api/contracts", {
           method: "POST",
@@ -276,30 +302,43 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
           body: JSON.stringify(payload)
         });
         if (res.ok) {
-          const created = await res.json();
-          currentContract.id = created.id;
+          const dbC = await res.json();
+          savedBackendId = dbC.id;
+          currentContract.id = savedBackendId;
         }
       }
     } catch (e) {
-      console.warn("Erro ao salvar no banco, operando via local storage:", e);
+      console.warn("Erro ao sincronizar contrato com o backend PostgreSQL:", e);
+    } finally {
+      setIsSaving(false);
     }
 
     const existingIndex = contracts.findIndex(c => c.contractNumber === currentContract.contractNumber);
     let updatedList: ContractData[];
     if (existingIndex >= 0) {
       updatedList = [...contracts];
-      updatedList[existingIndex] = currentContract;
+      updatedList[existingIndex] = { ...currentContract, id: savedBackendId };
     } else {
-      updatedList = [currentContract, ...contracts];
+      updatedList = [{ ...currentContract, id: savedBackendId }, ...contracts];
     }
     saveContractsLocal(updatedList);
     setIsModalOpen(false);
-    alert(`✅ Contrato ${currentContract.contractNumber} salvo com sucesso!`);
+    toast({
+      title: "Contrato Salvo",
+      description: `Contrato ${currentContract.contractNumber} (${currentContract.clientName}) salvo com sucesso!`,
+    });
   };
 
   // Excluir Contrato
   const handleDeleteContract = async (contract: ContractData) => {
-    if (!confirm(`Tem certeza que deseja excluir o contrato ${contract.contractNumber}?`)) return;
+    const ok = await confirm({
+      title: "Excluir Contrato",
+      message: `Tem certeza que deseja excluir o contrato ${contract.contractNumber} de ${contract.clientName}?\nEsta operação não pode ser desfeita.`,
+      variant: "danger",
+      confirmText: "Sim, Excluir",
+    });
+
+    if (!ok) return;
     
     if (contract.id) {
       try {
@@ -309,15 +348,24 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
 
     const updated = contracts.filter(c => c.contractNumber !== contract.contractNumber);
     saveContractsLocal(updated);
+    toast({
+      title: "Contrato Excluído",
+      description: `Contrato ${contract.contractNumber} removido com sucesso.`,
+    });
   };
 
   // Sincronizar com Funil e Financeiro
   const handleSyncFunnelAndFinancial = async () => {
     if (!currentContract.leadId) {
-      alert("Selecione um Lead associado para sincronizar com o Funil/Financeiro.");
+      await showAlert({
+        title: "Lead Não Vinculado",
+        message: "Selecione um Lead associado no topo do contrato para sincronizar com o Funil e Financeiro.",
+        variant: "warning",
+      });
       return;
     }
 
+    setIsSyncing(true);
     try {
       await fetch(`/api/leads/${currentContract.leadId}`, {
         method: "PUT",
@@ -325,7 +373,7 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
         body: JSON.stringify({ stage: "contrato" })
       });
 
-      await fetch("/api/financial", {
+      await fetch("/api/financial/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -342,9 +390,18 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
         })
       });
 
-      alert(`✅ Sucesso! O Lead foi movido para a etapa "Fechamento/Contrato" e a receita de R$ ${currentContract.downPayment.toLocaleString("pt-BR")} foi lançada no Financeiro.`);
+      toast({
+        title: "Sincronização Concluída",
+        description: `Lead movido para "Fechamento/Contrato" e receita de R$ ${currentContract.downPayment.toLocaleString("pt-BR")} lançada no Financeiro!`,
+      });
     } catch (e) {
-      alert("Erro ao sincronizar com Funil/Financeiro: " + (e as Error).message);
+      await showAlert({
+        title: "Erro ao Sincronizar",
+        message: "Erro ao sincronizar com Funil/Financeiro: " + (e as Error).message,
+        variant: "danger",
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 

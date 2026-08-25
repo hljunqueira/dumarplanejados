@@ -128,7 +128,7 @@ export default function ContactSection() {
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-bold text-white mb-2">Canais Diretos</h3>
-                <p className="text-xs text-neutral-400">Atendimento presencial em nosso showroom ou visitas técnicas agendadas.</p>
+                <p className="text-xs text-neutral-400">Atendimento presencial em nosso escritório comercial ou visitas técnicas agendadas.</p>
               </div>
 
               <div className="space-y-6">
@@ -148,7 +148,7 @@ export default function ContactSection() {
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">Fábrica & Showroom</h4>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">Escritório Comercial</h4>
                     <p className="text-sm font-bold text-white">Av. Santa Catarina, 551 sala 205</p>
                     <p className="text-[11px] text-neutral-400 mt-0.5">Centro - Balneário Arroio do Silva</p>
                   </div>

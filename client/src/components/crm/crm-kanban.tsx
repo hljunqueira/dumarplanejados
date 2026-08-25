@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Search, Filter, GripVertical, CheckSquare, Phone, Download, FileText, Box, MessageSquare, CheckCheck, Clock, Trash2, Plus, RotateCw, Sparkles } from "lucide-react";
 import { Lead } from "./types";
+import { useConfirmDialog } from "../ui/confirm-dialog";
 
 interface Stage {
   id: string;
@@ -45,7 +46,9 @@ export default function CRMKanban({
   setShowNewLeadModal,
   fetchLeads
 }: CRMKanbanProps) {
+  const { confirm, showAlert } = useConfirmDialog();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
+
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
   const [selectedStageTab, setSelectedStageTab] = useState<string>("all");
   const [syncingWhatsapp, setSyncingWhatsapp] = useState(false);
@@ -91,7 +94,14 @@ export default function CRMKanban({
   };
 
   const handleRevertSync = async () => {
-    if (!window.confirm("Deseja realmente reverter o sincronismo em massa e remover os contatos da agenda telefônica importados para a etapa Entrada?")) {
+    const isConfirmed = await confirm({
+      title: "Reverter Sincronismo",
+      message: "Deseja realmente reverter o sincronismo em massa e remover os contatos da agenda telefônica importados para a etapa Entrada?",
+      confirmText: "Reverter",
+      variant: "danger"
+    });
+
+    if (!isConfirmed) {
       return;
     }
     setRevertingSync(true);

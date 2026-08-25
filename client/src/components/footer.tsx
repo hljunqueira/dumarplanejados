@@ -79,7 +79,7 @@ export default function Footer() {
 
             {/* Contact Info */}
             <div>
-              <h4 className="text-sm font-bold uppercase tracking-widest mb-6 text-white">Showroom</h4>
+              <h4 className="text-sm font-bold uppercase tracking-widest mb-6 text-white">Escritório Comercial</h4>
               <div className="space-y-4 text-sm">
                 <div className="flex items-center group">
                   <div className="bg-white/5 p-2.5 rounded-lg mr-4 border border-white/10 group-hover:border-white/30 transition-all duration-300">

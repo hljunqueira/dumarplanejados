@@ -3,6 +3,8 @@ import {
   X, Plus, Trash2, Edit3, Check, Layers, Box, 
   Maximize2, Eye, Shield, Wrench, Lightbulb, RefreshCw, Search, Package
 } from "lucide-react";
+import { useConfirmDialog } from "../ui/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export interface MaterialItem {
   id?: number;
@@ -41,6 +43,9 @@ export default function CRMMateriaisModal({
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<string>(targetCategory || "all");
   const [search, setSearch] = useState("");
+
+  const { confirm, showAlert } = useConfirmDialog();
+  const { toast } = useToast();
 
   // Formulário de Cadastro / Edição
   const [isEditing, setIsEditing] = useState(false);
@@ -114,32 +119,45 @@ export default function CRMMateriaisModal({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
+        toast({ title: "Item Atualizado", description: "O item foi atualizado com sucesso." });
       } else {
         await fetch("/api/materials-catalog", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
+        toast({ title: "Item Criado", description: "O item foi adicionado ao catálogo." });
       }
       setIsEditing(false);
       fetchMaterials();
     } catch (e) {
       console.error(e);
-      alert("Erro ao salvar item no catálogo.");
+      await showAlert({ title: "Erro", message: "Erro ao salvar item no catálogo.", variant: "danger" });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteItem = async (id?: number) => {
-    if (!id || !confirm("Deseja realmente remover este item do catálogo?")) return;
+    if (!id) return;
+    const ok = await confirm({
+      title: "Excluir Material",
+      message: "Deseja realmente remover este item do catálogo?",
+      variant: "danger",
+      confirmText: "Sim, Remover"
+    });
+
+    if (!ok) return;
+
     try {
       const res = await fetch(`/api/materials-catalog/${id}`, { method: "DELETE" });
       if (res.ok) {
+        toast({ title: "Item Removido", description: "Item removido com sucesso." });
         fetchMaterials();
       }
     } catch (e) {
       console.error(e);
+      await showAlert({ title: "Erro", message: "Não foi possível remover o item.", variant: "danger" });
     }
   };
 

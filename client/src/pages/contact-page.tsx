@@ -147,7 +147,7 @@ export default function ContactPage() {
           <div className="lg:col-span-5 bg-white rounded-3xl p-8 border border-[#1A1A1A]/5 shadow-xl flex flex-col justify-between space-y-8">
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-bold">Showroom & Atendimento</h3>
+                <h3 className="text-xl font-bold">Escritório Comercial & Atendimento</h3>
                 <p className="text-xs text-neutral-400">Entre em contato direto por telefone ou venha nos visitar.</p>
               </div>
 
