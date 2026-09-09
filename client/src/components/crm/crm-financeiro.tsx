@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { 
-  DollarSign, FileText, CheckCircle2, Clock, AlertCircle, TrendingUp, 
-  TrendingDown, Plus, Search, Filter, Trash2, Edit3, Download, Check, 
+import {
+  DollarSign, FileText, CheckCircle2, Clock, AlertCircle, TrendingUp,
+  TrendingDown, Plus, Search, Filter, Trash2, Edit3, Download, Check,
   ArrowUpRight, ArrowDownRight, Tag, Calendar, CreditCard, UserCheck, X,
   Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare
 } from "lucide-react";
@@ -152,11 +152,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     setFormCategory(preset.category);
     if (preset.amount) setFormAmount(preset.amount);
     if (preset.method) setFormPaymentMethod(preset.method);
-    
+
     // Tenta encontrar fornecedor cadastrado correspondente
     if (preset.supplierKeyword && suppliersList.length > 0) {
-      const match = suppliersList.find(s => 
-        s.name.toLowerCase().includes(preset.supplierKeyword!.toLowerCase()) || 
+      const match = suppliersList.find(s =>
+        s.name.toLowerCase().includes(preset.supplierKeyword!.toLowerCase()) ||
         (s.tradeName && s.tradeName.toLowerCase().includes(preset.supplierKeyword!.toLowerCase()))
       );
       if (match) {
@@ -164,7 +164,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
         setFormSupplierName(match.tradeName || match.name);
       }
     }
-    
+
     setFormIsRecurring(true);
     setFormStatus("pendente");
   };
@@ -616,10 +616,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   // Filtragem dos lançamentos
   const filteredTransactions = transactions.filter(t => {
     const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (t.supplierName && t.supplierName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (t.notes && t.notes.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+      t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.supplierName && t.supplierName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (t.notes && t.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+
     const matchesType = typeFilter === "all" || t.type === typeFilter;
     const matchesStatus = statusFilter === "all" || t.status === statusFilter;
 
@@ -666,7 +666,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
         const base = tx.description.replace(/\s*\(\d+\/\d+\)\s*$/, "").trim();
         return { isRecurring: true, key: tx.recurrenceGroup, baseTitle: base || tx.description };
       }
-      
+
       const match = tx.description.match(/^(.*?)\s*\((\d+)\/(\d+)\)$/);
       if (match || tx.isRecurring || tx.notes?.includes("Recorrente")) {
         const base = match ? match[1].trim() : tx.description.replace(/\s*\(\d+\/\d+\)\s*$/, "").trim();
@@ -687,7 +687,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
       }
     }
 
-    type DisplayRowType = 
+    type DisplayRowType =
       | { type: "single"; tx: FinancialTransaction }
       | { type: "group"; group: RecurrenceGroupSummary };
 
@@ -702,7 +702,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
       const totalCount = txList.length;
       const totalAmount = txList.reduce((sum, t) => sum + t.amount, 0);
       const monthlyAmount = first.amount;
-      
+
       const pendingTxs = txList.filter(t => t.status !== "pago");
       const nextPending = pendingTxs[0];
       const nextDueDate = nextPending ? nextPending.dueDate : txList[txList.length - 1].dueDate;
@@ -796,22 +796,20 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
       <div className="flex items-center gap-2 bg-[#0f0f0f] border border-white/10 p-1.5 rounded-2xl shadow-lg">
         <button
           onClick={() => setFinancialTab("cashflow")}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            financialTab === "cashflow"
+          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "cashflow"
               ? "bg-white text-black shadow-lg"
               : "text-gray-400 hover:text-white hover:bg-white/5"
-          }`}
+            }`}
         >
           <DollarSign size={16} /> Lançamentos & Fluxo de Caixa
         </button>
 
         <button
           onClick={() => setFinancialTab("contracts")}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            financialTab === "contracts"
+          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "contracts"
               ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
               : "text-gray-400 hover:text-white hover:bg-white/5"
-          }`}
+            }`}
         >
           <FileText size={16} /> Contratos & Minuta Jurídica
         </button>
@@ -827,11 +825,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
         <>
           {/* HEADER & METRICAS CHAVE COM MÁXIMA CLAREZA */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
+
             {/* CARD 1: TOTAL RECEBIDO (ENTRADAS LIQUIDADAS) */}
             <div className="bg-[#0f0f0f] border border-emerald-500/20 p-5 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between group hover:border-emerald-500/40 transition-all">
               <div className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all"></div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400/90 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -861,7 +859,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
             {/* CARD 2: TOTAL PAGO (DESPESAS LIQUIDADAS) */}
             <div className="bg-[#0f0f0f] border border-rose-500/20 p-5 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between group hover:border-rose-500/40 transition-all">
               <div className="absolute -top-6 -right-6 w-24 h-24 bg-rose-500/5 rounded-full blur-xl group-hover:bg-rose-500/10 transition-all"></div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-rose-400/90 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-rose-400"></span>
@@ -891,7 +889,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
             {/* CARD 3: SALDO EM CAIXA (LUCRO LÍQUIDO REAL) */}
             <div className={`bg-[#0f0f0f] border ${lucroLiquido >= 0 ? "border-amber-500/20 hover:border-amber-500/40" : "border-red-500/30 hover:border-red-500/50"} p-5 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between group transition-all`}>
               <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-all"></div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-amber-400/90 flex items-center gap-1.5">
                   <DollarSign size={13} className="text-amber-400" />
@@ -919,7 +917,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
             {/* CARD 4: PREVISÃO DE CAIXA & PENDÊNCIAS FUTURAS */}
             <div className="bg-[#0f0f0f] border border-blue-500/20 hover:border-blue-500/40 p-5 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between group transition-all">
               <div className="absolute -top-6 -right-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all"></div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-blue-400/90 flex items-center gap-1.5">
                   <Clock size={13} className="text-blue-400" />
@@ -956,1079 +954,1100 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
 
           </div>
 
-      {/* CONTROLES DA TABELA & BOTÕES DE AÇÃO */}
-      <div className="bg-[#0f0f0f] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <div>
-            <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
-              <FileText size={18} className="text-amber-400" />
-              Gestão Financeira & Lançamentos de Caixa
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">Controle completo de receitas, despesas, fornecedores e contratos de marcenaria</p>
-          </div>
+          {/* CONTROLES DA TABELA & BOTÕES DE AÇÃO */}
+          <div className="bg-[#0f0f0f] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <FileText size={18} className="text-amber-400" />
+                  Gestão Financeira & Lançamentos de Caixa
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">Controle completo de receitas, despesas, fornecedores e contratos de marcenaria</p>
+              </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => handleOpenNewModal("receita")}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-600/20"
-            >
-              <Plus size={15} /> Nova Receita
-            </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => handleOpenNewModal("receita")}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-600/20"
+                >
+                  <Plus size={15} /> Nova Receita
+                </button>
 
-            <button
-              onClick={() => handleOpenNewModal("despesa")}
-              className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-600/20"
-            >
-              <Plus size={15} /> Nova Despesa
-            </button>
+                <button
+                  onClick={() => handleOpenNewModal("despesa")}
+                  className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-600/20"
+                >
+                  <Plus size={15} /> Nova Despesa
+                </button>
 
-            <button
-              onClick={handleSendWhatsAppAlert}
-              disabled={isSendingAlert}
-              className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
-              title="Enviar no WhatsApp do Paulo o resumo executivo das contas que vencem amanhã"
-            >
-              <Zap size={15} className="text-emerald-400" />
-              {isSendingAlert ? "Enviando no WhatsApp..." : "Avisar Paulo no Whats (Amanhã)"}
-            </button>
+                <button
+                  onClick={handleSendWhatsAppAlert}
+                  disabled={isSendingAlert}
+                  className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
+                  title="Enviar no WhatsApp da Diretoria o resumo executivo das contas que vencem amanhã"
+                >
+                  <Zap size={15} className="text-emerald-400" />
+                  {isSendingAlert ? "Enviando no WhatsApp..." : "Avisar Diretoria no Whats (Amanhã)"}
+                </button>
 
-            <button
-              onClick={() => setIsSuppliersModalOpen(true)}
-              className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/10"
-            >
-              <Truck size={15} /> Fornecedores & Parceiros
-            </button>
+                <button
+                  onClick={() => setIsSuppliersModalOpen(true)}
+                  className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/10"
+                >
+                  <Truck size={15} /> Fornecedores & Parceiros
+                </button>
 
-            <button
-              onClick={() => setGroupByRecurring(prev => !prev)}
-              className={`font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border ${
-                groupByRecurring 
-                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10" 
-                  : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
-              }`}
-              title="Agrupar ou desagrupar parcelas e custos fixos recorrentes"
-            >
-              <Repeat size={15} className={groupByRecurring ? "text-amber-400" : ""} />
-              {groupByRecurring ? "Recorrências: Agrupadas" : "Recorrências: Expandidas"}
-            </button>
+                <button
+                  onClick={() => setGroupByRecurring(prev => !prev)}
+                  className={`font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border ${groupByRecurring
+                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10"
+                      : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
+                  title="Agrupar ou desagrupar parcelas e custos fixos recorrentes"
+                >
+                  <Repeat size={15} className={groupByRecurring ? "text-amber-400" : ""} />
+                  {groupByRecurring ? "Recorrências: Agrupadas" : "Recorrências: Expandidas"}
+                </button>
 
-            <button
-              onClick={handleExportCSV}
-              className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border border-white/10"
-            >
-              <Download size={15} /> Exportar CSV
-            </button>
-          </div>
-        </div>
+                <button
+                  onClick={handleExportCSV}
+                  className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border border-white/10"
+                >
+                  <Download size={15} /> Exportar CSV
+                </button>
+              </div>
+            </div>
 
-        {/* FILTROS, BUSCA & ORDENAÇÃO */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-black/30 p-3 rounded-xl border border-white/5">
-          {/* Busca */}
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Buscar lançamento..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400/50"
-            />
-          </div>
+            {/* FILTROS, BUSCA & ORDENAÇÃO */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-black/30 p-3 rounded-xl border border-white/5">
+              {/* Busca */}
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Buscar lançamento..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400/50"
+                />
+              </div>
 
-          {/* Tipo */}
-          <div>
-            <select
-              value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value as any)}
-              className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="all" className="bg-neutral-900">Todos os Tipos</option>
-              <option value="receita" className="bg-neutral-900">Receitas (Entradas)</option>
-              <option value="despesa" className="bg-neutral-900">Despesas (Saídas)</option>
-            </select>
-          </div>
+              {/* Tipo */}
+              <div>
+                <select
+                  value={typeFilter}
+                  onChange={e => setTypeFilter(e.target.value as any)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+                >
+                  <option value="all" className="bg-neutral-900">Todos os Tipos</option>
+                  <option value="receita" className="bg-neutral-900">Receitas (Entradas)</option>
+                  <option value="despesa" className="bg-neutral-900">Despesas (Saídas)</option>
+                </select>
+              </div>
 
-          {/* Status */}
-          <div>
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as any)}
-              className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="all" className="bg-neutral-900">Todos os Status</option>
-              <option value="pago" className="bg-neutral-900">Pagos / Recebidos</option>
-              <option value="pendente" className="bg-neutral-900">Pendentes</option>
-              <option value="atrasado" className="bg-neutral-900">Atrasados</option>
-            </select>
-          </div>
+              {/* Status */}
+              <div>
+                <select
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value as any)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+                >
+                  <option value="all" className="bg-neutral-900">Todos os Status</option>
+                  <option value="pago" className="bg-neutral-900">Pagos / Recebidos</option>
+                  <option value="pendente" className="bg-neutral-900">Pendentes</option>
+                  <option value="atrasado" className="bg-neutral-900">Atrasados</option>
+                </select>
+              </div>
 
-          {/* Período */}
-          <div>
-            <select
-              value={periodFilter}
-              onChange={e => setPeriodFilter(e.target.value as any)}
-              className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="all" className="bg-neutral-900">Todo o Período</option>
-              <option value="this_month" className="bg-neutral-900">Este Mês</option>
-              <option value="last_month" className="bg-neutral-900">Mês Anterior</option>
-              <option value="year" className="bg-neutral-900">Este Ano</option>
-            </select>
-          </div>
+              {/* Período */}
+              <div>
+                <select
+                  value={periodFilter}
+                  onChange={e => setPeriodFilter(e.target.value as any)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+                >
+                  <option value="all" className="bg-neutral-900">Todo o Período</option>
+                  <option value="this_month" className="bg-neutral-900">Este Mês</option>
+                  <option value="last_month" className="bg-neutral-900">Mês Anterior</option>
+                  <option value="year" className="bg-neutral-900">Este Ano</option>
+                </select>
+              </div>
 
-          {/* Ordenação Inteligente por Data e Valor */}
-          <div>
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as any)}
-              className="w-full bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none cursor-pointer"
-              title="Escolha o critério de ordenação da tabela"
-            >
-              <option value="due_asc" className="bg-neutral-900 text-white">📅 Vencimento (Próximo 1º)</option>
-              <option value="due_desc" className="bg-neutral-900 text-white">📅 Vencimento (Distante 1º)</option>
-              <option value="amount_desc" className="bg-neutral-900 text-white">💰 Maior Valor (R$)</option>
-              <option value="amount_asc" className="bg-neutral-900 text-white">💰 Menor Valor (R$)</option>
-              <option value="status" className="bg-neutral-900 text-white">⚡ Pendentes Primeiro</option>
-            </select>
-          </div>
-        </div>
+              {/* Ordenação Inteligente por Data e Valor */}
+              <div>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as any)}
+                  className="w-full bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none cursor-pointer"
+                  title="Escolha o critério de ordenação da tabela"
+                >
+                  <option value="due_asc" className="bg-neutral-900 text-white">📅 Vencimento (Próximo 1º)</option>
+                  <option value="due_desc" className="bg-neutral-900 text-white">📅 Vencimento (Distante 1º)</option>
+                  <option value="amount_desc" className="bg-neutral-900 text-white">💰 Maior Valor (R$)</option>
+                  <option value="amount_asc" className="bg-neutral-900 text-white">💰 Menor Valor (R$)</option>
+                  <option value="status" className="bg-neutral-900 text-white">⚡ Pendentes Primeiro</option>
+                </select>
+              </div>
+            </div>
 
 
-        {/* TABELA DE LANÇAMENTOS */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-white/10 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                <th className="py-3 px-4">Vencimento</th>
-                <th className="py-3 px-4">Tipo</th>
-                <th className="py-3 px-4">Descrição / Fornecedor</th>
-                <th className="py-3 px-4">Categoria</th>
-                <th className="py-3 px-4">Pagamento</th>
-                <th className="py-3 px-4">Valor (R$)</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {displayRows.map(row => {
-                if (row.type === "group") {
-                  const { group } = row;
-                  const isExpanded = expandedGroups.has(group.groupId);
-                  const isReceita = group.type === "receita";
-                  const isAllPaid = group.paidCount === group.totalCount;
+            {/* TABELA DE LANÇAMENTOS */}
+            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/40">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-gray-400 font-bold uppercase tracking-wider text-[10px] bg-white/[0.02]">
+                    <th className="py-3 px-4 w-[120px]">Vencimento</th>
+                    <th className="py-3 px-4 w-[90px]">Tipo</th>
+                    <th className="py-3 px-4">Descrição / Fornecedor</th>
+                    <th className="py-3 px-4 w-[140px] hidden md:table-cell">Categoria</th>
+                    <th className="py-3 px-4 w-[90px] hidden sm:table-cell">Pagamento</th>
+                    <th className="py-3 px-4 w-[130px]">Valor (R$)</th>
+                    <th className="py-3 px-4 w-[135px]">Status</th>
+                    <th className="py-3 px-4 w-[105px] text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {displayRows.map(row => {
+                    if (row.type === "group") {
+                      const { group } = row;
+                      const isExpanded = expandedGroups.has(group.groupId);
+                      const isReceita = group.type === "receita";
+                      const isAllPaid = group.paidCount === group.totalCount;
 
-                  const todayStr = new Date().toISOString().split("T")[0];
-                  const tomorrowDate = new Date();
-                  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-                  const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
+                      const todayStr = new Date().toISOString().split("T")[0];
+                      const tomorrowDate = new Date();
+                      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+                      const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
 
-                  const isGroupToday = group.nextDueDate === todayStr && group.paidCount < group.totalCount;
-                  const isGroupTomorrow = group.nextDueDate === tomorrowStr && group.paidCount < group.totalCount;
+                      const isGroupToday = group.nextDueDate === todayStr && group.paidCount < group.totalCount;
+                      const isGroupTomorrow = group.nextDueDate === tomorrowStr && group.paidCount < group.totalCount;
 
-                  const categoryObj = CATEGORIES.find(c => c.id === group.category);
-                  const categoryLabel = categoryObj ? categoryObj.label : group.category;
+                      const categoryObj = CATEGORIES.find(c => c.id === group.category);
+                      const categoryLabel = categoryObj ? categoryObj.label : group.category;
 
-                  return (
+                      return (
 
-                    <React.Fragment key={`frag-group-${group.groupId}`}>
-                      {/* LINHA MASTER AGRUPADA */}
-                      <tr 
-                        onClick={() => toggleGroup(group.groupId)}
-                        className={`transition-all cursor-pointer border-l-4 shadow-sm ${
-                          isGroupToday 
-                            ? "bg-red-950/30 hover:bg-red-950/50 border-l-rose-500" 
-                            : isGroupTomorrow 
-                            ? "bg-amber-950/30 hover:bg-amber-950/50 border-l-amber-400" 
-                            : "bg-neutral-900/80 hover:bg-neutral-800/90 border-l-amber-500"
-                        }`}
-                      >
-                        {/* Vencimento Próxima Parcela */}
-                        <td className="py-3.5 px-4 text-gray-200 font-bold text-[11px]">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-amber-400 transition-transform">
-                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                            </span>
-                            <div>
-                              <div className="flex items-center gap-1 flex-wrap">
-                                <span className="text-[9px] text-gray-400 block font-normal">Próx. Vencimento:</span>
-                                {isGroupToday && (
-                                  <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1.5 py-0.2 rounded border border-rose-500/40 animate-pulse">
-                                    🚨 Vence Hoje
-                                  </span>
-                                )}
-                                {isGroupTomorrow && (
-                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.2 rounded border border-amber-500/40">
-                                    ⚠️ Vence Amanhã
-                                  </span>
-                                )}
+                        <React.Fragment key={`frag-group-${group.groupId}`}>
+                          {/* LINHA MASTER AGRUPADA */}
+                          <tr
+                            onClick={() => toggleGroup(group.groupId)}
+                            className={`transition-all cursor-pointer border-l-4 shadow-sm ${isGroupToday
+                                ? "bg-red-950/30 hover:bg-red-950/50 border-l-rose-500"
+                                : isGroupTomorrow
+                                  ? "bg-amber-950/30 hover:bg-amber-950/50 border-l-amber-400"
+                                  : "bg-neutral-900/80 hover:bg-neutral-800/90 border-l-amber-500"
+                              }`}
+                          >
+                            {/* Vencimento Próxima Parcela */}
+                            <td className="py-3.5 px-4 text-gray-200 font-bold text-[11px]">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-amber-400 transition-transform">
+                                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                </span>
+                                <div>
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="text-[9px] text-gray-400 block font-normal">Próx. Vencimento:</span>
+                                    {isGroupToday && (
+                                      <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1.5 py-0.2 rounded border border-rose-500/40 animate-pulse">
+                                        🚨 Vence Hoje
+                                      </span>
+                                    )}
+                                    {isGroupTomorrow && (
+                                      <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.2 rounded border border-amber-500/40">
+                                        ⚠️ Vence Amanhã
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-white font-bold">{group.nextDueDate ? new Date(group.nextDueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</span>
+                                </div>
                               </div>
-                              <span className="text-white font-bold">{group.nextDueDate ? new Date(group.nextDueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</span>
-                            </div>
+                            </td>
+
+
+                            {/* Tipo */}
+                            <td className="py-3.5 px-4">
+                              <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1.5 ${isReceita
+                                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                  : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                                }`}>
+                                <Repeat size={11} className={isReceita ? "text-emerald-400" : "text-amber-400"} />
+                                {isReceita ? "Receita Recorrente" : "Custo Fixo Recorrente"}
+                              </span>
+                            </td>
+
+                            {/* Descrição & Resumo */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-black text-white text-xs">{group.baseTitle}</span>
+                                <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
+                                  <Layers size={10} /> {group.totalCount} Meses
+                                </span>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${isAllPaid
+                                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                    : "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                  }`}>
+                                  {group.paidCount} de {group.totalCount} Pagas ({Math.round((group.paidCount / group.totalCount) * 100)}%)
+                                </span>
+                              </div>
+
+                              {group.supplierName && (
+                                <div className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
+                                  <Truck size={11} className="text-amber-400" /> Fornecedor: {group.supplierName}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Categoria */}
+                            <td className="py-3.5 px-4 text-gray-300 text-[11px] max-w-[150px] truncate">
+                              {categoryLabel}
+                            </td>
+
+                            {/* Forma de Pagamento */}
+                            <td className="py-3.5 px-4 text-gray-300 text-[11px]">
+                              {group.paymentMethod || "PIX"}
+                            </td>
+
+                            {/* Valor */}
+                            <td className={`py-3.5 px-4 font-black text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
+                              <div>{isReceita ? "+" : "-"} {group.monthlyAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
+                              <div className="text-[10px] font-normal text-gray-400">Total: {group.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+                              {group.nextPendingTx ? (
+                                <button
+                                  onClick={() => handleToggleStatus(group.nextPendingTx!)}
+                                  title="Clique para dar baixa na próxima parcela pendente"
+                                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1.5 shadow-sm"
+                                >
+                                  <Clock size={11} /> Baixar ({group.nextPendingTx.installmentIndex || 1}ª)
+                                </button>
+                              ) : (
+                                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                                  <CheckCircle2 size={11} /> 100% Pago
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Ações */}
+                            <td className="py-3.5 px-4 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => handleOpenEditGroupModal(group)}
+                                className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer inline-flex items-center"
+                                title="Editar valor e dados de todas as parcelas"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteRecurringGroup(group)}
+                                className="p-1.5 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer inline-flex items-center"
+                                title={`Excluir todas as ${group.totalCount} parcelas deste grupo`}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+
+                              <button
+                                onClick={() => toggleGroup(group.groupId)}
+                                className="px-2.5 py-1 text-[11px] font-bold text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-white/10"
+                                title={isExpanded ? "Recolher parcelas" : "Expandir parcelas"}
+                              >
+                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                                {isExpanded ? "Ocultar" : `Ver ${group.totalCount}x`}
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* SUB-TABELA ANINHADA DE PARCELAS QUANDO EXPANDIDO */}
+                          {isExpanded && (
+                            <tr className="bg-black/60 border-l-4 border-l-amber-500/40 animate-fade-in">
+                              <td colSpan={8} className="p-3 pl-6 sm:pl-8">
+                                <div className="bg-[#111111] border border-white/10 rounded-xl p-3.5 shadow-inner space-y-2.5">
+                                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-2">
+                                    <span className="flex items-center gap-1.5 text-amber-300 font-extrabold">
+                                      <Layers size={13} /> Parcelas de {group.baseTitle} ({group.paidCount}/{group.totalCount} Pagas)
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] text-gray-400 hidden sm:inline">Total: <strong className="text-white">{group.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
+
+                                      <button
+                                        onClick={() => handleOpenEditGroupModal(group)}
+                                        className="px-2.5 py-1 text-[10px] font-bold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/25 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-amber-500/30"
+                                        title="Editar valor de todas as parcelas"
+                                      >
+                                        <Edit3 size={11} /> Editar Grupo ({group.totalCount}x)
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleDeleteRecurringGroup(group)}
+                                        className="px-2.5 py-1 text-[10px] font-bold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/25 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-rose-500/30"
+                                        title="Excluir todas as parcelas"
+                                      >
+                                        <Trash2 size={11} /> Excluir Todas ({group.totalCount}x)
+                                      </button>
+                                    </div>
+                                  </div>
+
+
+                                  <div className="divide-y divide-white/5">
+                                    {group.transactions.map((subTx, idx) => {
+                                      const isSubPaid = subTx.status === "pago";
+                                      const instNum = subTx.installmentIndex || (idx + 1);
+                                      return (
+                                        <div
+                                          key={subTx.id}
+                                          onClick={() => handleOpenEditModal(subTx)}
+                                          title="Clique para editar data ou valor desta parcela"
+                                          className="py-2.5 flex items-center justify-between text-xs hover:bg-amber-500/10 px-2.5 rounded-lg transition-colors cursor-pointer group"
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] border ${isSubPaid
+                                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                                : "bg-white/5 text-gray-400 border-white/10"
+                                              }`}>
+                                              {instNum}
+                                            </span>
+                                            <div>
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="font-semibold text-white text-xs group-hover:text-amber-300 transition-colors">{subTx.description}</span>
+                                                <Edit3 size={11} className="text-gray-500 group-hover:text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                                              </div>
+                                              <div className="text-[10px] text-gray-400 flex items-center gap-2">
+                                                <span>Vencimento: <strong className="text-gray-200 group-hover:text-amber-300 underline">{subTx.dueDate ? new Date(subTx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</strong></span>
+                                                {subTx.paymentDate && <span className="text-emerald-400 font-medium">· Pago em: {new Date(subTx.paymentDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                                            <span className={`font-bold text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
+                                              {subTx.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                            </span>
+
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleToggleStatus(subTx);
+                                              }}
+                                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all ${isSubPaid
+                                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                                  : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                                                }`}
+                                            >
+                                              {isSubPaid ? "✅ Pago" : "⏳ Pendente"}
+                                            </button>
+
+                                            <div className="flex items-center gap-1">
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleOpenEditModal(subTx);
+                                                }}
+                                                className="p-1 text-amber-400 hover:text-white bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 rounded transition-colors"
+                                                title="Editar Parcela"
+                                              >
+                                                <Edit3 size={12} />
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeleteTransaction(subTx.id);
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded transition-colors"
+                                                title="Excluir Parcela"
+                                              >
+                                                <Trash2 size={12} />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    }
+
+                    // RENDERIZAÇÃO DE ITEM AVULSO (SINGLE)
+                    const tx = row.tx;
+                    const isReceita = tx.type === "receita";
+                    const isPaid = tx.status === "pago";
+
+                    const todayStr = new Date().toISOString().split("T")[0];
+                    const tomorrowDate = new Date();
+                    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+                    const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
+
+                    const isDueToday = tx.dueDate === todayStr && !isPaid;
+                    const isDueTomorrow = tx.dueDate === tomorrowStr && !isPaid;
+
+                    const categoryObj = CATEGORIES.find(c => c.id === tx.category);
+                    const categoryLabel = categoryObj ? categoryObj.label : tx.category;
+
+                    const linkedLead = tx.leadId ? leads.find(l => String(l.id) === String(tx.leadId)) : null;
+
+                    return (
+                      <tr
+                        key={`tx-${tx.id}`}
+                        onClick={() => handleOpenEditModal(tx)}
+                        title="Clique para editar este lançamento (data, valor, descrição, etc.)"
+                        className={`transition-colors cursor-pointer group hover:bg-amber-500/10 ${isDueToday
+                            ? "bg-red-950/20 hover:bg-red-950/35"
+                            : isDueTomorrow
+                              ? "bg-amber-950/20 hover:bg-amber-950/35"
+                              : "hover:bg-white/5"
+                          }`}
+                      >
+                        {/* Vencimento */}
+                        <td className="py-3.5 px-4 text-gray-300 font-semibold text-[11px] whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="group-hover:text-amber-300 transition-colors flex items-center gap-1">
+                              {tx.dueDate ? new Date(tx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}
+                              <Edit3 size={11} className="text-gray-500 group-hover:text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                            </span>
+                            {isDueToday && (
+                              <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1.5 py-0.2 rounded border border-rose-500/40 animate-pulse">
+                                🚨 Vence Hoje
+                              </span>
+                            )}
+                            {isDueTomorrow && (
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.2 rounded border border-amber-500/40">
+                                ⚠️ Vence Amanhã
+                              </span>
+                            )}
                           </div>
                         </td>
 
 
-                        {/* Tipo */}
-                        <td className="py-3.5 px-4">
-                          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1.5 ${
-                            isReceita 
-                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
-                              : "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                          }`}>
-                            <Repeat size={11} className={isReceita ? "text-emerald-400" : "text-amber-400"} />
-                            {isReceita ? "Receita Recorrente" : "Custo Fixo Recorrente"}
+                        {/* Tipo Badge */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1 ${isReceita
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            }`}>
+                            {isReceita ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
+                            {isReceita ? "Entrada" : "Saída"}
                           </span>
                         </td>
 
-                        {/* Descrição & Resumo */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-white text-xs">{group.baseTitle}</span>
-                            <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
-                              <Layers size={10} /> {group.totalCount} Meses
-                            </span>
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                              isAllPaid 
-                                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
-                                : "bg-blue-500/20 text-blue-300 border-blue-500/30"
-                            }`}>
-                              {group.paidCount} de {group.totalCount} Pagas ({Math.round((group.paidCount / group.totalCount) * 100)}%)
-                            </span>
+                        {/* Descrição & Lead / Fornecedor */}
+                        <td className="py-3.5 px-4 max-w-[280px]">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-white text-xs group-hover:text-amber-300 transition-colors" title={tx.description}>{tx.description}</span>
+                            {((tx as any).isRecurring || tx.notes?.includes("Recorrente")) && (
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-0.5">
+                                <Clock size={10} /> Custo Fixo
+                              </span>
+                            )}
                           </div>
 
-                          {group.supplierName && (
+                          {tx.supplierName && (
                             <div className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
-                              <Truck size={11} className="text-amber-400" /> Fornecedor: {group.supplierName}
+                              <Truck size={11} className="text-amber-400" /> Fornecedor: {tx.supplierName}
                             </div>
+                          )}
+
+                          {linkedLead && (
+                            <div className="text-[10px] text-blue-400 font-medium flex items-center gap-1 mt-0.5">
+                              <UserCheck size={11} /> Cliente: {linkedLead.name}
+                            </div>
+                          )}
+
+                          {tx.notes && (
+                            <div className="text-[10px] text-gray-500 truncate max-w-[220px] mt-0.5">{tx.notes}</div>
                           )}
                         </td>
 
                         {/* Categoria */}
-                        <td className="py-3.5 px-4 text-gray-300 text-[11px] max-w-[150px] truncate">
+                        <td className="py-3.5 px-4 text-gray-400 text-[11px] max-w-[140px] truncate hidden md:table-cell">
                           {categoryLabel}
                         </td>
 
                         {/* Forma de Pagamento */}
-                        <td className="py-3.5 px-4 text-gray-300 text-[11px]">
-                          {group.paymentMethod || "PIX"}
+                        <td className="py-3.5 px-4 text-gray-400 text-[11px] whitespace-nowrap hidden sm:table-cell">
+                          {tx.paymentMethod || "PIX"}
                         </td>
 
                         {/* Valor */}
-                        <td className={`py-3.5 px-4 font-black text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
-                          <div>{isReceita ? "+" : "-"} {group.monthlyAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
-                          <div className="text-[10px] font-normal text-gray-400">Total: {group.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                        <td className={`py-3.5 px-4 font-black text-xs whitespace-nowrap ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
+                          <span className="group-hover:underline flex items-center gap-1">
+                            {isReceita ? "+" : "-"} {tx.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            <Edit3 size={11} className="text-gray-500 group-hover:text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                          </span>
                         </td>
 
                         {/* Status */}
-                        <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
-                          {group.nextPendingTx ? (
-                            <button
-                              onClick={() => handleToggleStatus(group.nextPendingTx!)}
-                              title="Clique para dar baixa na próxima parcela pendente"
-                              className="text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1.5 shadow-sm"
-                            >
-                              <Clock size={11} /> Baixar ({group.nextPendingTx.installmentIndex || 1}ª)
-                            </button>
-                          ) : (
-                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
-                              <CheckCircle2 size={11} /> 100% Pago
-                            </span>
-                          )}
+                        <td className="py-3.5 px-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStatus(tx);
+                            }}
+                            title="Clique para alternar entre Pago e Pendente"
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all ${isPaid
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                : tx.status === "atrasado"
+                                  ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
+                                  : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                              }`}
+                          >
+                            {isPaid ? "✅ Pago" : tx.status === "atrasado" ? "⚠️ Atrasado" : "⏳ Pendente"}
+                          </button>
                         </td>
 
                         {/* Ações */}
-                        <td className="py-3.5 px-4 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                        <td className="py-3.5 px-4 text-right space-x-1 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                           <button
-                            onClick={() => handleOpenEditGroupModal(group)}
-                            className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer inline-flex items-center"
-                            title="Editar valor e dados de todas as parcelas"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditModal(tx);
+                            }}
+                            className="p-1.5 text-amber-400 hover:text-white bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/20 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold"
+                            title="Editar Lançamento"
                           >
-                            <Edit3 size={14} />
+                            <Edit3 size={12} />
+                            <span className="hidden sm:inline">Editar</span>
                           </button>
 
                           <button
-                            onClick={() => handleDeleteRecurringGroup(group)}
-                            className="p-1.5 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer inline-flex items-center"
-                            title={`Excluir todas as ${group.totalCount} parcelas deste grupo`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTransaction(tx.id);
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Excluir Lançamento"
                           >
-                            <Trash2 size={14} />
-                          </button>
-
-                          <button
-                            onClick={() => toggleGroup(group.groupId)}
-                            className="px-2.5 py-1 text-[11px] font-bold text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-white/10"
-                            title={isExpanded ? "Recolher parcelas" : "Expandir parcelas"}
-                          >
-                            {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                            {isExpanded ? "Ocultar" : `Ver ${group.totalCount}x`}
+                            <Trash2 size={13} />
                           </button>
                         </td>
                       </tr>
+                    );
+                  })}
 
-                      {/* SUB-TABELA ANINHADA DE PARCELAS QUANDO EXPANDIDO */}
-                      {isExpanded && (
-                        <tr className="bg-black/60 border-l-4 border-l-amber-500/40 animate-fade-in">
-                          <td colSpan={8} className="p-3 pl-6 sm:pl-8">
-                            <div className="bg-[#111111] border border-white/10 rounded-xl p-3.5 shadow-inner space-y-2.5">
-                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-2">
-                                <span className="flex items-center gap-1.5 text-amber-300 font-extrabold">
-                                  <Layers size={13} /> Parcelas de {group.baseTitle} ({group.paidCount}/{group.totalCount} Pagas)
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] text-gray-400 hidden sm:inline">Total: <strong className="text-white">{group.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
-                                  
-                                  <button
-                                    onClick={() => handleOpenEditGroupModal(group)}
-                                    className="px-2.5 py-1 text-[10px] font-bold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/25 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-amber-500/30"
-                                    title="Editar valor de todas as parcelas"
-                                  >
-                                    <Edit3 size={11} /> Editar Grupo ({group.totalCount}x)
-                                  </button>
-
-                                  <button
-                                    onClick={() => handleDeleteRecurringGroup(group)}
-                                    className="px-2.5 py-1 text-[10px] font-bold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/25 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-rose-500/30"
-                                    title="Excluir todas as parcelas"
-                                  >
-                                    <Trash2 size={11} /> Excluir Todas ({group.totalCount}x)
-                                  </button>
-                                </div>
-                              </div>
+                  {displayRows.length === 0 && !loading && (
+                    <tr>
+                      <td colSpan={8} className="py-10 text-center text-gray-500 italic">
+                        Nenhum lançamento financeiro encontrado com os filtros aplicados.
+                      </td>
+                    </tr>
+                  )}
 
 
-                              <div className="divide-y divide-white/5">
-                                {group.transactions.map((subTx, idx) => {
-                                  const isSubPaid = subTx.status === "pago";
-                                  const instNum = subTx.installmentIndex || (idx + 1);
-                                  return (
-                                    <div key={subTx.id} className="py-2 flex items-center justify-between text-xs hover:bg-white/5 px-2.5 rounded-lg transition-colors">
-                                      <div className="flex items-center gap-3">
-                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] border ${
-                                          isSubPaid 
-                                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
-                                            : "bg-white/5 text-gray-400 border-white/10"
-                                        }`}>
-                                          {instNum}
-                                        </span>
-                                        <div>
-                                          <span className="font-semibold text-white text-xs">{subTx.description}</span>
-                                          <div className="text-[10px] text-gray-400">
-                                            Vencimento: <strong className="text-gray-200">{subTx.dueDate ? new Date(subTx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</strong>
-                                            {subTx.paymentDate && <span className="ml-2 text-emerald-400 font-medium">· Pago em: {new Date(subTx.paymentDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>}
-                                          </div>
-                                        </div>
-                                      </div>
+                  {loading && (
+                    <tr>
+                      <td colSpan={8} className="py-10 text-center text-gray-400">
+                        Carregando lançamentos do financeiro...
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-                                      <div className="flex items-center gap-3">
-                                        <span className={`font-bold text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
-                                          {subTx.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                                        </span>
-
-                                        <button
-                                          onClick={() => handleToggleStatus(subTx)}
-                                          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all ${
-                                            isSubPaid 
-                                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20" 
-                                              : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
-                                          }`}
-                                        >
-                                          {isSubPaid ? "✅ Pago" : "⏳ Pendente"}
-                                        </button>
-
-                                        <div className="flex items-center gap-1">
-                                          <button
-                                            onClick={() => handleOpenEditModal(subTx)}
-                                            className="p-1 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
-                                            title="Editar Parcela"
-                                          >
-                                            <Edit3 size={13} />
-                                          </button>
-                                          <button
-                                            onClick={() => handleDeleteTransaction(subTx.id)}
-                                            className="p-1 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded transition-colors"
-                                            title="Excluir Parcela"
-                                          >
-                                            <Trash2 size={13} />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                }
-
-                // RENDERIZAÇÃO DE ITEM AVULSO (SINGLE)
-                const tx = row.tx;
-                const isReceita = tx.type === "receita";
-                const isPaid = tx.status === "pago";
-
-                const todayStr = new Date().toISOString().split("T")[0];
-                const tomorrowDate = new Date();
-                tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-                const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
-
-                const isDueToday = tx.dueDate === todayStr && !isPaid;
-                const isDueTomorrow = tx.dueDate === tomorrowStr && !isPaid;
-
-                const categoryObj = CATEGORIES.find(c => c.id === tx.category);
-                const categoryLabel = categoryObj ? categoryObj.label : tx.category;
-
-                const linkedLead = tx.leadId ? leads.find(l => String(l.id) === String(tx.leadId)) : null;
-
-                return (
-                  <tr 
-                    key={`tx-${tx.id}`} 
-                    className={`transition-colors ${
-                      isDueToday 
-                        ? "bg-red-950/20 hover:bg-red-950/30" 
-                        : isDueTomorrow 
-                        ? "bg-amber-950/20 hover:bg-amber-950/30" 
-                        : "hover:bg-white/5"
-                    }`}
+          {/* MODAL CRIAR / EDITAR LANÇAMENTO (AMPLO EM GRID DE 4 COLUNAS) */}
+          {isModalOpen && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
+              <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-4xl p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-in max-h-[92vh] overflow-y-auto scrollbar-thin">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <h3 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <DollarSign size={20} className="text-amber-400" />
+                    {editingTx ? "Editar Lançamento Financeiro" : `Novo Lançamento - ${formType === "receita" ? "Receita (Entrada)" : "Despesa (Saída)"}`}
+                  </h3>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                   >
-                    {/* Vencimento */}
-                    <td className="py-3.5 px-4 text-gray-300 font-semibold text-[11px]">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span>{tx.dueDate ? new Date(tx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</span>
-                        {isDueToday && (
-                          <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1.5 py-0.2 rounded border border-rose-500/40 animate-pulse">
-                            🚨 Vence Hoje
-                          </span>
-                        )}
-                        {isDueTomorrow && (
-                          <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.2 rounded border border-amber-500/40">
-                            ⚠️ Vence Amanhã
-                          </span>
-                        )}
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmitForm} className="space-y-4 text-xs">
+                  {/* LINHA 1: TIPO (1 col) + DESCRIÇÃO (2 cols) */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Selector Tipo */}
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Tipo de Lançamento *</label>
+                      <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10 h-[42px] items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormType("receita");
+                            setFormCategory("venda_marcenaria");
+                          }}
+                          className={`h-full rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${formType === "receita" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30" : "text-gray-400 hover:text-white"
+                            }`}
+                        >
+                          <ArrowDownRight size={13} /> Receita
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormType("despesa");
+                            setFormCategory("materia_prima");
+                          }}
+                          className={`h-full rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${formType === "despesa" ? "bg-rose-600 text-white shadow-md shadow-rose-600/30" : "text-gray-400 hover:text-white"
+                            }`}
+                        >
+                          <ArrowUpRight size={13} /> Despesa
+                        </button>
                       </div>
-                    </td>
+                    </div>
 
+                    {/* Descrição */}
+                    <div className="md:col-span-2">
+                      <label className="block text-gray-300 font-semibold mb-1">Descrição do Lançamento *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formDescription}
+                        onChange={e => setFormDescription(e.target.value)}
+                        placeholder="Ex: Entrada 50% Cozinha Cliente João ou Compra MDF Arauco"
+                        className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white focus:outline-none focus:border-amber-400/50 h-[42px]"
+                      />
+                    </div>
+                  </div>
 
-                    {/* Tipo Badge */}
-                    <td className="py-3.5 px-4">
-                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1 ${
-                        isReceita 
-                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                          : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                      }`}>
-                        {isReceita ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
-                        {isReceita ? "Entrada" : "Saída"}
-                      </span>
-                    </td>
-
-                    {/* Descrição & Lead / Fornecedor */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-white text-xs">{tx.description}</span>
-                        {((tx as any).isRecurring || tx.notes?.includes("Recorrente")) && (
-                          <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-0.5">
-                            <Clock size={10} /> Custo Fixo
-                          </span>
-                        )}
-                      </div>
-
-                      {tx.supplierName && (
-                        <div className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
-                          <Truck size={11} className="text-amber-400" /> Fornecedor: {tx.supplierName}
-                        </div>
-                      )}
-
-                      {linkedLead && (
-                        <div className="text-[10px] text-blue-400 font-medium flex items-center gap-1 mt-0.5">
-                          <UserCheck size={11} /> Cliente: {linkedLead.name}
-                        </div>
-                      )}
-
-                      {tx.notes && (
-                        <div className="text-[10px] text-gray-500 truncate max-w-[220px] mt-0.5">{tx.notes}</div>
-                      )}
-                    </td>
+                  {/* LINHA 2: GRID DE 4 COLUNAS (Valor, Categoria, Vencimento, Forma de Pagamento) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* Valor */}
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Valor (R$) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formAmount}
+                        onChange={e => setFormAmount(e.target.value)}
+                        placeholder="Ex: 104,90 ou 1500"
+                        className="w-full bg-black/50 border border-white/10 rounded-xl py-2 px-3 text-white font-bold focus:outline-none focus:border-amber-400/50"
+                      />
+                    </div>
 
                     {/* Categoria */}
-                    <td className="py-3.5 px-4 text-gray-300 text-[11px] max-w-[150px] truncate">
-                      {categoryLabel}
-                    </td>
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Categoria</label>
+                      <select
+                        value={formCategory}
+                        onChange={e => setFormCategory(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
+                      >
+                        {CATEGORIES.filter(c => c.type === "both" || c.type === formType).map(cat => (
+                          <option key={cat.id} value={cat.id} className="bg-neutral-900">
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                    {/* Forma de Pagamento */}
-                    <td className="py-3.5 px-4 text-gray-300 text-[11px]">
-                      {tx.paymentMethod || "PIX"}
-                    </td>
+                    {/* Vencimento */}
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Data Vencimento</label>
+                      <input
+                        type="date"
+                        value={formDueDate}
+                        onChange={e => setFormDueDate(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none"
+                      />
+                    </div>
 
-                    {/* Valor */}
-                    <td className={`py-3.5 px-4 font-black text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
-                      {isReceita ? "+" : "-"} {tx.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </td>
+                    {/* Forma Pagamento */}
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Forma de Pagamento</label>
+                      <select
+                        value={formPaymentMethod}
+                        onChange={e => setFormPaymentMethod(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
+                      >
+                        <option value="PIX" className="bg-neutral-900">PIX</option>
+                        <option value="Boleto" className="bg-neutral-900">Boleto Bancário</option>
+                        <option value="Cartão de Crédito" className="bg-neutral-900">Cartão de Crédito</option>
+                        <option value="Transferência/TED" className="bg-neutral-900">Transferência/TED</option>
+                        <option value="Dinheiro" className="bg-neutral-900">Dinheiro</option>
+                        <option value="Financiamento" className="bg-neutral-900">Financiamento</option>
+                      </select>
+                    </div>
+                  </div>
 
+                  {/* LINHA 3: GRID DE 4 COLUNAS (Status, Data Pgto, Cliente Lead ou Fornecedor) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* Status */}
-                    <td className="py-3.5 px-4">
-                      <button
-                        onClick={() => handleToggleStatus(tx)}
-                        title="Clique para alterar status"
-                        className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all ${
-                          isPaid 
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20" 
-                            : tx.status === "atrasado"
-                            ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
-                            : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
-                        }`}
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Status</label>
+                      <select
+                        value={formStatus}
+                        onChange={e => setFormStatus(e.target.value as any)}
+                        className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
                       >
-                        {isPaid ? "✅ Pago / Concluído" : tx.status === "atrasado" ? "⚠️ Atrasado" : "⏳ Pendente"}
-                      </button>
-                    </td>
+                        <option value="pago" className="bg-neutral-900">Pago / Recebido</option>
+                        <option value="pendente" className="bg-neutral-900">Pendente</option>
+                        <option value="atrasado" className="bg-neutral-900">Atrasado</option>
+                      </select>
+                    </div>
 
-                    {/* Ações */}
-                    <td className="py-3.5 px-4 text-right space-x-1">
-                      <button
-                        onClick={() => handleOpenEditModal(tx)}
-                        className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                        title="Editar Lançamento"
+                    {/* Data Pagamento (se status == pago) */}
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Data Efetivação / Pgto</label>
+                      <input
+                        type="date"
+                        disabled={formStatus !== "pago"}
+                        value={formPaymentDate}
+                        onChange={e => setFormPaymentDate(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Vínculo com Lead do CRM (2 colunas para receita, 1 col para despesa) */}
+                    <div className={formType === "receita" ? "sm:col-span-2 lg:col-span-2" : ""}>
+                      <label className="block text-gray-300 font-semibold mb-1">Vincular a Cliente/Lead</label>
+                      <select
+                        value={formLeadId}
+                        onChange={e => setFormLeadId(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
                       >
-                        <Edit3 size={14} />
-                      </button>
+                        <option value="" className="bg-neutral-900">Nenhum cliente vinculado</option>
+                        {leads.map(lead => (
+                          <option key={lead.id} value={lead.id} className="bg-neutral-900">
+                            {lead.name} {lead.phone ? `(${lead.phone})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                      <button
-                        onClick={() => handleDeleteTransaction(tx.id)}
-                        className="p-1.5 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                        title="Excluir Lançamento"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                    {/* Vínculo com Fornecedor (apenas se despesa) */}
+                    {formType === "despesa" && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-gray-300 font-semibold">Fornecedor / Parceiro</label>
+                          <button
+                            type="button"
+                            onClick={() => setIsSuppliersModalOpen(true)}
+                            className="text-[10px] text-amber-400 hover:underline flex items-center gap-0.5"
+                          >
+                            + Cadastrar
+                          </button>
+                        </div>
+                        <select
+                          value={formSupplierId}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setFormSupplierId(val);
+                            const match = suppliersList.find(s => s.id.toString() === val);
+                            setFormSupplierName(match ? (match.tradeName || match.name) : "");
+                          }}
+                          className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
+                        >
+                          <option value="" className="bg-neutral-900">Nenhum fornecedor vinculado</option>
+                          {suppliersList.map(sup => (
+                            <option key={sup.id} value={sup.id} className="bg-neutral-900">
+                              {sup.tradeName || sup.name} {sup.cnpjCpf ? `(${sup.cnpjCpf})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
 
-              {displayRows.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-gray-500 italic">
-                    Nenhum lançamento financeiro encontrado com os filtros aplicados.
-                  </td>
-                </tr>
-              )}
+                  {/* ATALHOS RÁPIDOS DE CUSTOS FIXOS (Grid de 5 colunas em tela cheia) */}
+                  {formType === "despesa" && !editingTx && (
+                    <div className="space-y-2 p-3.5 rounded-xl bg-neutral-950/70 border border-white/5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold flex items-center gap-1.5 text-amber-300">
+                          <Zap size={13} className="text-amber-400" />
+                          Atalhos Rápidos de Custos Fixos Dumar:
+                        </span>
+                        <span className="text-[10px] text-gray-500">1 clique para auto-preencher</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-0.5">
+                        {[
+                          { label: "🏢 Aluguel Galpão", desc: "Aluguel Galpão & Escritório", category: "administrativo", amount: "2500", method: "Boleto", supplierKeyword: "Aluguel" },
+                          { label: "⚡ Energia Elétrica", desc: "Energia Elétrica / Luz (Celesc)", category: "administrativo", amount: "550", method: "Boleto", supplierKeyword: "Celesc" },
+                          { label: "📊 Contador", desc: "Honorários Contábeis Mensalidade", category: "administrativo", amount: "600", method: "PIX", supplierKeyword: "Contador" },
+                          { label: "🌐 Hospedagem/VPS", desc: "Servidor VPS / Hospedagem & Domínio", category: "administrativo", amount: "150", method: "Cartão de Crédito", supplierKeyword: "Hospedagem" },
+                          { label: "📶 Internet Fibra", desc: "Internet Fibra Óptica & Telefonia", category: "administrativo", amount: "180", method: "Boleto", supplierKeyword: "Internet" },
+                        ].map((preset, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => applyFixedExpensePreset(preset)}
+                            className="p-2 rounded-xl bg-white/5 hover:bg-amber-500/20 hover:text-amber-300 border border-white/10 hover:border-amber-500/30 text-[11px] text-gray-300 font-medium transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-0.5"
+                          >
+                            <span className="font-bold">{preset.label}</span>
+                            <span className="text-[9px] text-gray-400">R$ {preset.amount}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
+                  {/* REPETIÇÃO DE DESPESA FIXA (RECORRÊNCIA) */}
+                  {formType === "despesa" && !editingTx && (
+                    <div className="p-3.5 bg-neutral-950/80 rounded-xl border border-amber-500/20 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formIsRecurring}
+                            onChange={e => setFormIsRecurring(e.target.checked)}
+                            className="w-4 h-4 rounded border-white/20 bg-neutral-900 text-amber-500 focus:ring-0 cursor-pointer"
+                          />
+                          <span className="font-bold text-xs text-amber-300 flex items-center gap-1.5">
+                            <Clock size={13} className="text-amber-400" />
+                            Repetir esta Despesa Fixa nos próximos meses (Projeção Automática)
+                          </span>
+                        </label>
+                        {formIsRecurring && (
+                          <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full font-bold border border-amber-500/30">
+                            {formRecurringMonths} meses programados
+                          </span>
+                        )}
+                      </div>
 
-              {loading && (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-gray-400">
-                    Carregando lançamentos do financeiro...
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      {formIsRecurring && (
+                        <div className="pt-2.5 border-t border-white/5 space-y-2 animate-fade-in">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <span className="text-gray-400 text-[11px]">Projetar no fluxo de caixa por:</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {[
+                                { label: "3 Meses", val: 3 },
+                                { label: "6 Meses", val: 6 },
+                                { label: "12 Meses (1 Ano)", val: 12 },
+                                { label: "24 Meses (2 Anos)", val: 24 }
+                              ].map(opt => (
+                                <button
+                                  key={opt.val}
+                                  type="button"
+                                  onClick={() => setFormRecurringMonths(opt.val)}
+                                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${formRecurringMonths === opt.val
+                                      ? "bg-amber-500 text-black shadow-md shadow-amber-500/20"
+                                      : "bg-white/5 text-gray-400 hover:text-white border border-white/10"
+                                    }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-gray-400 italic">
+                            💡 O sistema criará {formRecurringMonths} lançamentos com o mesmo valor no dia de vencimento de cada mês correspondente.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-      {/* MODAL CRIAR / EDITAR LANÇAMENTO (AMPLO EM GRID DE 4 COLUNAS) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-          <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-4xl p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-in max-h-[92vh] overflow-y-auto scrollbar-thin">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <DollarSign size={20} className="text-amber-400" />
-                {editingTx ? "Editar Lançamento Financeiro" : `Novo Lançamento - ${formType === "receita" ? "Receita (Entrada)" : "Despesa (Saída)"}`}
-              </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
+                  {/* LINHA: OBSERVAÇÕES */}
+                  <div>
+                    <label className="block text-gray-300 font-semibold mb-1">Observações</label>
+                    <textarea
+                      rows={2}
+                      value={formNotes}
+                      onChange={e => setFormNotes(e.target.value)}
+                      placeholder="Número de nota fiscal, comprovante, chave PIX ou observação..."
+                      className="w-full bg-black/50 border border-white/10 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-amber-400/50"
+                    />
+                  </div>
 
-            <form onSubmit={handleSubmitForm} className="space-y-4 text-xs">
-              {/* LINHA 1: TIPO (1 col) + DESCRIÇÃO (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* Selector Tipo */}
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Tipo de Lançamento *</label>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10 h-[42px] items-center">
+                  {/* Botões de Ação */}
+                  <div className="flex items-center gap-3 pt-3 border-t border-white/10">
                     <button
                       type="button"
-                      onClick={() => {
-                        setFormType("receita");
-                        setFormCategory("venda_marcenaria");
-                      }}
-                      className={`h-full rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                        formType === "receita" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30" : "text-gray-400 hover:text-white"
-                      }`}
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
                     >
-                      <ArrowDownRight size={13} /> Receita
+                      Cancelar
                     </button>
 
                     <button
-                      type="button"
-                      onClick={() => {
-                        setFormType("despesa");
-                        setFormCategory("materia_prima");
-                      }}
-                      className={`h-full rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                        formType === "despesa" ? "bg-rose-600 text-white shadow-md shadow-rose-600/30" : "text-gray-400 hover:text-white"
-                      }`}
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 py-2.5 rounded-xl font-bold text-black bg-amber-500 hover:bg-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
                     >
-                      <ArrowUpRight size={13} /> Despesa
+                      {isSubmitting ? "Salvando..." : editingTx ? "Salvar Alterações" : formIsRecurring ? `Lançar ${formRecurringMonths}x Meses Recorrentes` : "Criar Lançamento"}
                     </button>
                   </div>
-                </div>
-
-                {/* Descrição */}
-                <div className="md:col-span-2">
-                  <label className="block text-gray-300 font-semibold mb-1">Descrição do Lançamento *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formDescription}
-                    onChange={e => setFormDescription(e.target.value)}
-                    placeholder="Ex: Entrada 50% Cozinha Cliente João ou Compra MDF Arauco"
-                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white focus:outline-none focus:border-amber-400/50 h-[42px]"
-                  />
-                </div>
+                </form>
               </div>
+            </div>
+          )}
 
-              {/* LINHA 2: GRID DE 4 COLUNAS (Valor, Categoria, Vencimento, Forma de Pagamento) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* Valor */}
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Valor (R$) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formAmount}
-                    onChange={e => setFormAmount(e.target.value)}
-                    placeholder="Ex: 104,90 ou 1500"
-                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2 px-3 text-white font-bold focus:outline-none focus:border-amber-400/50"
-                  />
-                </div>
-
-                {/* Categoria */}
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Categoria</label>
-                  <select
-                    value={formCategory}
-                    onChange={e => setFormCategory(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
+          {/* MODAL EDITAR GRUPO RECORRENTE EM LOTE */}
+          {editingGroup && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
+              <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-xl p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-in max-h-[92vh] overflow-y-auto scrollbar-thin">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <h3 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Repeat size={18} className="text-amber-400" />
+                    Editar Lote Recorrente ({editingGroup.totalCount}x Meses)
+                  </h3>
+                  <button
+                    onClick={() => setEditingGroup(null)}
+                    className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                   >
-                    {CATEGORIES.filter(c => c.type === "both" || c.type === formType).map(cat => (
-                      <option key={cat.id} value={cat.id} className="bg-neutral-900">
-                        {cat.label}
-                      </option>
-                    ))}
-                  </select>
+                    <X size={18} />
+                  </button>
                 </div>
 
-                {/* Vencimento */}
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Data Vencimento</label>
-                  <input
-                    type="date"
-                    value={formDueDate}
-                    onChange={e => setFormDueDate(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none"
-                  />
-                </div>
-
-                {/* Forma Pagamento */}
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Forma de Pagamento</label>
-                  <select
-                    value={formPaymentMethod}
-                    onChange={e => setFormPaymentMethod(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
-                  >
-                    <option value="PIX" className="bg-neutral-900">PIX</option>
-                    <option value="Boleto" className="bg-neutral-900">Boleto Bancário</option>
-                    <option value="Cartão de Crédito" className="bg-neutral-900">Cartão de Crédito</option>
-                    <option value="Transferência/TED" className="bg-neutral-900">Transferência/TED</option>
-                    <option value="Dinheiro" className="bg-neutral-900">Dinheiro</option>
-                    <option value="Financiamento" className="bg-neutral-900">Financiamento</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* LINHA 3: GRID DE 4 COLUNAS (Status, Data Pgto, Cliente Lead ou Fornecedor) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* Status */}
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Status</label>
-                  <select
-                    value={formStatus}
-                    onChange={e => setFormStatus(e.target.value as any)}
-                    className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
-                  >
-                    <option value="pago" className="bg-neutral-900">Pago / Recebido</option>
-                    <option value="pendente" className="bg-neutral-900">Pendente</option>
-                    <option value="atrasado" className="bg-neutral-900">Atrasado</option>
-                  </select>
-                </div>
-
-                {/* Data Pagamento (se status == pago) */}
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Data Efetivação / Pgto</label>
-                  <input
-                    type="date"
-                    disabled={formStatus !== "pago"}
-                    value={formPaymentDate}
-                    onChange={e => setFormPaymentDate(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Vínculo com Lead do CRM (2 colunas para receita, 1 col para despesa) */}
-                <div className={formType === "receita" ? "sm:col-span-2 lg:col-span-2" : ""}>
-                  <label className="block text-gray-300 font-semibold mb-1">Vincular a Cliente/Lead</label>
-                  <select
-                    value={formLeadId}
-                    onChange={e => setFormLeadId(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
-                  >
-                    <option value="" className="bg-neutral-900">Nenhum cliente vinculado</option>
-                    {leads.map(lead => (
-                      <option key={lead.id} value={lead.id} className="bg-neutral-900">
-                        {lead.name} {lead.phone ? `(${lead.phone})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Vínculo com Fornecedor (apenas se despesa) */}
-                {formType === "despesa" && (
+                <div className="space-y-4 text-xs">
+                  {/* Título Base */}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-gray-300 font-semibold">Fornecedor / Parceiro</label>
-                      <button
-                        type="button"
-                        onClick={() => setIsSuppliersModalOpen(true)}
-                        className="text-[10px] text-amber-400 hover:underline flex items-center gap-0.5"
-                      >
-                        + Cadastrar
-                      </button>
+                    <label className="block text-gray-300 font-semibold mb-1">Título / Descrição Base *</label>
+                    <input
+                      type="text"
+                      value={groupFormBaseTitle}
+                      onChange={e => setGroupFormBaseTitle(e.target.value)}
+                      placeholder="Ex: Internet Fibra Óptica, Aluguel do Galpão..."
+                      className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white focus:outline-none focus:border-amber-400/50"
+                    />
+                  </div>
+
+                  {/* Valor por Parcela */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Novo Valor da Parcela (R$) *</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">R$</span>
+                        <input
+                          type="text"
+                          value={groupFormAmount}
+                          onChange={e => setGroupFormAmount(e.target.value)}
+                          placeholder="104,90"
+                          className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-white font-black text-sm focus:outline-none focus:border-amber-400/50"
+                        />
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1">Ex: digite <strong className="text-amber-300">104,90</strong> ou <strong className="text-amber-300">104.90</strong></p>
                     </div>
+
+                    {/* Forma de Pagamento */}
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Forma de Pagamento</label>
+                      <select
+                        value={groupFormPaymentMethod}
+                        onChange={e => setGroupFormPaymentMethod(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
+                      >
+                        <option value="PIX" className="bg-neutral-900">PIX</option>
+                        <option value="Boleto" className="bg-neutral-900">Boleto Bancário</option>
+                        <option value="Cartão de Crédito" className="bg-neutral-900">Cartão de Crédito</option>
+                        <option value="Cartão de Débito" className="bg-neutral-900">Cartão de Débito</option>
+                        <option value="Transferência (TED)" className="bg-neutral-900">Transferência (TED)</option>
+                        <option value="Dinheiro" className="bg-neutral-900">Dinheiro</option>
+                        <option value="Cheque" className="bg-neutral-900">Cheque</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Categoria */}
+                  <div>
+                    <label className="block text-gray-300 font-semibold mb-1">Categoria Financeira</label>
                     <select
-                      value={formSupplierId}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setFormSupplierId(val);
-                        const match = suppliersList.find(s => s.id.toString() === val);
-                        setFormSupplierName(match ? (match.tradeName || match.name) : "");
-                      }}
-                      className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
+                      value={groupFormCategory}
+                      onChange={e => setGroupFormCategory(e.target.value)}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
                     >
-                      <option value="" className="bg-neutral-900">Nenhum fornecedor vinculado</option>
-                      {suppliersList.map(sup => (
-                        <option key={sup.id} value={sup.id} className="bg-neutral-900">
-                          {sup.tradeName || sup.name} {sup.cnpjCpf ? `(${sup.cnpjCpf})` : ""}
+                      {CATEGORIES.map(c => (
+                        <option key={c.id} value={c.id} className="bg-neutral-900">{c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Fornecedor */}
+                  <div>
+                    <label className="block text-gray-300 font-semibold mb-1">Fornecedor / Parceiro Vinculado</label>
+                    <select
+                      value={groupFormSupplierId}
+                      onChange={e => {
+                        const supId = e.target.value;
+                        setGroupFormSupplierId(supId);
+                        const sup = suppliersList.find(s => String(s.id) === supId);
+                        setGroupFormSupplierName(sup ? (sup.tradeName || sup.name) : "");
+                      }}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
+                    >
+                      <option value="" className="bg-neutral-900">Nenhum / Não informado</option>
+                      {suppliersList.map(s => (
+                        <option key={s.id} value={String(s.id)} className="bg-neutral-900">
+                          {s.tradeName || s.name} ({s.category})
                         </option>
                       ))}
                     </select>
                   </div>
-                )}
-              </div>
 
-              {/* ATALHOS RÁPIDOS DE CUSTOS FIXOS (Grid de 5 colunas em tela cheia) */}
-              {formType === "despesa" && !editingTx && (
-                <div className="space-y-2 p-3.5 rounded-xl bg-neutral-950/70 border border-white/5">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-bold flex items-center gap-1.5 text-amber-300">
-                      <Zap size={13} className="text-amber-400" />
-                      Atalhos Rápidos de Custos Fixos Dumar:
-                    </span>
-                    <span className="text-[10px] text-gray-500">1 clique para auto-preencher</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-0.5">
-                    {[
-                      { label: "🏢 Aluguel Galpão", desc: "Aluguel Galpão & Escritório", category: "administrativo", amount: "2500", method: "Boleto", supplierKeyword: "Aluguel" },
-                      { label: "⚡ Energia Elétrica", desc: "Energia Elétrica / Luz (Celesc)", category: "administrativo", amount: "550", method: "Boleto", supplierKeyword: "Celesc" },
-                      { label: "📊 Contador", desc: "Honorários Contábeis Mensalidade", category: "administrativo", amount: "600", method: "PIX", supplierKeyword: "Contador" },
-                      { label: "🌐 Hospedagem/VPS", desc: "Servidor VPS / Hospedagem & Domínio", category: "administrativo", amount: "150", method: "Cartão de Crédito", supplierKeyword: "Hospedagem" },
-                      { label: "📶 Internet Fibra", desc: "Internet Fibra Óptica & Telefonia", category: "administrativo", amount: "180", method: "Boleto", supplierKeyword: "Internet" },
-                    ].map((preset, idx) => (
+                  {/* Escopo da Alteração */}
+                  <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-2">
+                    <label className="block text-gray-300 font-bold">Aplicar Alterações Em:</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <button
-                        key={idx}
                         type="button"
-                        onClick={() => applyFixedExpensePreset(preset)}
-                        className="p-2 rounded-xl bg-white/5 hover:bg-amber-500/20 hover:text-amber-300 border border-white/10 hover:border-amber-500/30 text-[11px] text-gray-300 font-medium transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-0.5"
+                        onClick={() => setGroupFormScope("all")}
+                        className={`py-2 px-3 rounded-lg font-bold text-xs border text-left transition-all cursor-pointer ${groupFormScope === "all"
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                            : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
+                          }`}
                       >
-                        <span className="font-bold">{preset.label}</span>
-                        <span className="text-[9px] text-gray-400">R$ {preset.amount}</span>
+                        <div>🔁 Todas as {editingGroup.totalCount} Parcelas</div>
+                        <div className="text-[10px] font-normal opacity-80">Atualiza todo o contrato</div>
                       </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {/* REPETIÇÃO DE DESPESA FIXA (RECORRÊNCIA) */}
-              {formType === "despesa" && !editingTx && (
-                <div className="p-3.5 bg-neutral-950/80 rounded-xl border border-amber-500/20 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formIsRecurring}
-                        onChange={e => setFormIsRecurring(e.target.checked)}
-                        className="w-4 h-4 rounded border-white/20 bg-neutral-900 text-amber-500 focus:ring-0 cursor-pointer"
-                      />
-                      <span className="font-bold text-xs text-amber-300 flex items-center gap-1.5">
-                        <Clock size={13} className="text-amber-400" />
-                        Repetir esta Despesa Fixa nos próximos meses (Projeção Automática)
-                      </span>
-                    </label>
-                    {formIsRecurring && (
-                      <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full font-bold border border-amber-500/30">
-                        {formRecurringMonths} meses programados
-                      </span>
-                    )}
-                  </div>
-
-                  {formIsRecurring && (
-                    <div className="pt-2.5 border-t border-white/5 space-y-2 animate-fade-in">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <span className="text-gray-400 text-[11px]">Projetar no fluxo de caixa por:</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {[
-                            { label: "3 Meses", val: 3 },
-                            { label: "6 Meses", val: 6 },
-                            { label: "12 Meses (1 Ano)", val: 12 },
-                            { label: "24 Meses (2 Anos)", val: 24 }
-                          ].map(opt => (
-                            <button
-                              key={opt.val}
-                              type="button"
-                              onClick={() => setFormRecurringMonths(opt.val)}
-                              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${
-                                formRecurringMonths === opt.val
-                                  ? "bg-amber-500 text-black shadow-md shadow-amber-500/20"
-                                  : "bg-white/5 text-gray-400 hover:text-white border border-white/10"
-                              }`}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-gray-400 italic">
-                        💡 O sistema criará {formRecurringMonths} lançamentos com o mesmo valor no dia de vencimento de cada mês correspondente.
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setGroupFormScope("pending")}
+                        className={`py-2 px-3 rounded-lg font-bold text-xs border text-left transition-all cursor-pointer ${groupFormScope === "pending"
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                            : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
+                          }`}
+                      >
+                        <div>⏳ Apenas Pendentes ({editingGroup.totalCount - editingGroup.paidCount})</div>
+                        <div className="text-[10px] font-normal opacity-80">Preserva parcelas já pagas</div>
+                      </button>
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* LINHA: OBSERVAÇÕES */}
-              <div>
-                <label className="block text-gray-300 font-semibold mb-1">Observações</label>
-                <textarea
-                  rows={2}
-                  value={formNotes}
-                  onChange={e => setFormNotes(e.target.value)}
-                  placeholder="Número de nota fiscal, comprovante, chave PIX ou observação..."
-                  className="w-full bg-black/50 border border-white/10 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-amber-400/50"
-                />
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="flex items-center gap-3 pt-3 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-2.5 rounded-xl font-bold text-black bg-amber-500 hover:bg-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
-                >
-                  {isSubmitting ? "Salvando..." : editingTx ? "Salvar Alterações" : formIsRecurring ? `Lançar ${formRecurringMonths}x Meses Recorrentes` : "Criar Lançamento"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EDITAR GRUPO RECORRENTE EM LOTE */}
-      {editingGroup && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-          <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-xl p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-in max-h-[92vh] overflow-y-auto scrollbar-thin">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Repeat size={18} className="text-amber-400" />
-                Editar Lote Recorrente ({editingGroup.totalCount}x Meses)
-              </h3>
-              <button
-                onClick={() => setEditingGroup(null)}
-                className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4 text-xs">
-              {/* Título Base */}
-              <div>
-                <label className="block text-gray-300 font-semibold mb-1">Título / Descrição Base *</label>
-                <input
-                  type="text"
-                  value={groupFormBaseTitle}
-                  onChange={e => setGroupFormBaseTitle(e.target.value)}
-                  placeholder="Ex: Internet Fibra Óptica, Aluguel do Galpão..."
-                  className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white focus:outline-none focus:border-amber-400/50"
-                />
-              </div>
-
-              {/* Valor por Parcela */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Novo Valor da Parcela (R$) *</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">R$</span>
-                    <input
-                      type="text"
-                      value={groupFormAmount}
-                      onChange={e => setGroupFormAmount(e.target.value)}
-                      placeholder="104,90"
-                      className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-white font-black text-sm focus:outline-none focus:border-amber-400/50"
-                    />
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1">Ex: digite <strong className="text-amber-300">104,90</strong> ou <strong className="text-amber-300">104.90</strong></p>
+
+                  {/* Botões de Ação */}
+                  <div className="flex items-center gap-3 pt-3 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setEditingGroup(null)}
+                      className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveEditGroup}
+                      disabled={isSubmitting}
+                      className="flex-1 py-2.5 rounded-xl font-bold text-black bg-amber-500 hover:bg-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
+                    >
+                      {isSubmitting ? "Salvando em Lote..." : `Salvar Alterações no Lote`}
+                    </button>
+                  </div>
                 </div>
-
-                {/* Forma de Pagamento */}
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-1">Forma de Pagamento</label>
-                  <select
-                    value={groupFormPaymentMethod}
-                    onChange={e => setGroupFormPaymentMethod(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
-                  >
-                    <option value="PIX" className="bg-neutral-900">PIX</option>
-                    <option value="Boleto" className="bg-neutral-900">Boleto Bancário</option>
-                    <option value="Cartão de Crédito" className="bg-neutral-900">Cartão de Crédito</option>
-                    <option value="Cartão de Débito" className="bg-neutral-900">Cartão de Débito</option>
-                    <option value="Transferência (TED)" className="bg-neutral-900">Transferência (TED)</option>
-                    <option value="Dinheiro" className="bg-neutral-900">Dinheiro</option>
-                    <option value="Cheque" className="bg-neutral-900">Cheque</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Categoria */}
-              <div>
-                <label className="block text-gray-300 font-semibold mb-1">Categoria Financeira</label>
-                <select
-                  value={groupFormCategory}
-                  onChange={e => setGroupFormCategory(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
-                >
-                  {CATEGORIES.map(c => (
-                    <option key={c.id} value={c.id} className="bg-neutral-900">{c.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Fornecedor */}
-              <div>
-                <label className="block text-gray-300 font-semibold mb-1">Fornecedor / Parceiro Vinculado</label>
-                <select
-                  value={groupFormSupplierId}
-                  onChange={e => {
-                    const supId = e.target.value;
-                    setGroupFormSupplierId(supId);
-                    const sup = suppliersList.find(s => String(s.id) === supId);
-                    setGroupFormSupplierName(sup ? (sup.tradeName || sup.name) : "");
-                  }}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-white font-medium focus:outline-none focus:border-amber-400/50 cursor-pointer"
-                >
-                  <option value="" className="bg-neutral-900">Nenhum / Não informado</option>
-                  {suppliersList.map(s => (
-                    <option key={s.id} value={String(s.id)} className="bg-neutral-900">
-                      {s.tradeName || s.name} ({s.category})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Escopo da Alteração */}
-              <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-2">
-                <label className="block text-gray-300 font-bold">Aplicar Alterações Em:</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setGroupFormScope("all")}
-                    className={`py-2 px-3 rounded-lg font-bold text-xs border text-left transition-all cursor-pointer ${
-                      groupFormScope === "all"
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
-                        : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
-                    }`}
-                  >
-                    <div>🔁 Todas as {editingGroup.totalCount} Parcelas</div>
-                    <div className="text-[10px] font-normal opacity-80">Atualiza todo o contrato</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setGroupFormScope("pending")}
-                    className={`py-2 px-3 rounded-lg font-bold text-xs border text-left transition-all cursor-pointer ${
-                      groupFormScope === "pending"
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
-                        : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
-                    }`}
-                  >
-                    <div>⏳ Apenas Pendentes ({editingGroup.totalCount - editingGroup.paidCount})</div>
-                    <div className="text-[10px] font-normal opacity-80">Preserva parcelas já pagas</div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="flex items-center gap-3 pt-3 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setEditingGroup(null)}
-                  className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSaveEditGroup}
-                  disabled={isSubmitting}
-                  className="flex-1 py-2.5 rounded-xl font-bold text-black bg-amber-500 hover:bg-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
-                >
-                  {isSubmitting ? "Salvando em Lote..." : `Salvar Alterações no Lote`}
-                </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* MODAL DE GESTÃO DE FORNECEDORES & PARCEIROS */}
+          {/* MODAL DE GESTÃO DE FORNECEDORES & PARCEIROS */}
 
-      <CRMSuppliersModal
-        isOpen={isSuppliersModalOpen}
-        onClose={() => {
-          setIsSuppliersModalOpen(false);
-          fetchSuppliers();
-        }}
-        onSelectSupplier={(supplier) => {
-          setFormSupplierId(supplier.id.toString());
-          setFormSupplierName(supplier.tradeName || supplier.name);
-          setIsSuppliersModalOpen(false);
-          fetchSuppliers();
-        }}
-        selectedSupplierId={formSupplierId ? Number(formSupplierId) : null}
-      />
+          <CRMSuppliersModal
+            isOpen={isSuppliersModalOpen}
+            onClose={() => {
+              setIsSuppliersModalOpen(false);
+              fetchSuppliers();
+            }}
+            onSelectSupplier={(supplier) => {
+              setFormSupplierId(supplier.id.toString());
+              setFormSupplierName(supplier.tradeName || supplier.name);
+              setIsSuppliersModalOpen(false);
+              fetchSuppliers();
+            }}
+            selectedSupplierId={formSupplierId ? Number(formSupplierId) : null}
+          />
         </>
       )}
     </div>

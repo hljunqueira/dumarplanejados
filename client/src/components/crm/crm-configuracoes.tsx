@@ -30,15 +30,51 @@ export default function CRMConfiguracoes({
   const [isDisconnectModalOpen, setIsDisconnectModalOpen] = useState(false);
 
   // --- ESTADO DADOS EMPRESA ---
-  const [empresaRazao, setEmpresaRazao] = useState("Dumar Móveis Planejados & Marcenaria Fina");
+  const [empresaRazao, setEmpresaRazao] = useState("Dumar Móveis Planejados Ltda");
+  const [empresaNomeFantasia, setEmpresaNomeFantasia] = useState("Dumar Móveis Planejados");
   const [empresaCnpj, setEmpresaCnpj] = useState("45.890.123/0001-90");
-  const [empresaTelefone, setEmpresaTelefone] = useState("(48) 99123-4567");
+  const [empresaTelefone, setEmpresaTelefone] = useState("(48) 98848-6827");
+  const [empresaEndereco, setEmpresaEndereco] = useState("Av. Santa Catarina, 551 sala 205, Centro");
   const [empresaCidade, setEmpresaCidade] = useState("Balneário Arroio do Silva - SC");
+  const [empresaEmail, setEmpresaEmail] = useState("dumarmoveisplanejados@gmail.com");
   const [savingEmpresa, setSavingEmpresa] = useState(false);
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setFeedback({ text, type });
     setTimeout(() => setFeedback(null), 5000);
+  };
+
+  // Carregar Dados da Empresa
+  const fetchCompanyConfig = async () => {
+    try {
+      const res = await fetch("/api/company-config");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.razaoSocial) setEmpresaRazao(data.razaoSocial);
+        if (data.nomeFantasia) setEmpresaNomeFantasia(data.nomeFantasia);
+        if (data.cnpj) setEmpresaCnpj(data.cnpj);
+        if (data.phone) setEmpresaTelefone(data.phone);
+        if (data.address) setEmpresaEndereco(data.address);
+        if (data.city) setEmpresaCidade(data.city);
+        if (data.email) setEmpresaEmail(data.email);
+        localStorage.setItem("crm_company_config", JSON.stringify(data));
+      }
+    } catch (e) {
+      console.warn("Erro ao buscar dados da empresa da API, usando cache local:", e);
+      try {
+        const cached = localStorage.getItem("crm_company_config");
+        if (cached) {
+          const data = JSON.parse(cached);
+          if (data.razaoSocial) setEmpresaRazao(data.razaoSocial);
+          if (data.nomeFantasia) setEmpresaNomeFantasia(data.nomeFantasia);
+          if (data.cnpj) setEmpresaCnpj(data.cnpj);
+          if (data.phone) setEmpresaTelefone(data.phone);
+          if (data.address) setEmpresaEndereco(data.address);
+          if (data.city) setEmpresaCidade(data.city);
+          if (data.email) setEmpresaEmail(data.email);
+        }
+      } catch (err) {}
+    }
   };
 
   // Carregar Instâncias da Evolution
@@ -59,6 +95,7 @@ export default function CRMConfiguracoes({
 
   useEffect(() => {
     fetchInstances();
+    fetchCompanyConfig();
     try {
       const savedQR = localStorage.getItem("crm_whatsapp_qrcode");
       if (savedQR) setQrCodeData(savedQR);
@@ -131,13 +168,39 @@ export default function CRMConfiguracoes({
     }
   };
 
-  const handleSaveEmpresa = (e: React.FormEvent) => {
+  const handleSaveEmpresa = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingEmpresa(true);
-    setTimeout(() => {
+    const payload = {
+      razaoSocial: empresaRazao.trim(),
+      nomeFantasia: empresaNomeFantasia.trim(),
+      cnpj: empresaCnpj.trim(),
+      phone: empresaTelefone.trim(),
+      address: empresaEndereco.trim(),
+      city: empresaCidade.trim(),
+      email: empresaEmail.trim()
+    };
+    try {
+      const res = await fetch("/api/company-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        localStorage.setItem("crm_company_config", JSON.stringify(payload));
+        window.dispatchEvent(new CustomEvent("dumar_company_config_updated", { detail: payload }));
+        showToast("Dados da empresa atualizados com sucesso!");
+      } else {
+        showToast("Erro ao salvar dados da empresa no servidor.", "error");
+      }
+    } catch (err) {
+      console.error("Erro ao salvar dados da empresa:", err);
+      localStorage.setItem("crm_company_config", JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent("dumar_company_config_updated", { detail: payload }));
+      showToast("Dados salvos localmente.", "success");
+    } finally {
       setSavingEmpresa(false);
-      showToast("Dados da empresa atualizados com sucesso!");
-    }, 400);
+    }
   };
 
   const tabs = [
@@ -294,12 +357,26 @@ export default function CRMConfiguracoes({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                  Razão Social / Nome Fantasia
+                  Razão Social Oficial
                 </label>
                 <input
                   type="text"
                   value={empresaRazao}
                   onChange={(e) => setEmpresaRazao(e.target.value)}
+                  placeholder="Ex: Dumar Móveis Planejados Ltda"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                  Nome Fantasia
+                </label>
+                <input
+                  type="text"
+                  value={empresaNomeFantasia}
+                  onChange={(e) => setEmpresaNomeFantasia(e.target.value)}
+                  placeholder="Ex: Dumar Móveis Planejados"
                   className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400/50"
                 />
               </div>
@@ -312,30 +389,59 @@ export default function CRMConfiguracoes({
                   type="text"
                   value={empresaCnpj}
                   onChange={(e) => setEmpresaCnpj(e.target.value)}
+                  placeholder="Ex: 45.890.123/0001-90"
                   className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400/50"
                 />
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                  Telefone de Contato
+                  Telefone / WhatsApp Comercial
                 </label>
                 <input
                   type="text"
                   value={empresaTelefone}
                   onChange={(e) => setEmpresaTelefone(e.target.value)}
+                  placeholder="Ex: (48) 98848-6827"
                   className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400/50"
                 />
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                  Cidade / Sede
+                  Endereço Oficial / Sede
+                </label>
+                <input
+                  type="text"
+                  value={empresaEndereco}
+                  onChange={(e) => setEmpresaEndereco(e.target.value)}
+                  placeholder="Ex: Av. Santa Catarina, 551 sala 205, Centro"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                  Cidade / Sede (UF)
                 </label>
                 <input
                   type="text"
                   value={empresaCidade}
                   onChange={(e) => setEmpresaCidade(e.target.value)}
+                  placeholder="Ex: Balneário Arroio do Silva - SC"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400/50"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                  E-mail Institucional
+                </label>
+                <input
+                  type="email"
+                  value={empresaEmail}
+                  onChange={(e) => setEmpresaEmail(e.target.value)}
+                  placeholder="Ex: dumarmoveisplanejados@gmail.com"
                   className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400/50"
                 />
               </div>

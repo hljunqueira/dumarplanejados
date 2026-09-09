@@ -156,21 +156,47 @@ export default function CRMKanban({
   };
 
   const getLeadLastInteractionTime = (lead: Lead): number => {
+    // 1. Timestamp de última interação do cliente
     if (lead.lastCustomerMessageAt) {
       const t = new Date(lead.lastCustomerMessageAt).getTime();
-      if (!isNaN(t)) return t;
+      if (!isNaN(t) && t > 0) return t;
     }
-    if (Array.isArray(lead.chatHistory) && lead.chatHistory.length > 0) {
-      const last = lead.chatHistory[lead.chatHistory.length - 1];
-      if (last && last.timestamp) {
-        const t = new Date(last.timestamp).getTime();
-        if (!isNaN(t)) return t;
+
+    // 2. Histórico de chat (suporta tanto Array quanto JSON string)
+    let history: any[] = [];
+    const rawChat: any = lead.chatHistory;
+    if (Array.isArray(rawChat)) {
+      history = rawChat;
+    } else if (typeof rawChat === "string" && rawChat.trim().length > 0) {
+      try {
+        history = JSON.parse(rawChat);
+      } catch (e) {
+        history = [];
       }
     }
+
+    if (history.length > 0) {
+      for (let i = history.length - 1; i >= 0; i--) {
+        const msg = history[i];
+        if (msg) {
+          if (msg.sentAt && Number(msg.sentAt) > 0) {
+            return Number(msg.sentAt);
+          }
+          if (msg.timestamp) {
+            const t = new Date(msg.timestamp).getTime();
+            if (!isNaN(t) && t > 0) return t;
+          }
+        }
+      }
+    }
+
+    // 3. Data de criação explícita
     if (lead.createdAt) {
       const t = new Date(lead.createdAt).getTime();
-      if (!isNaN(t)) return t;
+      if (!isNaN(t) && t > 0) return t;
     }
+
+    // 4. Fallback por ID
     return Number(lead.id) || 0;
   };
 
@@ -188,21 +214,36 @@ export default function CRMKanban({
 
   const getUtmCoverColor = (utmSource: string = "") => {
     const src = utmSource.toLowerCase();
+    if (src.includes("facebook") || src.includes("fb")) return "bg-[#1877F2]";
+    if (src.includes("instagram") || src.includes("ig")) return "bg-[#E1306C]";
+    if (src.includes("meta")) return "bg-[#0668E1]";
     if (src.includes("google")) return "bg-[#4285F4]";
-    if (src.includes("instagram") || src.includes("meta")) return "bg-[#E1306C]";
     if (src.includes("whatsapp")) return "bg-[#25D366]";
-    if (src.includes("facebook")) return "bg-[#1877F2]";
     if (src.includes("promob") || src.includes("3d")) return "bg-indigo-500";
     return "bg-amber-500";
   };
 
   const getUtmChannelBadge = (utmSource: string = "") => {
     const src = utmSource.toLowerCase();
-    if (src.includes("google")) return { label: "Google Ads", icon: "🌐", bg: "bg-blue-500/10 text-blue-400 border-blue-500/30" };
-    if (src.includes("instagram") || src.includes("meta")) return { label: "Instagram Ads", icon: "📸", bg: "bg-pink-500/10 text-pink-400 border-pink-500/30" };
-    if (src.includes("whatsapp")) return { label: "WhatsApp", icon: "💬", bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" };
-    if (src.includes("promob") || src.includes("3d")) return { label: "Projeto 3D", icon: "📐", bg: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" };
-    return { label: utmSource || "Site Direto", icon: "🏢", bg: "bg-amber-500/10 text-amber-400 border-amber-500/30" };
+    if (src.includes("facebook") || src.includes("fb")) {
+      return { label: "Facebook Ads", icon: "📘", bg: "bg-blue-600/15 text-blue-400 border-blue-500/40 shadow-sm" };
+    }
+    if (src.includes("instagram") || src.includes("ig")) {
+      return { label: "Instagram Ads", icon: "📸", bg: "bg-pink-600/15 text-pink-400 border-pink-500/40 shadow-sm" };
+    }
+    if (src.includes("meta")) {
+      return { label: "Meta Ads", icon: "♾️", bg: "bg-blue-500/15 text-blue-300 border-blue-400/40 shadow-sm" };
+    }
+    if (src.includes("google")) {
+      return { label: "Google Ads", icon: "🌐", bg: "bg-sky-500/15 text-sky-400 border-sky-500/40 shadow-sm" };
+    }
+    if (src.includes("whatsapp")) {
+      return { label: "WhatsApp", icon: "💬", bg: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40 shadow-sm" };
+    }
+    if (src.includes("promob") || src.includes("3d")) {
+      return { label: "Projeto 3D", icon: "📐", bg: "bg-indigo-500/15 text-indigo-400 border-indigo-500/40 shadow-sm" };
+    }
+    return { label: utmSource || "Site Oficial", icon: "🏢", bg: "bg-amber-500/15 text-amber-400 border-amber-500/40 shadow-sm" };
   };
 
   const visibleStages = selectedStageTab === "all" 
@@ -346,7 +387,14 @@ export default function CRMKanban({
           // ORDENAÇÃO RIGOROSA: Os leads com interação mais recente sobem para o topo
           const stageLeads = filteredLeads
             .filter(l => l.stage === stage.id)
-            .sort((a, b) => getLeadLastInteractionTime(b) - getLeadLastInteractionTime(a));
+            .sort((a, b) => {
+              const timeA = getLeadLastInteractionTime(a);
+              const timeB = getLeadLastInteractionTime(b);
+              if (timeB !== timeA) {
+                return timeB - timeA;
+              }
+              return (Number(b.id) || 0) - (Number(a.id) || 0);
+            });
 
           const currentLimit = getStageLimit(stage.id);
           const visibleLeads = stageLeads.slice(0, currentLimit);

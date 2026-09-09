@@ -361,9 +361,41 @@ export default function CRMLeadDrawer({
             ) : (
               <h3 className="font-bold text-base sm:text-lg">{selectedLead.name}</h3>
             )}
-            <span className="text-[10px] sm:text-xs bg-white/10 text-white px-2 py-0.5 rounded border border-white/10">
-              {selectedLead.utmSource}
-            </span>
+            {(() => {
+              const src = (selectedLead.utmSource || "").toLowerCase();
+              let label = selectedLead.utmSource || "Site Oficial";
+              let icon = "🏢";
+              let style = "bg-amber-500/15 text-amber-300 border-amber-500/30";
+
+              if (src.includes("facebook") || src.includes("fb")) {
+                label = "Facebook Ads";
+                icon = "📘";
+                style = "bg-blue-600/20 text-blue-300 border-blue-500/40";
+              } else if (src.includes("instagram") || src.includes("ig")) {
+                label = "Instagram Ads";
+                icon = "📸";
+                style = "bg-pink-600/20 text-pink-300 border-pink-500/40";
+              } else if (src.includes("meta")) {
+                label = "Meta Ads";
+                icon = "♾️";
+                style = "bg-blue-500/20 text-blue-200 border-blue-400/40";
+              } else if (src.includes("google")) {
+                label = "Google Ads";
+                icon = "🌐";
+                style = "bg-sky-500/20 text-sky-300 border-sky-500/40";
+              } else if (src.includes("whatsapp")) {
+                label = "WhatsApp";
+                icon = "💬";
+                style = "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+              }
+
+              return (
+                <span className={`text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border font-bold flex items-center gap-1.5 shadow-sm ${style}`}>
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                </span>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-2">

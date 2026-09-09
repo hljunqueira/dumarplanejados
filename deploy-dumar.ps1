@@ -34,7 +34,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 4. Enviar os pacotes para a VPS via SCP
 Write-Host "Enviando pacotes para a VPS via SCP..." -ForegroundColor Yellow
-ssh -p 22 root@184.107.88.189 "mkdir -p /root/dumar-infra/backend /root/dumar-infra/backend/uploads/chat /root/dumar-infra/frontend"
+ssh -p 22 root@184.107.88.189 "mkdir -p /root/dumar-infra/backend /root/dumar-infra/backend/data /root/dumar-infra/backend/uploads/chat /root/dumar-infra/frontend"
 scp -P 22 dist.tar.gz root@184.107.88.189:/root/dumar-infra/frontend/dist.tar.gz
 scp -P 22 backend.tar.gz root@184.107.88.189:/root/dumar-infra/backend/backend.tar.gz
 if ($LASTEXITCODE -ne 0) {

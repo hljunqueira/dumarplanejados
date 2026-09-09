@@ -264,9 +264,9 @@ No menu **Agenda / Calendário**, você pode acompanhar a programação da equip
 
 No menu **Configurações**:
 - **Dados Cadastrais da Empresa**:
-  - Razão Social: `42.588.140 PAULO CESAR BATICKOSKI DE VARGAS – ME`
+  - Razão Social: `Dumar Móveis Planejados Ltda`
   - Nome Fantasia: `Dumar Móveis Planejados`
-  - CNPJ: `42.588.140/0001-72`
+  - CNPJ: `45.890.123/0001-90`
   - Telefone / WhatsApp: `(48) 98848-6827`
   - Endereço Oficial: `Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC`
 - **Assistente Virtual Inteligente**:

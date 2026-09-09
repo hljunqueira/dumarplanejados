@@ -25,17 +25,20 @@ interface CRMDashboardProps {
   getNetworkColor: (source: string) => string;
 }
 
-// Cores premium do Design System Dumar (Âmbar, Esmeralda, Cobalto, Roxo, etc.)
 const CHANNEL_COLORS: { [key: string]: string } = {
+  "Facebook Ads": "#1877F2", // Facebook Blue
+  "Facebook Ads (Meta)": "#1877F2",
+  "Instagram Ads": "#ec4899", // Instagram Pink/Rose
+  "Instagram Ads (Meta)": "#e11d48",
+  "Meta Ads": "#0668e1", // Meta Gradient Blue
+  "Google Ads": "#38bdf8", // Sky Blue
   "WhatsApp Direto / Orgânico": "#10b981", // Emerald
   "WhatsApp Direto / CRM": "#059669",
-  "Google Ads": "#3b82f6", // Blue
-  "Instagram Ads": "#ec4899", // Pink
-  "Instagram Ads (Meta)": "#e11d48", // Rose
-  "Facebook Ads (Meta)": "#2563eb",
+  "WhatsApp": "#10b981",
   "ZernFlow Instagram": "#8b5cf6",
   "ZernFlow WhatsApp": "#06b6d4",
   "Campanha Manual": "#f59e0b",
+  "Site Oficial": "#f59e0b",
   "Outros / Indicação": "#94a3b8"
 };
 
@@ -55,6 +58,21 @@ const STAGE_LABELS: { [key: string]: { label: string; color: string } } = {
   contato_futuro: { label: "Contato Futuro", color: "#34d399" }
 };
 
+function normalizeRoomName(room: string): string {
+  const r = room.toLowerCase().trim();
+  if (!r) return "";
+  
+  if (r.includes("cozinha")) return "Cozinha";
+  if (r.includes("closet")) return "Closet";
+  if (r.includes("quarto") || r.includes("suite") || r.includes("suíte") || r.includes("dormitório") || r.includes("dormitorio") || r.includes("cama")) return "Dormitório / Suíte";
+  if (r.includes("sala") || r.includes("home") || r.includes("painel") || r.includes("tv")) return "Sala de Estar";
+  if (r.includes("banheiro") || r.includes("lavabo") || r.includes("bwc")) return "Banheiro";
+  if (r.includes("gourmet") || r.includes("churrasqueira") || r.includes("churrasco") || r.includes("sacada")) return "Espaço Gourmet";
+  if (r.includes("lavanderia") || r.includes("serviço") || r.includes("servico") || r.includes("lavar")) return "Lavanderia / Área de Serviço";
+  if (r.includes("escritório") || r.includes("escritorio") || r.includes("office") || r.includes("estudo") || r.includes("consultório") || r.includes("consultorio")) return "Escritório / Home Office";
+  
+  return room.charAt(0).toUpperCase() + room.slice(1).toLowerCase().trim();
+}
 
 export default function CRMDashboard({
   leads,
@@ -119,9 +137,15 @@ export default function CRMDashboard({
         rList = [];
       }
       rList.forEach(r => {
-        const clean = r.trim();
-        if (!clean) return;
-        roomCounts[clean] = (roomCounts[clean] || 0) + 1;
+        if (!r) return;
+        // Quebra strings compostas como "Cozinha / Área de Serviço" ou "Cozinha e Banheiro" ou "Cozinha + Sala"
+        const parts = r.split(/[\/,+]|\s+e\s+/i).map(p => p.trim()).filter(Boolean);
+        
+        parts.forEach(part => {
+          const clean = normalizeRoomName(part);
+          if (!clean) return;
+          roomCounts[clean] = (roomCounts[clean] || 0) + 1;
+        });
       });
     });
 
@@ -132,11 +156,11 @@ export default function CRMDashboard({
 
     return sorted.length > 0 ? sorted : [
       { ambiente: "Cozinha", quantidade: 12 },
-      { ambiente: "Quarto / Suíte", quantidade: 8 },
+      { ambiente: "Dormitório / Suíte", quantidade: 8 },
       { ambiente: "Banheiro", quantidade: 6 },
       { ambiente: "Closet", quantidade: 5 },
-      { ambiente: "Sala", quantidade: 4 },
-      { ambiente: "Sacada Gourmet", quantidade: 3 }
+      { ambiente: "Sala de Estar", quantidade: 4 },
+      { ambiente: "Espaço Gourmet", quantidade: 3 }
     ];
   }, [leads]);
 

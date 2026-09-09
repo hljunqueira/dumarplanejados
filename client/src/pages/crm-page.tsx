@@ -440,9 +440,29 @@ export default function CRMPage() {
   const closedSalesTotal = leads.filter(l => ["contrato", "fabrica", "montagem", "posvenda"].includes(l.stage)).reduce((acc, l) => acc + l.value, 0);
 
   // --- CÁLCULOS DOS CANAIS UTM REAIS ---
+  function normalizeUtmSource(source: string): string {
+    const src = (source || "").trim().toLowerCase();
+    if (!src) return "Outros / Indicação";
+    
+    if (src.includes("facebook") && src.includes("ads")) return "Facebook Ads";
+    if (src.includes("instagram") && src.includes("ads")) return "Instagram Ads";
+    if (src.includes("google") && src.includes("ads")) return "Google Ads";
+    if (src.includes("zernflow") && src.includes("instagram")) return "ZernFlow Instagram";
+    if (src.includes("zernflow") && src.includes("whatsapp")) return "ZernFlow WhatsApp";
+    if (src.includes("whatsapp direto / crm") || src.includes("whatsapp direto/crm")) return "WhatsApp Direto / CRM";
+    if (src.includes("whatsapp direto / orgânico") || src.includes("whatsapp direto/orgânico") || src.includes("whatsapp direto / organico") || src.includes("whatsapp direto/organico") || src.includes("orgânico") || src.includes("organico")) return "WhatsApp Direto / Orgânico";
+    if (src.includes("whatsapp")) return "WhatsApp";
+    if (src.includes("campanha manual")) return "Campanha Manual";
+    if (src.includes("site") || src.includes("site oficial")) return "Site Oficial";
+    if (src.includes("indicação") || src.includes("indicacao")) return "Outros / Indicação";
+    
+    return source;
+  }
+
   const utmCounts: { [key: string]: { count: number; value: number } } = {};
   leads.forEach(lead => {
-    const source = lead.utmSource || "Outros / Direto";
+    const rawSource = lead.utmSource || "Outros / Indicação";
+    const source = normalizeUtmSource(rawSource);
     if (!utmCounts[source]) {
       utmCounts[source] = { count: 0, value: 0 };
     }

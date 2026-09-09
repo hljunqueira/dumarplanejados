@@ -160,9 +160,56 @@ export function buildClause3PaymentText(contract: Partial<ContractData>): string
   return `Valor Total Contratado: ${formattedTotal}. ${detailText} Em caso de atraso em qualquer uma das parcelas acordadas, incidirá multa moratória de 2% (dois por cento), acrescida de juros legais de 1% (um por cento) ao mês e correção monetária até a data da efetiva quitação.`;
 }
 
-export function getDefaultContractData(lead?: any): ContractData {
+export function getStoredCompanyConfig() {
+  const fallback = {
+    razaoSocial: "Dumar Móveis Planejados Ltda",
+    nomeFantasia: "Dumar Móveis Planejados",
+    cnpj: "45.890.123/0001-90",
+    address: "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC",
+    phone: "(48) 98848-6827",
+    email: "dumarmoveisplanejados@gmail.com",
+    city: "Balneário Arroio do Silva - SC"
+  };
+
+  try {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("crm_company_config");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { ...fallback, ...parsed };
+      }
+    }
+  } catch (e) {}
+  return fallback;
+}
+
+export function sanitizeContractCompanyData(c: any): ContractData {
+  const comp = getStoredCompanyConfig();
+  const isLegacyRazao = !c.companyRazaoSocial || 
+    c.companyRazaoSocial.includes("PAULO") || 
+    c.companyRazaoSocial.includes("BATICKOSKI");
+
+  const isLegacyCnpj = !c.companyCnpj || 
+    c.companyCnpj.includes("42.588.140");
+
+  return {
+    ...c,
+    companyName: comp.nomeFantasia || c.companyName || "Dumar Móveis Planejados",
+    companyRazaoSocial: isLegacyRazao ? (comp.razaoSocial || "Dumar Móveis Planejados Ltda") : c.companyRazaoSocial,
+    companyCnpj: isLegacyCnpj ? (comp.cnpj || "45.890.123/0001-90") : c.companyCnpj,
+    companyAddress: (!c.companyAddress || c.companyAddress.includes("Pereira")) 
+      ? (comp.address || "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC") 
+      : c.companyAddress,
+    companyPhone: c.companyPhone && !c.companyPhone.includes("98848-6827") ? c.companyPhone : (comp.phone || "(48) 98848-6827"),
+    companyEmail: c.companyEmail || comp.email || "dumarmoveisplanejados@gmail.com",
+  };
+}
+
+export function getDefaultContractData(lead?: any, customCompany?: any): ContractData {
   const today = new Date().toLocaleDateString("pt-BR");
   const contractNum = `CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const comp = customCompany || getStoredCompanyConfig();
 
   const roomsText = lead?.rooms 
     ? (Array.isArray(lead.rooms) ? lead.rooms.join(", ") : lead.rooms) 
@@ -180,13 +227,13 @@ export function getDefaultContractData(lead?: any): ContractData {
     status: "rascunho",
     signatureLocation: "end_only",
 
-    // Contratada (Dumar Móveis Planejados)
-    companyName: "Dumar Móveis Planejados",
-    companyRazaoSocial: "42.588.140 PAULO CESAR BATICKOSKI DE VARGAS – ME",
-    companyCnpj: "42.588.140/0001-72",
-    companyAddress: "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC",
-    companyPhone: "(48) 98848-6827",
-    companyEmail: "dumarmoveisplanejados@gmail.com",
+    // Contratada (Dumar Móveis Planejados Ltda)
+    companyName: comp.nomeFantasia || "Dumar Móveis Planejados",
+    companyRazaoSocial: comp.razaoSocial || "Dumar Móveis Planejados Ltda",
+    companyCnpj: comp.cnpj || "45.890.123/0001-90",
+    companyAddress: comp.address || "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC",
+    companyPhone: comp.phone || "(48) 98848-6827",
+    companyEmail: comp.email || "dumarmoveisplanejados@gmail.com",
 
     // Contratante (puxado do Lead se existir)
     leadId: lead?.id || null,

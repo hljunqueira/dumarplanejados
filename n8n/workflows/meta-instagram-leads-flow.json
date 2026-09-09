@@ -1,5 +1,5 @@
 {
-  "name": "Automação de Leads - Meta Instagram Lead Ads",
+  "name": "Automação de Leads - Meta Pagina Facebook Lead Ads",
   "nodes": [
     {
       "parameters": {
@@ -11,19 +11,51 @@
       "typeVersion": 1.1,
       "position": [
         0,
-        0
+        -100
       ],
       "id": "node-webhook-meta",
       "name": "Webhook Meta Lead Ads"
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.item.json.body || {};\n\n// Handle lead data from Meta Ads Webhook or direct payload\nconst leadData = body.lead_data || body || {};\n\nlet phone = String(leadData.phone_number || leadData.phone || leadData.telefone || '').replace(/\\D/g, '');\nif (phone && !phone.startsWith('55') && phone.length <= 11) {\n  phone = '55' + phone;\n}\n\nconst name = leadData.full_name || leadData.name || leadData.nome || 'Lead Instagram Ads';\nconst email = leadData.email || '';\nconst stage = 'entrada';\nconst utmSource = 'Instagram Ads';\nconst utmCampaign = leadData.campaign_name || body.campaign_name || 'Campanha Instagram Ads';\n\nreturn {\n  json: {\n    name,\n    phone,\n    email,\n    stage,\n    value: 0,\n    utmSource,\n    utmCampaign,\n    rooms: []\n  }\n};"
+        "page": {
+          "__rl": true,
+          "value": "696077276925869",
+          "mode": "list",
+          "cachedResultName": "Dumar Móveis Planejados Ltda",
+          "cachedResultUrl": "https://facebook.com/696077276925869"
+        },
+        "form": {
+          "__rl": true,
+          "value": "1042816471781565",
+          "mode": "list",
+          "cachedResultName": "FORM 01 | 04/08/2026"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.facebookLeadAdsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ],
+      "id": "node-fb-lead-trigger",
+      "name": "Facebook Lead Ads Trigger",
+      "credentials": {
+        "facebookLeadAdsOAuth2Api": {
+          "id": "Mr1JrWa7JvwHVzw8",
+          "name": "Meta Lead Ads - Dumar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json || {};\nconst leadData = item.data || item.lead_data || item.body?.lead_data || item.body || item;\n\n// Extrai campos do Lead Ads ou Webhook\nconst rawName = leadData['Nome completo'] || leadData['full_name'] || leadData['name'] || leadData['nome'] || leadData['Nome'] || 'Lead Meta Ads';\nconst rawPhone = leadData['Telefone'] || leadData['phone_number'] || leadData['phone'] || leadData['telefone'] || leadData['WhatsApp'] || '';\nconst email = leadData['Email'] || leadData['email'] || leadData['E-mail'] || '';\n\n// Sanitiza telefone para padrão brasileiro (55 + DDD + 9 dígitos)\nlet phone = String(rawPhone).replace(/\\D/g, '');\nif (phone && !phone.startsWith('55') && phone.length <= 11) {\n  phone = '55' + phone;\n}\n\n// Mapeia perguntas de ambientes\nconst rooms = [];\nif (leadData['Qual ambiente deseja planejar?']) rooms.push(leadData['Qual ambiente deseja planejar?']);\nif (leadData['Ambientes']) rooms.push(leadData['Ambientes']);\nif (leadData['Qual é o seu objetivo principal hoje?']) rooms.push(leadData['Qual é o seu objetivo principal hoje?']);\n\nconst utmCampaign = leadData['campaign_name'] || item.campaign_name || 'Campanha Meta Ads';\n\nreturn {\n  json: {\n    name: String(rawName).trim(),\n    phone,\n    email: String(email).trim(),\n    stage: 'entrada',\n    value: 0,\n    utmSource: 'Facebook Ads',\n    utmCampaign,\n    rooms\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        220,
+        280,
         0
       ],
       "id": "node-code-meta-format",
@@ -44,13 +76,13 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"name\": \"{{ $json.name }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"stage\": \"{{ $json.stage }}\",\n  \"value\": {{ $json.value }},\n  \"utmSource\": \"{{ $json.utmSource }}\",\n  \"utmCampaign\": \"{{ $json.utmCampaign }}\",\n  \"rooms\": []\n}",
+        "jsonBody": "={\n  \"name\": \"{{ $json.name }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"stage\": \"{{ $json.stage }}\",\n  \"value\": {{ $json.value }},\n  \"utmSource\": \"{{ $json.utmSource }}\",\n  \"utmCampaign\": \"{{ $json.utmCampaign }}\",\n  \"rooms\": {{ JSON.stringify($json.rooms) }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        440,
+        540,
         0
       ],
       "id": "node-http-meta-crm",
@@ -59,6 +91,17 @@
   ],
   "connections": {
     "Webhook Meta Lead Ads": {
+      "main": [
+        [
+          {
+            "node": "Format Meta Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Lead Ads Trigger": {
       "main": [
         [
           {

@@ -53,7 +53,7 @@ import { initDbTables } from "./db";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await initDbTables();
-  
+
   // --- SEEDING DOS USUÁRIOS ADMINS NA INICIALIZAÇÃO ---
   const ALL_SECTIONS = ["dashboard", "kanban", "agenda", "financeiro", "mensagens", "configuracoes", "usuarios"];
 
@@ -119,8 +119,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let parsedPermissions: string[] = [];
       try {
-        parsedPermissions = typeof user.permissions === "string" 
-          ? JSON.parse(user.permissions || "[]") 
+        parsedPermissions = typeof user.permissions === "string"
+          ? JSON.parse(user.permissions || "[]")
           : (user.permissions || []);
       } catch (e) {
         parsedPermissions = user.role === "admin" ? ALL_SECTIONS : ["kanban", "agenda"];
@@ -130,8 +130,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parsedPermissions = ALL_SECTIONS;
       }
 
-      return res.status(200).json({ 
-        success: true, 
+      return res.status(200).json({
+        success: true,
         user: {
           id: user.id,
           username: user.username,
@@ -154,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users", async (req, res) => {
     try {
       let usersList = await storage.getUsers();
-      
+
       // Se não houver usuários no banco, auto-inicializa os administradores padrão
       if (usersList.length === 0) {
         console.log("Inicializando administradores padrão no banco...");
@@ -277,8 +277,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.role !== undefined) updateData.role = String(req.body.role);
       if (req.body.active !== undefined) updateData.active = Boolean(req.body.active);
       if (req.body.permissions !== undefined) {
-        updateData.permissions = typeof req.body.permissions === "string" 
-          ? req.body.permissions 
+        updateData.permissions = typeof req.body.permissions === "string"
+          ? req.body.permissions
           : JSON.stringify(req.body.permissions || []);
       }
       if (req.body.password && String(req.body.password).trim().length > 0) {
@@ -401,8 +401,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "vistoria_finalizada": false
         }),
         chatHistory: JSON.stringify([
-          { sender: "system", text: "Lead criado no sistema", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+          { sender: "system", text: "Lead criado no sistema", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), sentAt: Date.now() }
         ]),
+        lastCustomerMessageAt: new Date().toISOString(),
         aiPaused: req.body.aiPaused !== undefined ? Boolean(req.body.aiPaused) : false
       });
 
@@ -470,7 +471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Prepara os dados de atualização mapeando campos string/JSON
       const updateData: any = {};
-      
+
       if (req.body.name !== undefined) updateData.name = req.body.name;
       if (req.body.phone !== undefined) updateData.phone = req.body.phone;
       if (req.body.email !== undefined) updateData.email = req.body.email;
@@ -610,7 +611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/financial/transactions", async (req, res) => {
     const { description, type, amount, category, status, dueDate, paymentDate, paymentMethod, leadId, supplierId, supplierName, notes } = req.body;
     const parsedAmount = sanitizeMonetaryAmount(amount);
-    
+
     if (!description || parsedAmount <= 0) {
       return res.status(400).json({ message: "Descrição e valor válido (maior que zero) são obrigatórios" });
     }
@@ -869,7 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (dueTomorrow.length === 0) {
       const noDebtMsg = `🔔 *DUMAR FINANCEIRO — AVISO DE VENCIMENTOS* 🔔
 
-Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${formattedTomorrow}*). Tudo em dia no fluxo de caixa! ✨
+Olá! Não há contas ou despesas programadas para vencer amanhã (*${formattedTomorrow}*). Tudo em dia no fluxo de caixa! ✨
 
 🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
       await sendWhatsAppMessageViaEvolution(ownerClean, noDebtMsg, "dumar_comercial");
@@ -884,7 +885,7 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
     const saldoPrevisto = totalReceitas - totalDespesas;
 
     let textMsg = `🔔 *ALERTA FINANCEIRO DUMAR — VENCIMENTOS DE AMANHÃ* 🔔\n`;
-    textMsg += `Olá Paulo! Segue o resumo das contas que vencem amanhã (*${formattedTomorrow}*):\n\n`;
+    textMsg += `Olá! Segue o resumo das contas que vencem amanhã (*${formattedTomorrow}*):\n\n`;
 
     if (despesas.length > 0) {
       textMsg += `⬇️ *CONTAS A PAGAR (${despesas.length}):*\n`;
@@ -908,10 +909,10 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
     textMsg += `📊 *Saldo Previsto do Dia:* ${saldoPrevisto >= 0 ? "+" : ""}${saldoPrevisto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\n`;
     textMsg += `🔗 *Acessar Painel Financeiro:* https://dumarplanejados.com.br/crm`;
 
-    console.log(`[Alerta Financeiro] Enviando resumo de contas de amanhã para o Paulo (${ownerClean})...`);
+    console.log(`[Alerta Financeiro] Enviando resumo de contas de amanhã para a Diretoria (${ownerClean})...`);
     const { success } = await sendWhatsAppMessageViaEvolution(ownerClean, textMsg, "dumar_comercial");
 
-    return { success, message: "Alerta enviado com sucesso para o WhatsApp do Paulo", totalItems: dueTomorrow.length };
+    return { success, message: "Alerta enviado com sucesso para o WhatsApp da Diretoria", totalItems: dueTomorrow.length };
   }
 
   // Rota para disparar o alerta financeiro manualmente
@@ -1137,14 +1138,14 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
       });
       const connectData = await connectRes.json().catch(() => ({}));
 
-      const qr = connectData?.base64 || 
-                 connectData?.code || 
-                 connectData?.qrcode?.base64 || 
-                 connectData?.qrcode?.code || 
-                 createData?.qrcode?.base64 || 
-                 createData?.qrcode?.code || 
-                 createData?.base64 || 
-                 createData?.code;
+      const qr = connectData?.base64 ||
+        connectData?.code ||
+        connectData?.qrcode?.base64 ||
+        connectData?.qrcode?.code ||
+        createData?.qrcode?.base64 ||
+        createData?.qrcode?.code ||
+        createData?.base64 ||
+        createData?.code;
 
       return res.status(200).json({
         createData,
@@ -1165,13 +1166,13 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
       await fetch(`${EVOLUTION_URL}/instance/logout/${instanceName}`, {
         method: "DELETE",
         headers: { apikey: EVOLUTION_KEY }
-      }).catch(() => {});
+      }).catch(() => { });
 
       // 2. Deletar a instância para permitir nova conexão limpa
       await fetch(`${EVOLUTION_URL}/instance/delete/${instanceName}`, {
         method: "DELETE",
         headers: { apikey: EVOLUTION_KEY }
-      }).catch(() => {});
+      }).catch(() => { });
 
       return res.status(200).json({ success: true, message: "Instância desconectada e resetada com sucesso." });
     } catch (err) {
@@ -1182,8 +1183,8 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
 
   // Função Universal Resiliente para Envio de WhatsApp (GSM, JID e LID do WhatsApp)
   async function sendWhatsAppMessageViaEvolution(
-    recipient: string, 
-    text: string, 
+    recipient: string,
+    text: string,
     instanceName: string = "dumar_comercial"
   ): Promise<{ success: boolean; instanceDisconnected: boolean; usedRecipient: string; errorDetails?: any }> {
     const raw = (recipient || "").trim();
@@ -1268,7 +1269,7 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
         return res.status(404).json({ message: "Lead não encontrado" });
       }
 
-      const { success: evoSuccess, instanceDisconnected, usedRecipient } = 
+      const { success: evoSuccess, instanceDisconnected, usedRecipient } =
         await sendWhatsAppMessageViaEvolution(lead.phone, message, instanceName);
 
       // Se enviou por uma variação limpa diferente, atualiza
@@ -1277,8 +1278,8 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
       }
 
       // Atualiza o chatHistory do lead no banco PostgreSQL com fuso de São Paulo
-      const currentHistory = typeof lead.chatHistory === "string" 
-        ? JSON.parse(lead.chatHistory || "[]") 
+      const currentHistory = typeof lead.chatHistory === "string"
+        ? JSON.parse(lead.chatHistory || "[]")
         : (lead.chatHistory || []);
 
       const timestamp = new Date().toLocaleTimeString("pt-BR", {
@@ -1286,15 +1287,15 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
         hour: "2-digit",
         minute: "2-digit"
       });
-      const newMessage = { 
-        sender: "agent" as const, 
-        text: message, 
+      const newMessage = {
+        sender: "agent" as const,
+        text: message,
         timestamp,
         deliveredViaEvolution: evoSuccess,
         isHuman: true,
         sentAt: Date.now()
       };
-      
+
       const updatedHistory = [...currentHistory, newMessage];
 
       const updatedLead = await storage.updateLead(lead.id, {
@@ -1321,7 +1322,7 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
   // Enviar mídia (Imagem/PDF/Documento) via Evolution API
   app.post("/api/evolution/send-media", async (req, res) => {
     const { leadId, mediaUrl, base64, mediaType = "image", mimeType = "application/pdf", fileName = "documento.pdf", caption = "", instanceName = "dumar_comercial" } = req.body;
-    
+
     const fullMedia = mediaUrl || (base64 ? (base64.startsWith("data:") ? base64 : `data:${mimeType};base64,${base64}`) : "");
     if (!leadId || !fullMedia) {
       return res.status(400).json({ message: "leadId e arquivo de mídia são obrigatórios" });
@@ -1377,7 +1378,7 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
         hour: "2-digit",
         minute: "2-digit"
       });
-      
+
       const savedMediaUrl = (fullMedia && fullMedia.startsWith("data:"))
         ? saveBase64MediaToFile(fullMedia, mimeType || "image/jpeg", mediaType === "image" ? "img" : "doc")
         : fullMedia;
@@ -1395,7 +1396,7 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
       };
 
       const updatedHistory = [...currentHistory, newMessage];
-      const updatedLead = await storage.updateLead(lead.id, { 
+      const updatedLead = await storage.updateLead(lead.id, {
         chatHistory: JSON.stringify(updatedHistory),
         aiPaused: true
       });
@@ -1453,7 +1454,7 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
         hour: "2-digit",
         minute: "2-digit"
       });
-      
+
       const newMessage = {
         sender: "agent" as const,
         type: "audio" as const,
@@ -1464,7 +1465,7 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
       };
 
       const updatedHistory = [...currentHistory, newMessage];
-      const updatedLead = await storage.updateLead(lead.id, { 
+      const updatedLead = await storage.updateLead(lead.id, {
         chatHistory: JSON.stringify(updatedHistory),
         aiPaused: true
       });
@@ -1493,45 +1494,47 @@ Olá Paulo! Não há contas ou despesas programadas para vencer amanhã (*${form
     officeAddress: "Av. Santa Catarina, 551, Sala 205, Centro, Balneário Arroio do Silva - SC",
     factoryLocation: "Parque Fabril Próprio (separado do escritório comercial)",
     activePreset: "qualificador",
-    welcomeMessage: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar? E qual ambiente você gostaria de planejar?",
-    systemPrompt: `Você é a Consultora Comercial da equipe de projetos da Dumar Móveis Planejados (móveis sob medida de alto padrão 100% MDF com ferragens amortecidas).
-Seu objetivo é conduzir um atendimento ágil, elegante, caloroso e consultivo no WhatsApp, ouvindo o cliente com interesse genuíno e coletando os detalhes para que o Paulo Vargas e nossos projetistas desenvolvam a proposta 3D personalizada.
+    welcomeMessage: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?",
+    systemPrompt: `Você é a Consultora Comercial da equipe de projetos da Dumar Móveis Planejados.
+Seu objetivo é conduzir um atendimento ágil, caloroso, direto e consultivo no WhatsApp, coletando o ambiente e localização para que nossa equipe de projetos dê andamento ao projeto.
 
-FILOSOFIA DE ATENDIMENTO CONSULTIVO:
+FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
 
-1. SAUDAÇÃO & APRESENTAÇÃO:
+1. SAUDAÇÃO & IDENTIFICAÇÃO (APENAS 1 PERGUNTA):
    - Se ainda NÃO sabe o nome do cliente: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?"
-   - Se já sabe o nome (Ex: {nome}): "Olá, {nome}! Tudo bem? Qual ambiente você gostaria de planejar hoje?"
+   - Se o cliente disser o nome (Ex: {nome}): "Olá, {nome}! Tudo bem? Qual ambiente você gostaria de planejar hoje?"
 
-2. ESCUTA ATIVA & REAÇÃO AO AMBIENTE:
-   - Reaja com entusiasmo e bom gosto ao ambiente citado pelo cliente (Ex: "Cozinha é maravilhoso planejar! É o coração da casa ✨").
-   - Em seguida, pergunte sobre o espaço de forma natural:
-     👉 "Você já tem as medidas, planta ou fotos do espaço, ou prefere que a gente te auxilie com a medição?"
+2. COLETA PROGRESSIVA DE DADOS (1 PERGUNTA POR VEZ):
+   - Ao identificar o ambiente: Reaja com entusiasmo (Ex: "Home office é maravilhoso para trabalhar com conforto e organização! ✨") e faça UMA única pergunta:
+     👉 "Você já tem fotos ou medidas do espaço, ou prefere que nossa equipe auxilie na medição?"
+   - Se o cliente disser que NÃO TEM as medidas ou pedir visita:
+     👉 "Sem problemas! Nossa equipe realiza visitas no local para medir tudo certinho sem custo. Em qual cidade e bairro fica o seu imóvel?"
+   - Se o cliente ENVIAR as medidas ou fotos:
+     👉 Elogie o envio (ex: "Recebido, ótimas dimensões! 📐📸") e pergunte: "Em qual cidade e bairro fica o seu imóvel?"
+   - Quando o cliente INFORMAR a cidade/bairro:
+     👉 Não faça mais perguntas se já tem o ambiente e a localização. Avance direto para o Encaminhamento Final (Passo 4)!
 
-3. COLETA NATURAL DE MEDIDAS E FOTOS (OU VISITA TÉCNICA PRESENCIAL):
-   - Se o cliente disser que JÁ TEM as medidas, fotos ou planta:
-     👉 Peça imediatamente para ele enviar no chat: "Que maravilha! Pode me mandar as medidas, a planta ou fotos do espaço aqui pelo WhatsApp? Já analiso para adiantarmos aos nossos projetistas! 📐📸"
-   - Se o cliente disser que NÃO TEM as medidas, se o imóvel está em obras ou se o cliente pedir VISITA NO LOCAL (Ex: "quando podem vir aqui?", "podem vir medir?"):
-     👉 Acolha com entusiasmo: "Com certeza, {nome}! Realizamos a visita técnica no seu imóvel para medir tudo certinho sem custo nenhum. Vou verificar com o Paulo Vargas (nosso diretor) a disponibilidade da nossa equipe para agendarmos o melhor dia. Você prefere no período da manhã ou da tarde? Você também é super bem-vindo(a) para tomar um café no nosso escritório comercial em Balneário Arroio do Silva e conversarmos pessoalmente se preferir!"
-   - Quando o cliente ENVIAR as medidas/fotos ou rascunho (Ex: "20x30", "3x4", foto do cômodo):
-     👉 Entenda que dimensões de imóveis são em metros (ex: 20m², 3m x 4m).
-     👉 Elogie o espaço com bom gosto e pergunte sobre o estilo ou detalhes essenciais (Ex: "Excelente espaço, {nome}! Dá para criar um projeto incrível com painel ripado, rack suspenso e iluminação em LED. Tem algum detalhe que você faz questão na sua sala?").
+3. SE O CLIENTE PEDIR REFERÊNCIAS OU PERGUNTAR SE JÁ FIZEMOS ESSE AMBIENTE:
+   - Envie o portfólio oficial no Instagram: "Com certeza! Já entregamos projetos lindos de {ambiente}. Você pode conferir alguns dos nossos trabalhos aqui no nosso Instagram: https://instagram.com/dumarmoveisplanejados 📸✨"
 
-4. ENCAMINHAMENTO PARA A EQUIPE & PAULO VARGAS:
-   - Após coletar as informações do espaço ou alinhar o agendamento da visita:
-     👉 Finalize avisando que o Paulo Vargas e nossa equipe entrarão em contato para dar andamento ao projeto:
-     👉 "Perfeito, {nome}! Já repassei todos esses detalhes para o Paulo Vargas e nossa equipe de projetos. Em breve entraremos em contato com você por aqui para alinharmos os próximos passos! ✨"
+4. ENCAMINHAMENTO FINAL PARA A EQUIPE:
+   - Se o cliente preferir ir ao ESCRITÓRIO COMERCIAL (Ex: "vou no escritório", "prefiro ir aí", "visitar vocês"):
+     👉 Passe o endereço completo com entusiasmo: "Maravilha, {nome}! Nosso escritório comercial fica na Av. Santa Catarina, 551, Sala 205, Centro de Balneário Arroio do Silva. Nossa equipe de projetos vai entrar em contato com você por aqui em breve para combinarmos o melhor dia para tomar um café e conversarmos pessoalmente! ✨"
+   - Se o cliente preferir VISITA TÉCNICA no imóvel ou após coletar as informações básicas:
+     👉 "Perfeito, {nome}! Já anotei todos os detalhes do seu {ambiente} em {cidade/bairro}. Nossa equipe de projetos vai entrar em contato com você por aqui em breve para darmos andamento ao seu projeto! ✨"
+   - Se o cliente for da região (Araranguá, Balneário Arroio do Silva e proximidades) e não mencionou o escritório, você pode complementar: "E como você está aqui na região, se preferir também é super bem-vindo(a) para passar no nosso escritório comercial em Balneário Arroio do Silva para tomar um café e conversarmos pessoalmente!"
 
 5. PROIBIÇÕES RIGOROSAS (NUNCA FAÇA):
-   - 🚫 NUNCA diga que não realizamos visitas ao local ou que o atendimento é apenas à distância. A Dumar REALIZA SIM visitas técnicas no local e possui escritório comercial físico para atendimento e conversas com clientes.
-   - 🚫 NUNCA mencione que temos "mostruários", "amostragens" ou "showroom de fábrica". O escritório comercial é para atendimento, reuniões e alinhamento de projetos.
-   - 🚫 NUNCA dê instruções caseiras para o cliente medir com fita métrica/régua. Se o cliente não tem medidas ou pede visita, acolha a visita técnica gratuita ou convide para o escritório comercial.
-   - 🚫 NUNCA interprete medidas de cômodos como centímetros (ex: "20x30" é um ambiente amplo em metros, e não 20cm x 30cm).
-   - 🚫 NUNCA gere resumos em formato de formulário ou ticket de suporte com marcadores/bullets (Ex: NÃO use "- **Ambiente:** ...", "- **Cidade:** ...", "- **Medidas:** ..."). Fale sempre em texto fluido e humanizado.
-   - 🚫 NUNCA faça interrogatórios em sequência burocrática (uma pergunta atrás da outra). Escute o que o cliente respondeu antes de fazer a próxima pergunta.
-   - 🚫 NUNCA passe valores, orçamentos, tabelas ou parcelas em R$. Esclareça com naturalidade que a proposta 3D e o orçamento são 100% gratuitos e sem compromisso.
-   - 🚫 NUNCA envie listas de múltipla escolha como "(moderno, clássico, escandinavo)".
-   - 🚫 Mantenha mensagens curtas (máximo 2 a 3 frases por mensagem) e no máximo UMA pergunta por vez.`,
+   - 🚫 NUNCA faça mais de UMA pergunta por mensagem. NUNCA pergunte cidade e medidas juntas na mesma mensagem.
+   - 🚫 NUNCA repita perguntas que já foram feitas ou que o cliente já respondeu.
+   - 🚫 NUNCA mencione o nome "Paulo" ou "Paulo Vargas" nas mensagens para o cliente. Fale sempre em nome de "nossa equipe de projetos" ou "nossa equipe".
+   - 🚫 NUNCA peça dias ou horários para o cliente escolher. Nossa equipe entrará em contato diretamente.
+   - 🚫 NUNCA dê palestras teóricas longas sobre fabricação ou MDF. Seja ágil, elegante e direta.
+   - 🚫 NUNCA passe valores, estimativas ou preços em R$. Se perguntarem de preço, diga com naturalidade que nossa equipe de projetos vai avaliar o espaço para apresentar a proposta sem compromisso.
+   - 🚫 NUNCA diga que não realizamos visitas ao local ou que o atendimento é apenas à distância.
+   - 🚫 NUNCA dê instruções caseiras para o cliente medir com fita métrica/régua.
+   - 🚫 NUNCA gere resumos em formato de formulário ou ticket de suporte com marcadores/bullets (Ex: NÃO use "- **Ambiente:** ...", "- **Cidade:** ...", "- **Medidas:** ...").
+   - 🚫 Mantenha mensagens curtas (máximo 2 a 3 frases por mensagem).`,
     businessHours: {
       days: ["seg", "ter", "qua", "qui", "sex", "sab"],
       workDaysText: "Segunda a Sexta das 08:30 às 12:00 e das 13:30 às 18:00; Sábado das 08:30 às 12:00 (Domingos e Feriados fechado)",
@@ -1577,7 +1580,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
   async function transcribeAudioWithWhisper(audioBuffer: Buffer, mimeType: string = "audio/ogg"): Promise<string> {
     try {
       const GROQ_PRIMARY_KEY = ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
-      
+
       const formData = new FormData();
       const blob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType });
       formData.append("file", blob, "audio.ogg");
@@ -1616,7 +1619,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
 
     let total = 0;
     const roomNames = Array.isArray(rooms) ? rooms : [];
-    
+
     for (const r of roomNames) {
       const low = String(r).toLowerCase();
       let matched = false;
@@ -1643,7 +1646,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
   // Helper para formatar a grade detalhada por dia da semana para o prompt da IA
   function formatWeeklySchedule(businessHours: any): string {
     if (!businessHours) return "Segunda a Sexta: Manhã (08:30 às 12:00) e Tarde (13:30 às 18:00)\n- Sábado: Manhã (08:30 às 12:00, Tarde Fechada)\n- Domingo: Fechado";
-    
+
     const weekly = businessHours.weekly;
     if (!weekly) return businessHours.workDaysText || "Segunda a Sexta: Manhã (08:30 às 12:00) e Tarde (13:30 às 18:00)\n- Sábado: Manhã (08:30 às 12:00, Tarde Fechada)\n- Domingo: Fechado";
 
@@ -1728,15 +1731,15 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
         .replace(/{empresa}/g, aiConfig.companyName);
 
       if (isGenericName) {
-        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- Você AINDA NÃO tem o nome do cliente (o nome atual é um apelido/código ou desconhecido).\n- REGRA OBRIGATÓRIA: Como você não sabe o nome real do cliente, na sua saudação pergunte educadamente: "Com quem tenho o prazer de falar? E qual ambiente você gostaria de planejar?". NUNCA chame o cliente por nicks como "${clientName}".`;
+        compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- Você AINDA NÃO tem o nome do cliente (o nome atual é genérico, código ou desconhecido).\n- REGRA MANDATÓRIA (RIGOROSAMENTE 1 PERGUNTA): Na primeira saudação, faça UMA ÚNICA pergunta para descobrir o nome: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?". NUNCA pergunte o ambiente antes de o cliente responder o nome. NUNCA faça duas perguntas ao mesmo tempo. NUNCA chame o cliente por códigos ou nicks como "${clientName}".`;
       } else {
         compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- O nome do cliente é "${clientName}". Trate-o com cordialidade usando o nome dele de forma natural.`;
       }
 
       const hasPreviousConversation = conversationHistory.length >= 2;
       if (hasPreviousConversation) {
-        const roomsStr = (extraContext?.rooms && extraContext.rooms.length > 0) 
-          ? extraContext.rooms.join(", ") 
+        const roomsStr = (extraContext?.rooms && extraContext.rooms.length > 0)
+          ? extraContext.rooms.join(", ")
           : "seus móveis planejados";
 
         const daysAgo = extraContext?.daysSinceLastContact || 0;
@@ -1759,13 +1762,15 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
 
         compiledPrompt += `\n- Mantenha mensagens curtas (máximo 2 a 3 frases) no estilo ágil e humanizado do WhatsApp.`;
       }
-      
+
       compiledPrompt += `\n\nPROIBIÇÕES RIGOROSAS:
+- NUNCA mencione o nome "Paulo" ou "Paulo Vargas" nas mensagens para o cliente. Fale sempre em nome de "nossa equipe de projetos" ou "nossa equipe".
 - NUNCA formate a resposta como lista ou formulário de ticket (Ex: NÃO use "- **Ambiente:** ...", "- **Cidade:** ...", "- **Medidas:** ..."). Responda sempre como uma conversa de WhatsApp em texto corrido e natural.
 - Se o cliente disse que tem as medidas ou fotos, PEÇA para ele enviar no WhatsApp antes de mudar de assunto.
-- A Dumar REALIZA SIM visitas técnicas no imóvel do cliente e possui escritório comercial para conversar pessoalmente e alinhar projetos. Se o cliente pedir visita ou não tiver medidas, acolha a visita técnica com o Paulo Vargas ou convide para o escritório comercial para conversar. NUNCA mencione mostruários/amostras, NUNCA diga que o atendimento é apenas à distância nem mande o cliente medir com régua/fita métrica.
-- NUNCA passe valores, orçamentos, parcelas ou estimativas de preço em R$. Se perguntarem sobre preço ou cobrança de orçamento, diga com naturalidade que a apresentação do projeto 3D e o orçamento são 100% gratuitos e sem compromisso, desenhados sob medida pelo Paulo Vargas e nossos projetistas.
+- A Dumar REALIZA SIM visitas técnicas no imóvel do cliente e possui escritório comercial para conversar pessoalmente e alinhar projetos. Se o cliente pedir visita ou não tiver medidas, acolha a visita técnica da equipe ou convide para o escritório comercial para conversar. NUNCA mencione mostruários/amostras, NUNCA diga que o atendimento é apenas à distância nem mande o cliente medir com régua/fita métrica.
+- NUNCA passe valores, orçamentos, parcelas ou estimativas de preço em R$. Se perguntarem sobre preço ou cobrança de orçamento, diga com naturalidade que a nossa equipe de projetos vai avaliar o espaço para apresentar a proposta sem compromisso.
 - NUNCA faça perguntas em lista de múltipla escolha como "(moderno, clássico, escandinavo)".
+- NUNCA peça dias ou horários para o cliente escolher. Nossa equipe entrará em contato.
 - NUNCA envie links genéricos de vídeo/portfólio se o cliente já enviou uma referência própria.`;
 
       // Injetar contexto de ambientes já detectados
@@ -1821,17 +1826,28 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
             let rawContent = data.choices?.[0]?.message?.content?.trim() || "";
             // Limpar eventuais tags de pensamento (<think>...</think>)
             rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-            // Sanitização de segurança: remover endereço caso o cliente não tenha perguntado "onde fica"
+            // Sanitização de segurança: remover endereço apenas se o contexto não for de escritório/visita/endereço
             const lastClientMsg = messages.filter(m => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
-            const askedForAddress = lastClientMsg.includes("onde") || lastClientMsg.includes("endereço") || lastClientMsg.includes("localiza");
-            if (!askedForAddress) {
+            const isAddressContext = lastClientMsg.includes("onde") ||
+              lastClientMsg.includes("endereço") ||
+              lastClientMsg.includes("endereco") ||
+              lastClientMsg.includes("localiza") ||
+              lastClientMsg.includes("escritório") ||
+              lastClientMsg.includes("escritorio") ||
+              lastClientMsg.includes("visitar") ||
+              lastClientMsg.includes("passar") ||
+              lastClientMsg.includes("ir aí") ||
+              lastClientMsg.includes("ir ai") ||
+              lastClientMsg.includes("conhecer");
+
+            if (!isAddressContext) {
               rawContent = rawContent.replace(/\(?Av\.?\s+Santa\s+Catarina[^)]*\)?/gi, "").trim();
               rawContent = rawContent.replace(/\s{2,}/g, " ").trim();
             }
 
             // Sanitização de segurança: bloquear valores em R$ gerados acidentalmente pela IA
             if (/R\$\s*\d+/i.test(rawContent) || /parcelas\s+de/i.test(rawContent)) {
-              rawContent = "Nosso orçamento e apresentação do projeto 3D são 100% gratuitos e sem compromisso! Como cada projeto é feito sob medida para o seu espaço, o Paulo Vargas e nossos projetistas desenham a proposta exata para você. Você já tem uma ideia das medidas dessa parede?";
+              rawContent = "Nosso orçamento e apresentação do projeto 3D são 100% gratuitos e sem compromisso! Como cada projeto é feito sob medida para o seu espaço, nossa equipe de projetos desenha a proposta exata para você. Você já tem uma ideia das medidas dessa parede?";
             }
 
             if (rawContent.length > 0) {
@@ -1940,6 +1956,51 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
     return res.status(200).json({ success: true, config: aiConfig });
   });
 
+  // =========================================================================
+  // DADOS INSTITUCIONAIS DA EMPRESA (DUMAR MÓVEIS PLANEJADOS LTDA)
+  // =========================================================================
+  let companyConfig = {
+    razaoSocial: "Dumar Móveis Planejados Ltda",
+    nomeFantasia: "Dumar Móveis Planejados",
+    cnpj: "45.890.123/0001-90",
+    phone: "(48) 98848-6827",
+    email: "dumarmoveisplanejados@gmail.com",
+    address: "Av. Santa Catarina, 551, sala 205, Centro",
+    city: "Balneário Arroio do Silva - SC",
+  };
+
+  const COMPANY_CONFIG_FILE = path.join(process.cwd(), "data", "company-config.json");
+  try {
+    if (fs.existsSync(COMPANY_CONFIG_FILE)) {
+      const savedCompany = JSON.parse(fs.readFileSync(COMPANY_CONFIG_FILE, "utf-8"));
+      companyConfig = { ...companyConfig, ...savedCompany };
+      console.log("Configuração da empresa carregada com sucesso do disco.");
+    }
+  } catch (e) {
+    console.error("Erro ao carregar company-config.json:", e);
+  }
+
+  function persistCompanyConfig() {
+    try {
+      const dir = path.dirname(COMPANY_CONFIG_FILE);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(COMPANY_CONFIG_FILE, JSON.stringify(companyConfig, null, 2), "utf-8");
+    } catch (e) {
+      console.error("Erro ao salvar company-config.json:", e);
+    }
+  }
+
+  app.get("/api/company-config", (req, res) => {
+    return res.status(200).json(companyConfig);
+  });
+
+  app.post("/api/company-config", (req, res) => {
+    companyConfig = { ...companyConfig, ...req.body };
+    persistCompanyConfig();
+    return res.status(200).json({ success: true, config: companyConfig });
+  });
+
+
   // Funções utilitárias para normalização de telefone e salas
   function normalizePhoneForMatching(phone: string): string {
     const clean = (phone || "").replace(/\D/g, "");
@@ -1965,17 +2026,17 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
 
   function extractOriginAndCampaign(messageData: any, msgContent: string): { source: string; campaign: string } {
     const msgObj = messageData?.message || {};
-    const contextInfo = msgObj.extendedTextMessage?.contextInfo || 
-                        msgObj.imageMessage?.contextInfo || 
-                        msgObj.videoMessage?.contextInfo || 
-                        msgObj.conversation?.contextInfo || 
-                        messageData?.contextInfo || {};
+    const contextInfo = msgObj.extendedTextMessage?.contextInfo ||
+      msgObj.imageMessage?.contextInfo ||
+      msgObj.videoMessage?.contextInfo ||
+      msgObj.conversation?.contextInfo ||
+      messageData?.contextInfo || {};
 
     // 1. Detectar Anúncio de Clique para o WhatsApp (Meta Ads / Instagram Ads / Facebook Ads)
     if (contextInfo.externalAdReply) {
       const adTitle = contextInfo.externalAdReply.title || "";
       const adSource = contextInfo.externalAdReply.sourceUrl || contextInfo.externalAdReply.sourceId || "";
-      
+
       let source = "Instagram Ads (Meta)";
       if (adSource.toLowerCase().includes("facebook") || adSource.toLowerCase().includes("fb")) {
         source = "Facebook Ads (Meta)";
@@ -2072,7 +2133,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
       const instanceName = req.body.instanceName || "dumar_comercial";
 
       let chats: any[] = [];
-      
+
       // 1. Tentar buscar chats da Evolution API (POST e GET)
       try {
         const chatsResPost = await fetch(`${EVOLUTION_URL}/chat/findChats/${instanceName}`, {
@@ -2084,7 +2145,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
           const data = await chatsResPost.json();
           if (Array.isArray(data)) chats = data;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       if (chats.length === 0) {
         try {
@@ -2095,7 +2156,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
             const data = await chatsResGet.json();
             if (Array.isArray(data)) chats = data;
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // 2. Buscar também contatos recentes da Evolution se disponíveis
@@ -2110,7 +2171,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
           const data = await contactsRes.json();
           if (Array.isArray(data)) contacts = data;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       const allLeads = await storage.getLeads();
       let createdCount = 0;
@@ -2121,14 +2182,14 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
 
       // Função auxiliar interna para processar um item de conversa ou contato
       const processChatItem = async (item: any) => {
-        const remoteJid = item.lastMessage?.key?.remoteJidAlt || 
-                          item.key?.remoteJidAlt ||
-                          item.remoteJidAlt || 
-                          (item.remoteJid && !item.remoteJid.includes("@lid") ? item.remoteJid : "") || 
-                          (item.id && !item.id.includes("@lid") ? item.id : "") || 
-                          item.sender || 
-                          item.id || 
-                          "";
+        const remoteJid = item.lastMessage?.key?.remoteJidAlt ||
+          item.key?.remoteJidAlt ||
+          item.remoteJidAlt ||
+          (item.remoteJid && !item.remoteJid.includes("@lid") ? item.remoteJid : "") ||
+          (item.id && !item.id.includes("@lid") ? item.id : "") ||
+          item.sender ||
+          item.id ||
+          "";
 
         if (!remoteJid || remoteJid.includes("@g.us") || remoteJid.includes("status@broadcast")) return;
 
@@ -2150,7 +2211,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
 
         const rawPushName = item.lastMessage?.pushName || item.pushName || item.name || item.verifiedName;
         const pushName = formatLeadDisplayName(rawPushName, phoneClean);
-        
+
         let lastMsg = "Contato sincronizado do WhatsApp";
         if (item.lastMessage?.message?.conversation) {
           lastMsg = item.lastMessage.message.conversation;
@@ -2163,7 +2224,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
         const detectedRooms = extractRoomsFromText(lastMsg);
         const origin = extractOriginAndCampaign(item.lastMessage || item, lastMsg);
 
-        const syncTimestamp = item.lastMessage?.messageTimestamp 
+        const syncTimestamp = item.lastMessage?.messageTimestamp
           ? new Date(Number(item.lastMessage.messageTimestamp) * 1000).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })
           : new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
 
@@ -2182,10 +2243,10 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
             rooms: JSON.stringify(detectedRooms.length > 0 ? detectedRooms : ["Móveis Planejados"]),
             checklist: JSON.stringify({ briefing: false, medicao: false, orcamento: false }),
             chatHistory: JSON.stringify([
-              { 
-                sender: fromMe ? "agent" : "client", 
-                text: lastMsg, 
-                timestamp: syncTimestamp, 
+              {
+                sender: fromMe ? "agent" : "client",
+                text: lastMsg,
+                timestamp: syncTimestamp,
                 type: "text",
                 isHuman: fromMe ? true : undefined
               }
@@ -2199,8 +2260,8 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
           // Se o lead existente tiver o histórico de chat vazio, injeta a mensagem inicial
           let currentHistory: any[] = [];
           try {
-            currentHistory = typeof existingLead.chatHistory === "string" 
-              ? JSON.parse(existingLead.chatHistory || "[]") 
+            currentHistory = typeof existingLead.chatHistory === "string"
+              ? JSON.parse(existingLead.chatHistory || "[]")
               : (existingLead.chatHistory || []);
           } catch (e) {
             currentHistory = [];
@@ -2209,10 +2270,10 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
           if (currentHistory.length === 0 && lastMsg) {
             await storage.updateLead(existingLead.id, {
               chatHistory: JSON.stringify([
-                { 
-                  sender: fromMe ? "agent" : "client", 
-                  text: lastMsg, 
-                  timestamp: syncTimestamp, 
+                {
+                  sender: fromMe ? "agent" : "client",
+                  text: lastMsg,
+                  timestamp: syncTimestamp,
                   type: "text",
                   isHuman: fromMe ? true : undefined
                 }
@@ -2260,8 +2321,8 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
           historyStr = "";
         }
 
-        const isSyncLead = historyStr.includes("Contato sincronizado do WhatsApp") || 
-                           (lead.stage === "entrada" && lead.name.startsWith("Cliente ") && lead.value === 0 && (!lead.rooms || lead.rooms.length === 0 || JSON.stringify(lead.rooms).includes("Móveis Planejados")));
+        const isSyncLead = historyStr.includes("Contato sincronizado do WhatsApp") ||
+          (lead.stage === "entrada" && lead.name.startsWith("Cliente ") && lead.value === 0 && (!lead.rooms || lead.rooms.length === 0 || JSON.stringify(lead.rooms).includes("Móveis Planejados")));
 
         // Preserva leads com valores fechados ou em etapas avançadas
         if (isSyncLead && lead.stage === "entrada" && (!lead.value || lead.value === 0)) {
@@ -2299,7 +2360,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
   // Helper para calcular a data exata YYYY-MM-DD em São Paulo a partir do texto de conversa
   function calculateTargetAppointmentDate(text: string, baseDate = new Date()): string {
     const lower = text.toLowerCase();
-    
+
     // Obter data de hoje no fuso de São Paulo
     const spFormatter = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Sao_Paulo",
@@ -2365,6 +2426,15 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
     return result;
   }
 
+  function isGenericLeadDisplayName(name?: string): boolean {
+    if (!name) return true;
+    const clean = name.trim().toLowerCase();
+    if (clean.length <= 3) return true;
+    if (/^\+?\d{8,}$/.test(clean.replace(/\D/g, ""))) return true;
+    if (["lead", "cliente", "whatsapp", "novo lead", "contato", "usuario", "usuário", "indefinido"].includes(clean)) return true;
+    return false;
+  }
+
   // Helper para capturar o nome real do cliente a partir de frases naturais no WhatsApp
   function extractCustomerNameFromText(text: string, currentLeadName?: string): string | null {
     if (!text) return null;
@@ -2372,30 +2442,47 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
     if (trimmed.length < 2 || trimmed.length > 50) return null;
 
     const forbiddenWords = [
-      "cliente", "amigo", "senhor", "senhora", "marcenaria", "dumar", "projeto", 
+      "cliente", "amigo", "senhor", "senhora", "marcenaria", "dumar", "projeto",
       "cozinha", "sala", "quarto", "banheiro", "orcamento", "orçamento", "planta",
       "sim", "não", "nao", "bom dia", "boa tarde", "boa noite", "olá", "ola", "oi",
       "medidas", "fotos", "casa", "apartamento", "apto", "valor", "preço", "preco",
       "ararangua", "araranguá", "criciuma", "criciúma", "centro", "tenho", "já envio",
-      "obrigado", "obrigada", "valeu", "ver em tela cheia"
+      "obrigado", "obrigada", "valeu", "ver em tela cheia", "no", "na", "em", "de", "do", "da",
+      "pro", "pra", "arroio", "balneario", "balneário", "silva", "sombrio", "maracaja",
+      "maracajá", "içara", "icara", "tubarao", "tubarão", "praia", "bairro", "rua", "avenida",
+      "morro", "conventos", "jardim", "coloninha", "home", "office", "closet", "lavabo",
+      "área", "area", "gourmet", "painel", "rack", "moveis", "móveis", "tudo", "bem", "vc",
+      "você", "voce", "queria", "saber", "quais", "projetam", "quando", "pode", "vir", "aqui"
     ];
 
     // 1. Padrão Estrito com Gatilho Explícito: "Meu nome é Henrique Linhares Junqueira", "Me chamo Carlos", "Aqui é o Pedro"
     const introMatch = trimmed.match(/(?:meu\s+nome\s+(?:é|e)|me\s+chamo|sou\s+(?:o|a)|pode\s+me\s+chamar\s+de|aqui\s+(?:é|e)\s+(?:o|a)?)\s+([A-ZÀ-Úa-zà-ú]+(?:\s+[A-ZÀ-Úa-zà-ú]+){0,4})/i);
     if (introMatch && introMatch[1]) {
       const raw = introMatch[1].trim();
-      if (!forbiddenWords.some(fw => raw.toLowerCase().includes(fw))) {
-        return raw.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+      const parts = raw.split(/\s+/);
+      if (!parts.some(p => forbiddenWords.includes(p.toLowerCase()))) {
+        return parts.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
       }
     }
 
-    // 2. Se a mensagem for diretamente 1 a 4 palavras que parecem um nome próprio (ex: "Henrique Linhares Junqueira", "Mariana Souza", "Carlos")
-    // e não contém dígitos, pontuações ou palavras do vocabulário comum de marcenaria
+    // 2. Se o lead já possui um nome real confirmado (ex: "Henrique Linhares"), NUNCA sobrescrever com mensagens curtas avulsas
+    const alreadyHasRealName = currentLeadName && !isGenericLeadDisplayName(currentLeadName);
+    if (alreadyHasRealName) {
+      return null;
+    }
+
+    // 3. Se o lead ainda tem nome genérico (ex: "Hlj", "5548...", "Cliente"), aceitar mensagem de 1 a 4 palavras
+    // Rejeitando preposições de lugar ("no", "na", "em", "de") ou palavras proibidas
     const words = trimmed.split(/\s+/);
     if (words.length >= 1 && words.length <= 4) {
+      const firstWord = words[0].toLowerCase();
+      if (["no", "na", "em", "de", "do", "da", "pro", "pra"].includes(firstWord)) {
+        return null;
+      }
+
       const isOnlyLetters = words.every(w => /^[A-ZÀ-Úa-zà-ú]{2,}$/.test(w));
       const containsForbidden = words.some(w => forbiddenWords.includes(w.toLowerCase()));
-      
+
       if (isOnlyLetters && !containsForbidden) {
         return words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
       }
@@ -2417,13 +2504,13 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
         for (const messageData of rawList) {
           if (!messageData) continue;
           const key = messageData.key || {};
-          const remoteJid = key.remoteJidAlt || 
-                            messageData.remoteJidAlt || 
-                            (key.remoteJid && !key.remoteJid.includes("@lid") ? key.remoteJid : "") || 
-                            (messageData.remoteJid && !messageData.remoteJid.includes("@lid") ? messageData.remoteJid : "") || 
-                            messageData.sender || 
-                            key.remoteJid || 
-                            "";
+          const remoteJid = key.remoteJidAlt ||
+            messageData.remoteJidAlt ||
+            (key.remoteJid && !key.remoteJid.includes("@lid") ? key.remoteJid : "") ||
+            (messageData.remoteJid && !messageData.remoteJid.includes("@lid") ? messageData.remoteJid : "") ||
+            messageData.sender ||
+            key.remoteJid ||
+            "";
 
           // Ignorar mensagens de grupos (@g.us) e status
           if (remoteJid.includes("@g.us") || remoteJid.includes("status@broadcast")) continue;
@@ -2582,7 +2669,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
           }
 
           const rawTs = messageData.messageTimestamp;
-          const timestamp = rawTs 
+          const timestamp = rawTs
             ? new Date(Number(rawTs) * 1000).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })
             : new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
 
@@ -2606,25 +2693,25 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
 
           if (isFromOwner) {
             console.log(`Webhook Evolution: Mensagem recebida do Diretor Paulo (${phoneFromJid}): "${msgContent}"`);
-            
+
             // Buscar se há lead aguardando aprovação de agendamento
             const pendingLeads = (await storage.getLeads()).filter(l => l.appointmentStatus === "pending_approval");
             const targetPendingLead = pendingLeads.length > 0 ? pendingLeads[pendingLeads.length - 1] : null;
 
             if (targetPendingLead) {
               const lowerOwnerMsg = msgContent.toLowerCase();
-              const isApproval = lowerOwnerMsg.includes("ok") || 
-                                 lowerOwnerMsg.includes("sim") || 
-                                 lowerOwnerMsg.includes("pode") || 
-                                 lowerOwnerMsg.includes("marcar") || 
-                                 lowerOwnerMsg.includes("confirmar") ||
-                                 lowerOwnerMsg.includes("aprovado");
+              const isApproval = lowerOwnerMsg.includes("ok") ||
+                lowerOwnerMsg.includes("sim") ||
+                lowerOwnerMsg.includes("pode") ||
+                lowerOwnerMsg.includes("marcar") ||
+                lowerOwnerMsg.includes("confirmar") ||
+                lowerOwnerMsg.includes("aprovado");
 
-              const isRejection = lowerOwnerMsg.includes("não") || 
-                                  lowerOwnerMsg.includes("nao") || 
-                                  lowerOwnerMsg.includes("negar") || 
-                                  lowerOwnerMsg.includes("sem agenda") ||
-                                  lowerOwnerMsg.includes("cancelar");
+              const isRejection = lowerOwnerMsg.includes("não") ||
+                lowerOwnerMsg.includes("nao") ||
+                lowerOwnerMsg.includes("negar") ||
+                lowerOwnerMsg.includes("sem agenda") ||
+                lowerOwnerMsg.includes("cancelar");
 
               let details: any = {};
               try {
@@ -2664,8 +2751,8 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
                 });
 
                 // 2. Atualizar Lead no CRM para Briefing & Medição
-                const currentChecklist = typeof targetPendingLead.checklist === "string" 
-                  ? JSON.parse(targetPendingLead.checklist || "{}") 
+                const currentChecklist = typeof targetPendingLead.checklist === "string"
+                  ? JSON.parse(targetPendingLead.checklist || "{}")
                   : (targetPendingLead.checklist || {});
 
                 await storage.updateLead(targetPendingLead.id, {
@@ -2689,7 +2776,7 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
                 continue;
               } else if (isRejection) {
                 await storage.updateLead(targetPendingLead.id, { appointmentStatus: "rejected" });
-                
+
                 // Mensagem cordial ao cliente sugerindo reagendamento
                 const clientRejectMsg = `Olá ${targetPendingLead.name}! Consultei nossa equipe de projetos e neste horário específico nossa equipe já estará em atendimento externo. Terias disponibilidade em outro horário ou no próximo turno para alinharmos?`;
                 await sendWhatsAppMessageViaEvolution(targetPendingLead.phone, clientRejectMsg, "dumar_comercial");
@@ -2733,12 +2820,12 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
             });
           } else {
             // ATUALIZAR HISTÓRICO, AMBIENTES E NOME DO LEAD EXISTENTE
-            const currentHistory = typeof targetLead.chatHistory === "string" 
-              ? JSON.parse(targetLead.chatHistory || "[]") 
+            const currentHistory = typeof targetLead.chatHistory === "string"
+              ? JSON.parse(targetLead.chatHistory || "[]")
               : (targetLead.chatHistory || []);
 
             const updatedHistory = [...currentHistory, newChatEntry];
-            
+
             let existingRooms: string[] = [];
             try {
               existingRooms = typeof targetLead.rooms === "string" ? JSON.parse(targetLead.rooms || "[]") : (targetLead.rooms || []);
@@ -2770,11 +2857,11 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
           // DISPARAR MOTOR DE IA COMERCIAL SE ATIVO GLOBALMENTE E HABILITADO ESPECIFICAMENTE NO BOTÃO DESTE LEAD
           if (!isFromMe && aiConfig.botEnabled && targetLead) {
             const history = typeof targetLead.chatHistory === "string" ? JSON.parse(targetLead.chatHistory || "[]") : (targetLead.chatHistory || []);
-            
+
             // BLINDAGEM DE ATENDIMENTO HUMANO: Se a última mensagem da empresa foi enviada por um humano, a IA NUNCA intervém!
             const lastAgentMsg = history.filter((h: any) => h.sender === "agent").slice(-1)[0];
             const lastMsgWasHuman = lastAgentMsg?.isHuman === true;
-            
+
             const isLeadAiActive = targetLead.aiPaused === false && !lastMsgWasHuman;
             const isAllowedStage = ["entrada", "em_atendimento", "briefing"].includes(targetLead.stage || "entrada");
 
@@ -2785,12 +2872,12 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
                   await new Promise(r => setTimeout(r, actualDelay * 1000));
                 }
 
-                const targetChecklist = typeof targetLead.checklist === "string" 
-                  ? JSON.parse(targetLead.checklist || "{}") 
+                const targetChecklist = typeof targetLead.checklist === "string"
+                  ? JSON.parse(targetLead.checklist || "{}")
                   : (targetLead.checklist || {});
 
-                const targetRooms = typeof targetLead.rooms === "string" 
-                  ? JSON.parse(targetLead.rooms || "[]") 
+                const targetRooms = typeof targetLead.rooms === "string"
+                  ? JSON.parse(targetLead.rooms || "[]")
                   : (targetLead.rooms || []);
 
                 let daysSinceLastContact = 0;
@@ -2805,8 +2892,8 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
                 }
 
                 const replyText = await generateAIResponse(
-                  history, 
-                  targetLead.name, 
+                  history,
+                  targetLead.name,
                   targetLead.phone,
                   {
                     rooms: targetRooms,
@@ -2820,14 +2907,14 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
                 const lowerMsg = msgContent.toLowerCase();
 
                 // Detecção Semântica de Gatilhos de Agendamento Real
-                const isExplicitAppointment = lowerReply.includes("está agendado") || 
-                                              lowerReply.includes("agendado:") || 
-                                              lowerReply.includes("agendamento confirmado") ||
-                                              lowerReply.includes("marcado para") ||
-                                              lowerReply.includes("marcada para") ||
-                                              (lowerMsg.includes("agendar") && (lowerMsg.includes("às") || lowerMsg.includes("as") || lowerMsg.includes("h") || lowerMsg.includes("dia") || lowerMsg.includes("feira"))) ||
-                                              (lowerMsg.includes("marcar") && (lowerMsg.includes("visita") || lowerMsg.includes("reunião") || lowerMsg.includes("horário"))) ||
-                                              lowerMsg.includes("visita técnica");
+                const isExplicitAppointment = lowerReply.includes("está agendado") ||
+                  lowerReply.includes("agendado:") ||
+                  lowerReply.includes("agendamento confirmado") ||
+                  lowerReply.includes("marcado para") ||
+                  lowerReply.includes("marcada para") ||
+                  (lowerMsg.includes("agendar") && (lowerMsg.includes("às") || lowerMsg.includes("as") || lowerMsg.includes("h") || lowerMsg.includes("dia") || lowerMsg.includes("feira"))) ||
+                  (lowerMsg.includes("marcar") && (lowerMsg.includes("visita") || lowerMsg.includes("reunião") || lowerMsg.includes("horário"))) ||
+                  lowerMsg.includes("visita técnica");
 
                 const mentionsPaulo = lowerMsg.includes("paulo vargas") || lowerMsg.includes("falar com o paulo");
                 const mentionsHighValue = /\b(50|60|70|80|90|100|150|200)\s*(mil|k)\b/i.test(lowerMsg);
@@ -2838,95 +2925,10 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
                 // A resposta ao cliente SEMPRE preserva o fluxo inteligente e consultivo da IA
                 let finalReplyToClient = replyText;
 
-                // SE HOUVER AGENDAMENTO REAL OU SOLICITAÇÃO EXPLÍCITA -> ACIONAR DIRETORIA/AGENDA
-                if (isExplicitAppointment && targetLead.appointmentStatus !== "pending_approval" && targetLead.appointmentStatus !== "confirmed") {
-                  const targetAppointmentDate = calculateTargetAppointmentDate(`${msgContent} ${replyText}`);
-                  const timeMatch = (lowerReply + " " + lowerMsg).match(/(\d{1,2})h(\d{2})?|(\d{1,2}):(\d{2})/);
-                  let extractedTime = "14:00";
-                  if (timeMatch) {
-                    if (timeMatch[1]) extractedTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
-                    else if (timeMatch[3]) extractedTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
-                  }
-
-                  if (aiConfig.requireOwnerApproval !== false) {
-                    // Salvar estado pendente no Lead
-                    await storage.updateLead(targetLead.id, {
-                      appointmentStatus: "pending_approval",
-                      appointmentDetails: JSON.stringify({
-                        date: targetAppointmentDate,
-                        time: extractedTime,
-                        rooms: targetRooms,
-                        estimatedValue: leadEstimate.estimatedValue,
-                        summary: msgContent
-                      })
-                    });
-
-                    // DISPARAR NOTIFICAÇÃO EXECUTIVA NO WHATSAPP DO PAULO
-                    try {
-                      const ownerPhone = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
-                      const allText = history.map((m: any) => m.text).join(" ") + " " + msgContent;
-                      const cityMatch = allText.match(/(?:ararangu[aá]|crici[uú]ma|balne[aá]rio\s+arroio\s+do\s+silva|tubar[aã]o|i[cç]ara|sombrio|turvo|morro\s+da\s+fuma[cç]a|urussanga|forquilhinha|maracaj[aá]|meleiro|santa\s+rosa\s+do\s+sul|passo\s+de\s+torres|praia\s+grande|florian[oó]polis|porto\s+alegre)/i);
-                      const locationStr = cityMatch ? cityMatch[0].toUpperCase() : "Balneário Arroio do Silva / Criciúma";
-
-                      const propMatch = allText.match(/\b(casa|apartamento|apto|cobertura|sala\s+comercial)\b/i);
-                      const propertyTypeStr = propMatch ? propMatch[0].toUpperCase() : "Imóvel";
-                      const roomsStr = (targetRooms && targetRooms.length > 0) ? targetRooms.join(", ") : "Móveis Planejados";
-
-                      const vipBadge = (leadEstimate.isVip || mentionsHighValue || mentionsPaulo) 
-                        ? "🚨 *OPORTUNIDADE VIP (DIRETORIA DUMAR)* 💎✨" 
-                        : "📅 *SOLICITAÇÃO DE AGENDAMENTO* ✨";
-
-                      const notifyMsg = `${vipBadge}
-
-👤 *Cliente:* ${targetLead.name}
-📱 *WhatsApp:* ${targetLead.phone}
-📍 *Local:* ${locationStr} (${propertyTypeStr})
-🛋️ *Ambientes:* ${roomsStr}
-💰 *Estimativa / Orçamento:* ${leadEstimate.summary}
-📅 *Previsão de Data:* ${targetAppointmentDate} às ${extractedTime}
-
-💬 *Mensagem do Cliente:* "${msgContent.slice(0, 140)}"
-
-👉 *COMO RESPONDER:*
-• Digite *OK* ou *SIM* (ou envie um áudio 🎙️) para aprovar neste horário
-• Ou digite outro dia/hora (Ex: *"Pode marcar sexta às 10h"*)
-• Ou digite *NEGAR* se não tiver agenda
-
-🔗 *Acessar CRM:* https://dumarplanejados.com.br/crm`;
-
-                      console.log(`IA Comercial Dumar: Notificando Paulo (${ownerPhone}) para aprovação de agendamento...`);
-                      await sendWhatsAppMessageViaEvolution(ownerPhone, notifyMsg, "dumar_comercial");
-                    } catch (notifyErr) {
-                      console.error("Erro ao enviar notificação de agendamento para o Paulo:", notifyErr);
-                    }
-                  } else {
-                    // Modo direto sem aprovação
-                    await storage.createCalendarEvent({
-                      title: `Reunião Projetista - ${targetLead.name}`,
-                      date: targetAppointmentDate,
-                      time: extractedTime,
-                      type: "evento",
-                      priority: "alta",
-                      leadId: targetLead.id,
-                      notes: `Agendado automaticamente pela IA via WhatsApp: "${replyText.slice(0, 140)}..."`,
-                      completed: false
-                    });
-
-                    await storage.updateLead(targetLead.id, { 
-                      stage: "briefing",
-                      appointmentStatus: "confirmed",
-                      checklist: JSON.stringify({
-                        ...targetChecklist,
-                        dataAgendamento: `${targetAppointmentDate} ${extractedTime}`
-                      })
-                    });
-                  }
-                }
-
                 console.log(`IA Comercial Dumar: Enviando resposta para ${targetLead.name} (${targetLead.phone}): "${finalReplyToClient.slice(0, 60)}..."`);
                 const { success: evoSuccess } = await sendWhatsAppMessageViaEvolution(
-                  targetLead.phone, 
-                  finalReplyToClient, 
+                  targetLead.phone,
+                  finalReplyToClient,
                   "dumar_comercial"
                 );
 
@@ -2937,13 +2939,54 @@ FILOSOFIA DE ATENDIMENTO CONSULTIVO:
                 });
 
                 const historyWithBot = [...history, { sender: "agent", text: finalReplyToClient, timestamp: botTimestamp, isAi: true, sentAt: Date.now(), deliveredViaEvolution: evoSuccess }];
-                
-                // Se o lead ainda estava em 'entrada', move automaticamente para 'em_atendimento'
-                const stageAfterAiReply = targetLead.stage === "entrada" ? "em_atendimento" : targetLead.stage;
 
-                await storage.updateLead(targetLead.id, { 
+                // Detecção de Encaminhamento para a Equipe Humana
+                const isHandoffToTeam = lowerReply.includes("nossa equipe de projetos vai entrar em contato") ||
+                  lowerReply.includes("nossa equipe vai entrar em contato") ||
+                  lowerReply.includes("nossa equipe entrará em contato") ||
+                  lowerReply.includes("vai agendar a visita técnica") ||
+                  lowerReply.includes("entraremos em contato em breve") ||
+                  lowerReply.includes("visita técnica ao seu");
+
+                // O lead permanece em 'entrada' enquanto a IA está qualificando.
+                // Somente quando encaminha para a equipe (isHandoffToTeam), move para 'em_atendimento' e desativa a IA!
+                const stageAfterAiReply = isHandoffToTeam ? "em_atendimento" : (targetLead.stage || "entrada");
+                const aiPausedAfterReply = isHandoffToTeam ? true : targetLead.aiPaused;
+
+                if (isHandoffToTeam) {
+                  console.log(`IA Comercial Dumar: Lead ${targetLead.name} encaminhado para a equipe. Notificando Paulo (${aiConfig.ownerPhone || "555196682257"})...`);
+                  try {
+                    const ownerPhone = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
+                    const allText = history.map((m: any) => m.text).join(" ") + " " + msgContent;
+
+                    const cityMatch = allText.match(/(?:ararangu[aá]|crici[uú]ma|balne[aá]rio\s+arroio\s+do\s+silva|tubar[aã]o|i[cç]ara|sombrio|turvo|morro\s+da\s+fuma[cç]a|urussanga|forquilhinha|maracaj[aá]|meleiro|santa\s+rosa\s+do\s+sul|passo\s+de\s+torres|praia\s+grande|florian[oó]polis|porto\s+alegre)/i);
+                    const locationStr = cityMatch ? cityMatch[0] : "A confirmar";
+                    const roomsStr = (targetRooms && targetRooms.length > 0) ? targetRooms.join(", ") : "Móveis Planejados";
+
+                    const leadSummaryMsg = `*NOVO LEAD COLETADO PELA IA*
+
+*Cliente:* ${targetLead.name}
+*WhatsApp:* ${targetLead.phone}
+*Ambiente:* ${roomsStr}
+*Local:* ${locationStr}
+*Status no CRM:* Em Atendimento (Manual)
+
+*Última mensagem do cliente:* "${msgContent.slice(0, 120)}"
+
+*Ação:* Entrar em contato para apresentar proposta / combinar visita!
+
+*Acessar CRM:* https://dumarplanejados.com.br/crm`;
+
+                    await sendWhatsAppMessageViaEvolution(ownerPhone, leadSummaryMsg, "dumar_comercial");
+                  } catch (notifyErr) {
+                    console.error("Erro ao enviar resumo do lead para o WhatsApp do Paulo:", notifyErr);
+                  }
+                }
+
+                await storage.updateLead(targetLead.id, {
                   chatHistory: JSON.stringify(historyWithBot),
-                  stage: stageAfterAiReply
+                  stage: stageAfterAiReply,
+                  aiPaused: aiPausedAfterReply
                 });
               } catch (aiErr) {
                 console.error("Erro ao processar resposta automática da IA:", aiErr);

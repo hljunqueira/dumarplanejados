@@ -5,7 +5,7 @@ import {
   CreditCard, BookOpen, Check, ChevronRight, Calculator
 } from "lucide-react";
 import { Lead } from "./types";
-import { ContractData, getDefaultContractData, buildClause3PaymentText, PaymentPlanType } from "@/lib/contract-generator";
+import { ContractData, getDefaultContractData, getStoredCompanyConfig, sanitizeContractCompanyData, buildClause3PaymentText, PaymentPlanType } from "@/lib/contract-generator";
 import { useConfirmDialog } from "../ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import CRMMateriaisModal from "./crm-materiais-modal";
@@ -15,7 +15,7 @@ interface CRMContractsViewProps {
   leads: Lead[];
 }
 
-export default function CRMContractsView({ leads }: CRMContractsViewProps) {
+export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.Element {
   const [contracts, setContracts] = useState<ContractData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,16 +41,14 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
   const [isMaterialsModalOpen, setIsMaterialsModalOpen] = useState(false);
   const [targetMaterialCategory, setTargetMaterialCategory] = useState<string>("all");
 
-
-  // Buscar contratos da API REST (com fallback localStorage)
+  // Carregar Contratos da API
   const fetchContracts = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const res = await fetch("/api/contracts");
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          const OFFICIAL_ADDRESS = "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC";
           const parsed = data.map((item: any) => {
             let jsonDetails: any = {};
             try {
@@ -72,12 +70,7 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
               downPayment: item.downPayment,
             };
 
-            // Sanitização de endereço da empresa
-            if (!merged.companyAddress || merged.companyAddress.includes("Pereira")) {
-              merged.companyAddress = OFFICIAL_ADDRESS;
-            }
-
-            return merged;
+            return sanitizeContractCompanyData(merged);
           });
           setContracts(parsed);
           setLoading(false);
@@ -92,24 +85,29 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
     try {
       const saved = localStorage.getItem("dumar_contracts_db");
       if (saved) {
-        const parsedSaved = JSON.parse(saved).map((c: any) => ({
-          ...c,
-          companyAddress: (!c.companyAddress || c.companyAddress.includes("Pereira")) ? "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC" : c.companyAddress
-        }));
+        const parsedSaved = JSON.parse(saved).map((c: any) => sanitizeContractCompanyData(c));
         setContracts(parsedSaved);
       } else if (leads.length > 0) {
-        setContracts([getDefaultContractData(leads[0])]);
+        setContracts([sanitizeContractCompanyData(getDefaultContractData(leads[0]))]);
       } else {
-        setContracts([getDefaultContractData()]);
+        setContracts([sanitizeContractCompanyData(getDefaultContractData())]);
       }
     } catch (e) {
-      setContracts([getDefaultContractData()]);
+      setContracts([sanitizeContractCompanyData(getDefaultContractData())]);
     }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchContracts();
+
+    const handleConfigUpdated = () => {
+      fetchContracts();
+    };
+    window.addEventListener("dumar_company_config_updated", handleConfigUpdated);
+    return () => {
+      window.removeEventListener("dumar_company_config_updated", handleConfigUpdated);
+    };
   }, []);
 
   const saveContractsLocal = (newList: ContractData[]) => {
@@ -121,7 +119,7 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
 
   // Abrir Modal de Novo Contrato
   const handleOpenNewContract = (lead?: Lead) => {
-    const defaultData = getDefaultContractData(lead);
+    const defaultData = sanitizeContractCompanyData(getDefaultContractData(lead));
     setCurrentContract(defaultData);
     setSelectedLeadId(lead ? lead.id.toString() : "");
     setEditSubTab("finance");
@@ -131,12 +129,7 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps) {
 
   // Abrir Contrato Existente para Editar ou Imprimir
   const handleOpenContract = (contract: ContractData, mode: "edit" | "preview" = "preview") => {
-    const sanitizedContract = {
-      ...contract,
-      companyAddress: (!contract.companyAddress || contract.companyAddress.includes("Pereira")) 
-        ? "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC" 
-        : contract.companyAddress
-    };
+    const sanitizedContract = sanitizeContractCompanyData(contract);
     setCurrentContract(sanitizedContract);
     setSelectedLeadId(sanitizedContract.leadId ? sanitizedContract.leadId.toString() : "");
     setActiveTab(mode);

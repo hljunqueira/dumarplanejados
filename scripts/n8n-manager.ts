@@ -148,52 +148,83 @@ export async function statusWorkflows() {
 }
 
 export async function testCampaignFlow() {
-  console.log("🧪 Testando Automação de Leads e Integração de Webhook...");
+  console.log("🧪 Testando Automação de Leads e Integração de Webhooks do n8n...\n");
 
-  const testPayload = {
-    name: "Lead Teste Automação Index",
-    phone: "11988776655",
-    email: "lead.teste.n8n@dumarplanejados.com.br",
-    stage: "entrada",
-    value: 15000,
-    utmSource: "Instagram Ads",
-    utmCampaign: "Campanha Index Teste Automated",
-    rooms: ["Cozinha Planejada", "Suíte Master"],
-  };
+  const endpoints = [
+    {
+      name: "Fluxo Campanha & Site (campaign-lead)",
+      url: `${N8N_URL}/webhook/campaign-lead`,
+      payload: {
+        name: "Lead Teste Campanha Site",
+        phone: "48999887766",
+        email: "teste.campanha@dumarplanejados.com.br",
+        stage: "entrada",
+        value: 18000,
+        utmSource: "Google Ads",
+        utmCampaign: "Campanha Institucional Dumar",
+        rooms: ["Cozinha Planejada", "Área Gourmet"],
+      }
+    },
+    {
+      name: "Fluxo Meta Instagram Lead Ads (meta-lead)",
+      url: `${N8N_URL}/webhook/meta-lead`,
+      payload: {
+        lead_data: {
+          full_name: "Lead Teste Meta Instagram Ads",
+          phone_number: "48988776655",
+          email: "teste.meta@dumarplanejados.com.br",
+          campaign_name: "Campanha Instagram Móveis Sob Medida"
+        }
+      }
+    }
+  ];
 
-  const webhookUrl = `${N8N_URL}/webhook/campaign-lead`;
-  console.log(`📤 Enviando payload de teste para Webhook n8n: ${webhookUrl}`);
+  for (const ep of endpoints) {
+    console.log(`📡 [${ep.name}]`);
+    console.log(`📤 Enviando para Webhook: ${ep.url}`);
+
+    try {
+      const webhookRes = await fetch(ep.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ep.payload),
+      });
+
+      console.log(`   Status do Webhook: ${webhookRes.status} ${webhookRes.statusText}`);
+
+      if (webhookRes.ok) {
+        console.log(`   ✅ Webhook disparado e processado com sucesso pelo n8n!\n`);
+      } else {
+        const errText = await webhookRes.text();
+        console.warn(`   ⚠️ Webhook retornou status ${webhookRes.status}: ${errText}\n`);
+      }
+    } catch (err: any) {
+      console.error(`   ❌ Erro ao disparar webhook:`, err.message, "\n");
+    }
+  }
+
+  console.log("🔍 Verificando recepção dos leads na API do CRM Dumar...");
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 
   try {
-    const webhookRes = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(testPayload),
-    });
-
-    console.log(`Status do Webhook: ${webhookRes.status} ${webhookRes.statusText}`);
-
-    console.log("🔍 Verificando recepção do lead na API do CRM...");
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
     const crmRes = await fetch(CRM_API_URL);
     if (crmRes.ok) {
       const leads: any[] = await crmRes.json();
-      const createdLead = leads.find((l) => l.name === testPayload.name || l.email === testPayload.email);
-
-      if (createdLead) {
-        console.log(`✅ TESTE APROVADO! Lead criado com sucesso no CRM (ID: ${createdLead.id}).`);
-        console.log(`   Nome: ${createdLead.name}`);
-        console.log(`   Origem: ${createdLead.utmSource}`);
-        console.log(`   Campanha: ${createdLead.utmCampaign}`);
-      } else {
-        console.log("ℹ️ Requisição enviada ao n8n, mas lead não encontrado na lista atual do CRM.");
-      }
-    } else {
-      console.warn(`⚠️ Não foi possível consultar a API do CRM: ${crmRes.status}`);
+      console.log(`📊 Total de leads no CRM: ${leads.length}`);
+      const recentLeads = leads.slice(0, 3);
+      console.table(
+        recentLeads.map((l) => ({
+          ID: l.id,
+          Nome: l.name,
+          Telefone: l.phone,
+          Origem: l.utmSource,
+          Campanha: l.utmCampaign,
+          Estágio: l.stage,
+        }))
+      );
     }
   } catch (err: any) {
-    console.error("❌ Erro durante o teste de integração:", err.message);
+    console.error("❌ Erro ao consultar CRM:", err.message);
   }
 }
 
@@ -206,5 +237,5 @@ if (command === "deploy") {
 } else if (command === "test") {
   testCampaignFlow();
 } else {
-  console.log("Uso: npx tsx scripts/n8n-manager.ts [deploy | status | test]");
+  console.log("Uso: npm run n8n:deploy | npm run n8n:status | npm run n8n:test");
 }
