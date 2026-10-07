@@ -11,12 +11,15 @@ export default function VideosSection() {
     <section id="videos" className="py-24 md:py-32 bg-black text-white relative border-t border-white/10">
       <div className="container mx-auto px-4 lg:px-8">
         
-        <div className="text-center mb-20">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 text-white">
-            Vídeos da <span className="text-[#f97316]">Dumar no YouTube</span>
+        <div className="text-center mb-16 md:mb-20">
+          <span className="text-[#f97316] text-xs font-bold uppercase tracking-[0.2em] block mb-3">
+            Por Trás do Resultado
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 text-white">
+            Veja a qualidade de perto <span className="text-[#f97316]">em nossos vídeos.</span>
           </h2>
           <p className="text-neutral-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            Veja detalhes em vídeo de montagens, projetos finalizados em 3D, e entenda a real qualidade de cada ferragem e material utilizado.
+            Acompanhe montagens reais, projetos finalizados em 3D e veja o cuidado técnico em cada ferragem, vedação e acabamento.
           </p>
         </div>
 

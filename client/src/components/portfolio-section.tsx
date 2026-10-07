@@ -59,11 +59,14 @@ export default function PortfolioSection() {
         
         {/* Cabeçalho de Seção */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 text-white">
-            Galeria de <span className="text-[#f97316]">Projetos Executados</span>
+          <span className="text-[#f97316] text-xs font-bold uppercase tracking-[0.2em] block mb-3">
+            Portfólio Real
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 text-white">
+            Projetos que unem <span className="text-[#f97316]">estética e rotina.</span>
           </h2>
           <p className="text-neutral-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            Navegue por nossa seleção de residências exclusivas. Ambientes desenhados sob medida para aliar sofisticação estética e funcionalidade máxima.
+            Cada espaço abaixo foi desenhado para resolver um desafio real: mais armazenamento, circulação confortável e materiais duráveis.
           </p>
         </div>
 
@@ -142,16 +145,16 @@ export default function PortfolioSection() {
 
         {/* CTA Minimalista de Orçamento */}
         <div className="text-center mt-20 border-t border-white/10 pt-12">
-          <p className="text-neutral-400 text-sm md:text-base mb-6">
-            Inspirado por nossa galeria? Dê o primeiro passo para ter seu espaço exclusivo.
+          <p className="text-neutral-400 text-sm md:text-base mb-6 max-w-xl mx-auto">
+            Quer ver como ficaria o seu ambiente antes de tomar qualquer decisão? Nossa equipe desenha a proposta tridimensional no seu espaço.
           </p>
           <Button 
             size="lg"
-            className="bg-white text-black hover:bg-neutral-200 font-extrabold px-8 py-5 rounded-xl transition-all duration-300 hover:scale-105 shadow-xl cursor-pointer"
+            className="bg-[#f97316] text-white hover:bg-[#ea580c] font-extrabold px-8 py-5 rounded-xl transition-all duration-300 hover:scale-105 shadow-xl cursor-pointer uppercase tracking-wider text-xs md:text-sm"
             asChild
           >
-            <a href="https://wa.me/5548988486827?text=Olá! Vi os projetos no site e gostaria de um orçamento personalizado.">
-              Consultar Orçamento
+            <a href="https://wa.me/5548988486827?text=Ol%C3%A1!%20Vi%20o%20portf%C3%B3lio%20no%20site%20e%20gostaria%20de%20ver%20uma%20proposta%20para%20o%20meu%20espa%C3%A7o." target="_blank" rel="noopener noreferrer">
+              Quero ver uma proposta para meu espaço
             </a>
           </Button>
         </div>

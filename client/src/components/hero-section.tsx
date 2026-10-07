@@ -65,41 +65,44 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* LADO DIREITO: Texto Centralizado e Formatado (Estilo Bartz com fundo preto) */}
-        <div className="w-full lg:w-2/5 bg-black flex flex-col items-center justify-center text-center p-8 sm:p-12 lg:p-16 space-y-8 border-l border-white/5">
+        {/* LADO DIREITO: Texto Centralizado e Formatado */}
+        <div className="w-full lg:w-2/5 bg-black flex flex-col items-center justify-center text-center p-8 sm:p-12 lg:p-16 space-y-7 border-l border-white/5">
           
-          {/* Título Centralizado com Delays de Animação e Espaçamento Apropriado */}
-          <h1 className="text-3xl sm:text-4xl lg:text-4xl xl:text-[2.6rem] font-black tracking-tight uppercase leading-[1.25] text-white flex flex-col gap-1 sm:gap-2">
-            <span className="block opacity-0 animate-fade-in-up [animation-delay:150ms]">SEU SONHO</span>
-            <span className="block opacity-0 animate-fade-in-up [animation-delay:350ms]">NOSSA MISSÃO</span>
-            <span className="block opacity-0 animate-fade-in-up [animation-delay:550ms] text-[#f97316] bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 bg-clip-text text-transparent">MÓVEIS PLANEJADOS</span>
-            <span className="block opacity-0 animate-fade-in-up [animation-delay:750ms]">QUE TRANSFORMAM VIDAS</span>
-          </h1>
+          <div className="space-y-3">
+            <span className="inline-block text-[#f97316] text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] opacity-0 animate-fade-in-up [animation-delay:150ms]">
+              Móveis Sob Medida
+            </span>
 
-          {/* Descrição Formatada com Margem para melhor leitura */}
-          <p className="text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed max-w-md mx-auto opacity-0 animate-fade-in-up [animation-delay:950ms]">
-            Tecnologia exclusiva, atendimento personalizado e alta qualidade em cada projeto. Especializados em cozinhas, closets, banheiros e ambientes comerciais.
+            {/* Título com Foco no Benefício e no Espaço do Cliente */}
+            <h1 className="text-2xl sm:text-3xl lg:text-[2.15rem] xl:text-[2.4rem] font-extrabold tracking-tight leading-[1.2] text-white opacity-0 animate-fade-in-up [animation-delay:350ms]">
+              Móveis planejados para aproveitar melhor cada espaço da sua casa.
+            </h1>
+          </div>
+
+          {/* Descrição Empática e Clara */}
+          <p className="text-xs sm:text-sm lg:text-base text-neutral-300 leading-relaxed max-w-md mx-auto opacity-0 animate-fade-in-up [animation-delay:650ms]">
+            Projetos desenhados para unir durabilidade, circulação inteligente e a forma como a sua família realmente vive cada ambiente.
           </p>
 
-          {/* Botões de Ação Centralizados */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full pt-2 opacity-0 animate-fade-in-up [animation-delay:1150ms]">
+          {/* Botões de Ação */}
+          <div className="flex flex-col sm:flex-row gap-3.5 justify-center items-center w-full pt-1 opacity-0 animate-fade-in-up [animation-delay:950ms]">
             <Button 
               size="lg"
-              className="w-full sm:w-auto bg-white hover:bg-neutral-200 text-black font-extrabold px-8 py-4 rounded-lg transition-all duration-300 shadow-md hover:scale-[1.02] h-auto text-xs"
+              className="w-full sm:w-auto bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold px-7 py-4 rounded-xl transition-all duration-300 shadow-lg hover:scale-[1.02] h-auto text-xs uppercase tracking-wider"
               asChild
             >
-              <Link href="/orcamento" className="flex items-center justify-center gap-2">
-                Simular meu Projeto 3D
-              </Link>
+              <a href="#contato" className="flex items-center justify-center gap-2">
+                Quero conversar sobre meu projeto
+              </a>
             </Button>
             <Button 
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto border-white/20 bg-transparent text-white hover:bg-white hover:text-black font-bold px-8 py-4 rounded-lg transition-all duration-300 hover:scale-[1.02] h-auto text-xs"
+              className="w-full sm:w-auto border-white/25 bg-transparent text-white hover:bg-white hover:text-black font-bold px-7 py-4 rounded-xl transition-all duration-300 hover:scale-[1.02] h-auto text-xs uppercase tracking-wider"
               asChild
             >
               <a href="#portfolio" className="flex items-center justify-center">
-                Explorar Portfólio
+                Conhecer nossos projetos
               </a>
             </Button>
           </div>

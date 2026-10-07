@@ -17,16 +17,19 @@ export default function AboutSection() {
       <div className="relative z-10 container mx-auto px-4 lg:px-8">
         
         {/* Cabeçalho de Seção Minimalista */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-6">
-          <div className="space-y-4">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#1A1A1A]">
-              Especialistas em <br />
-              <span className="text-[#f97316]">Móveis de Alto Padrão</span>
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-20 gap-6">
+          <div className="space-y-3">
+            <span className="text-[#f97316] text-xs font-bold uppercase tracking-[0.2em] block">
+              Planejamento de Verdade
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#1A1A1A]">
+              Cada espaço pode <br />
+              <span className="text-[#f97316]">funcionar melhor.</span>
             </h2>
           </div>
-          <div className="max-w-md">
+          <div className="max-w-lg">
             <p className="text-neutral-600 text-base md:text-lg leading-relaxed">
-              Aliamos design contemporâneo, matérias-primas nobres e precisão industrial para dar vida a ambientes residenciais e comerciais inconfundíveis.
+              Um bom projeto não começa escolhendo uma cor de MDF. Começa entendendo como o ambiente é usado: o que precisa ser guardado, o que hoje incomoda e o que pode funcionar melhor.
             </p>
           </div>
         </div>
@@ -54,28 +57,44 @@ export default function AboutSection() {
           {/* Lado Direito: Filosofia & Diferenciais */}
           <div className="lg:col-span-7 space-y-8 lg:pl-6">
             <div className="space-y-4">
-              <h3 className="text-2xl font-bold text-[#1A1A1A] tracking-tight">Nossa Filosofia</h3>
+              <h3 className="text-2xl font-bold text-[#1A1A1A] tracking-tight">O que faz diferença em um projeto planejado?</h3>
               <p className="text-neutral-700 leading-relaxed">
-                Acreditamos que o mobiliário planejado não deve apenas ocupar um espaço, mas sim valorizá-lo. Cada projeto assinado pela Dumar é concebido de forma única, respeitando a ergonomia, a funcionalidade do cotidiano e a estética de alta decoração.
+                É a partir desse estudo prévio que cada centímetro encontra uma função real, as gavetas deslizam com suavidade e o móvel resolve a rotina da sua casa, unindo estética contemporânea e ergonomia.
               </p>
             </div>
 
-            {/* Grid de Atributos Minimalista */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="p-6 bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center mb-3">
-                  <Users className="h-5 w-5 text-[#f97316]" />
+            {/* Grid de 4 Diferenciais Práticos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-5 bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md hover:border-[#f97316]/50 transition-all duration-300">
+                <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center mb-2.5">
+                  <Users className="h-4 w-4 text-[#f97316]" />
                 </div>
-                <h4 className="font-bold text-[#1A1A1A] mb-1 text-base">Atendimento Técnico</h4>
-                <p className="text-xs text-neutral-600">Consultores com profundo conhecimento de marcenaria de ponta.</p>
+                <h4 className="font-bold text-[#1A1A1A] mb-1 text-sm">Projeto para o seu espaço</h4>
+                <p className="text-xs text-neutral-600 leading-relaxed">Soluções que nascem das medidas e necessidades reais do ambiente, sem módulos engessados.</p>
               </div>
 
-              <div className="p-6 bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center mb-3">
-                  <Shield className="h-5 w-5 text-[#f97316]" />
+              <div className="p-5 bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md hover:border-[#f97316]/50 transition-all duration-300">
+                <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center mb-2.5">
+                  <Shield className="h-4 w-4 text-[#f97316]" />
                 </div>
-                <h4 className="font-bold text-[#1A1A1A] mb-1 text-base">Garantia Assistida</h4>
-                <p className="text-xs text-neutral-600">Suporte pós-venda completo para garantir sua total satisfação.</p>
+                <h4 className="font-bold text-[#1A1A1A] mb-1 text-sm">Escolhas que fazem sentido</h4>
+                <p className="text-xs text-neutral-600 leading-relaxed">Materiais reforçados e ferragens selecionadas para resistir ao uso diário e à umidade litorânea.</p>
+              </div>
+
+              <div className="p-5 bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md hover:border-[#f97316]/50 transition-all duration-300">
+                <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center mb-2.5">
+                  <Phone className="h-4 w-4 text-[#f97316]" />
+                </div>
+                <h4 className="font-bold text-[#1A1A1A] mb-1 text-sm">Acompanhamento próximo</h4>
+                <p className="text-xs text-neutral-600 leading-relaxed">Você participa e valida cada detalhe no projeto 3D antes de qualquer peça entrar em produção.</p>
+              </div>
+
+              <div className="p-5 bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md hover:border-[#f97316]/50 transition-all duration-300">
+                <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center mb-2.5">
+                  <MapPin className="h-4 w-4 text-[#f97316]" />
+                </div>
+                <h4 className="font-bold text-[#1A1A1A] mb-1 text-sm">Cuidado na montagem</h4>
+                <p className="text-xs text-neutral-600 leading-relaxed">Instalação executada por equipe própria de marceneiros, com discrição e acabamento milimétrico.</p>
               </div>
             </div>
 

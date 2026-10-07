@@ -54,13 +54,16 @@ export default function ContactSection() {
       <div className="relative z-10 container mx-auto px-4 lg:px-8">
         
         {/* Cabeçalho */}
-        <div className="text-center mb-20">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1A1A]">
-            Deseja um Orçamento de <br />
-            <span className="text-[#f97316]">Móveis Sob Medida?</span>
+        <div className="text-center mb-16 md:mb-20">
+          <span className="text-[#f97316] text-xs font-bold uppercase tracking-[0.2em] block mb-3">
+            Comece por Aqui
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-[#1A1A1A]">
+            Tem um ambiente em mente? <br />
+            <span className="text-[#f97316]">Vamos conversar.</span>
           </h2>
           <p className="text-neutral-600 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            Preencha os dados abaixo para iniciar seu atendimento personalizado ou entre em contato diretamente pelo canal móvel.
+            Você não precisa chegar com tudo decidido. Um contato rápido abre a conversa e nossa equipe ajuda a entender o que faz mais sentido para o seu espaço.
           </p>
         </div>
 
@@ -69,8 +72,8 @@ export default function ContactSection() {
           {/* LADO ESQUERDO: Formulário Elegante */}
           <div className="lg:col-span-7 bg-white rounded-3xl p-8 md:p-10 border border-neutral-200 shadow-xl flex flex-col justify-between">
             <div className="mb-8">
-              <h3 className="text-xl font-bold text-[#1A1A1A] mb-2">Falar com Consultor</h3>
-              <p className="text-xs text-neutral-500">Preencha o formulário e seja direcionado para nossa engenharia.</p>
+              <h3 className="text-xl font-bold text-[#1A1A1A] mb-1.5">Falar com a Equipe de Projetos</h3>
+              <p className="text-xs text-neutral-500">Envie os dados básicos para darmos início ao atendimento sem compromisso.</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -102,12 +105,12 @@ export default function ContactSection() {
 
               <div className="space-y-2">
                 <label htmlFor="message" className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-                  Resumo do Projeto (Ambiente, Cidade, Prazo)
+                  Conte um pouco sobre o seu espaço (Ambiente, Cidade ou Ideia inicial)
                 </label>
                 <Textarea
                   id="message"
                   rows={4}
-                  placeholder="Ex: Cozinha e Suíte Master em Balneário Arroio do Silva. Previsão de entrega do imóvel em 60 dias."
+                  placeholder="Ex.: Gostaria de planejar uma cozinha para um apartamento novo em Balneário Arroio do Silva..."
                   {...register("message")}
                   className="bg-neutral-50 border-neutral-300 text-[#1A1A1A] focus:border-black rounded-xl p-4 text-sm"
                 />
@@ -115,9 +118,9 @@ export default function ContactSection() {
 
               <Button
                 type="submit"
-                className="w-full bg-black hover:bg-neutral-800 text-white font-extrabold py-4 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 text-sm shadow-lg cursor-pointer"
+                className="w-full bg-[#f97316] hover:bg-[#ea580c] text-white font-extrabold py-4 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 text-sm shadow-lg cursor-pointer uppercase tracking-wider"
               >
-                <span>Enviar Solicitação via WhatsApp</span>
+                <span>Quero conversar sobre meu projeto</span>
                 <Send className="h-4 w-4 ml-2" />
               </Button>
             </form>

@@ -28,21 +28,23 @@ export default function Footer() {
               </div>
               
               <p className="text-neutral-400 leading-relaxed text-sm max-w-md">
-                Especialistas em móveis planejados de alto padrão. Unimos marcenaria artesanal de alta costura a processos industriais de ponta para criar ambientes residenciais e comerciais de pura sofisticação.
+                Móveis planejados para espaços que precisam funcionar tão bem quanto parecem. Projetos pensados a partir da rotina da sua casa, com medição sem custo e acabamento milimétrico.
               </p>
               
               {/* CTA Button */}
               <Button 
                 asChild 
-                className="bg-white text-black hover:bg-neutral-200 font-extrabold px-6 py-5 rounded-xl transition-all duration-300 shadow-lg cursor-pointer"
+                className="bg-[#f97316] text-white hover:bg-[#ea580c] font-extrabold px-6 py-5 rounded-xl transition-all duration-300 shadow-lg cursor-pointer"
               >
-                <Link 
-                  href="/orcamento"
+                <a 
+                  href="https://wa.me/5548988486827?text=Ol%C3%A1!%20Gostaria%20de%20conversar%20sobre%20um%20projeto%20de%20m%C3%B3veis%20planejados."
                   className="flex items-center space-x-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <SiWhatsapp className="h-4 w-4" />
-                  <span>Agendar Atendimento</span>
-                </Link>
+                  <span>Conversar no WhatsApp</span>
+                </a>
               </Button>
             </div>
 
@@ -63,10 +65,28 @@ export default function Footer() {
                   Sobre Nós
                 </a>
                 <a 
+                  href="#ambientes" 
+                  className="block text-neutral-400 hover:text-white transition-colors"
+                >
+                  Ambientes
+                </a>
+                <a 
                   href="#portfolio" 
                   className="block text-neutral-400 hover:text-white transition-colors"
                 >
                   Portfólio
+                </a>
+                <a 
+                  href="#processo" 
+                  className="block text-neutral-400 hover:text-white transition-colors"
+                >
+                  Como Funciona
+                </a>
+                <a 
+                  href="#faq" 
+                  className="block text-neutral-400 hover:text-white transition-colors"
+                >
+                  Dúvidas Frequentes
                 </a>
                 <a 
                   href="#contato" 

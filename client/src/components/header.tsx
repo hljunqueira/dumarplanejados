@@ -20,8 +20,10 @@ export default function Header() {
   const LINKS = [
     { label: "Início", href: "#inicio" },
     { label: "Sobre", href: "#sobre" },
+    { label: "Ambientes", href: "#ambientes" },
     { label: "Portfólio", href: "#portfolio" },
-    { label: "Vídeos", href: "#videos" },
+    { label: "Processo", href: "#processo" },
+    { label: "Dúvidas", href: "#faq" },
     { label: "Contato", href: "#contato" },
   ];
 
@@ -48,12 +50,12 @@ export default function Header() {
           </a>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-7 bg-[#FDFBF7]/85 backdrop-blur-md px-6 py-2.5 rounded-full border border-[#1A1A1A]/5 shadow-sm">
+          <div className="hidden lg:flex items-center gap-6 bg-[#FDFBF7]/85 backdrop-blur-md px-6 py-2.5 rounded-full border border-[#1A1A1A]/5 shadow-sm">
             {LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="font-body text-sm font-extrabold text-[#1A1A1A] hover:text-yellow-600 transition-colors relative after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-0 after:bg-yellow-600 hover:after:w-full after:transition-all after:duration-300"
+                className="font-body text-xs xl:text-sm font-extrabold text-[#1A1A1A] hover:text-[#f97316] transition-colors relative after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-0 after:bg-[#f97316] hover:after:w-full after:transition-all after:duration-300"
               >
                 {link.label}
               </a>
@@ -61,7 +63,7 @@ export default function Header() {
             <div className="h-4 w-[1px] bg-[#1A1A1A]/10 mx-1" />
             <Link 
               href="/crm"
-              className="inline-flex items-center gap-1.5 text-[#1A1A1A] font-body text-sm font-extrabold hover:text-yellow-600 transition-colors"
+              className="inline-flex items-center gap-1.5 text-[#1A1A1A] font-body text-xs xl:text-sm font-extrabold hover:text-[#f97316] transition-colors"
             >
               <User size={14} /> CRM
             </Link>
@@ -70,9 +72,9 @@ export default function Header() {
           {/* Contact Button */}
           <a
             href="#contato"
-            className="hidden lg:inline-flex items-center gap-2 bg-[#1A1A1A] text-[#FDFBF7] px-6 py-3 rounded-full font-body text-sm font-semibold hover:bg-yellow-600 hover:text-black transition-colors duration-300"
+            className="hidden lg:inline-flex items-center gap-2 bg-[#f97316] text-white px-5 py-2.5 rounded-full font-body text-xs font-bold hover:bg-[#ea580c] transition-colors duration-300 uppercase tracking-wider shadow-sm"
           >
-            <Phone size={15} /> SOLICITAR ORÇAMENTO
+            <Phone size={14} /> Falar com a Dumar
           </a>
 
           {/* Mobile Menu Button */}

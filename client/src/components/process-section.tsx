@@ -47,13 +47,16 @@ export default function ProcessSection() {
       <div className="relative z-10 container mx-auto px-4 lg:px-8">
         
         {/* Cabeçalho */}
-        <div className="text-center mb-20">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1A1A]">
-            Como Transformamos <br />
-            <span className="text-[#f97316]">Sua Ideia em Realidade</span>
+        <div className="text-center mb-16 md:mb-20">
+          <span className="text-[#f97316] text-xs font-bold uppercase tracking-[0.2em] block mb-3">
+            Como Funciona
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-[#1A1A1A]">
+            Do primeiro contato <br />
+            <span className="text-[#f97316]">à entrega técnica.</span>
           </h2>
           <p className="text-neutral-600 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            Nossa metodologia integrada assegura um fluxo contínuo e sem atritos, priorizando a precisão técnica e a excelência estética em cada etapa.
+            Você acompanha cada etapa com clareza: desde a medição sem custo no seu imóvel até a vistoria final, sem imprevistos nem surpresas.
           </p>
         </div>
 
@@ -85,7 +88,9 @@ export default function ProcessSection() {
                 </h3>
                 
                 <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
-                  {step.description}
+                  {index === 1 
+                    ? "Visita técnica sem custo ao imóvel para levantamento de dimensões, esquadros e pontos elétricos/hidráulicos."
+                    : step.description}
                 </p>
               </div>
 
@@ -97,21 +102,21 @@ export default function ProcessSection() {
         <div className="text-center mt-20 max-w-4xl mx-auto">
           <div className="relative rounded-3xl p-8 md:p-12 overflow-hidden border border-white/10 bg-black text-white shadow-2xl">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              Deseja Agendar uma Reunião de Briefing?
+              Tem um ambiente em mente?
             </h3>
             <p className="text-neutral-400 text-sm md:text-base max-w-xl mx-auto mb-8 leading-relaxed">
-              Traga as dimensões prévias ou planta do seu espaço e receba uma assessoria inicial de um de nossos especialistas.
+              Você não precisa ter medidas exatas ou planta em mãos. A conversa começa entendendo o que você precisa para o seu espaço.
             </p>
             
             <div className="flex justify-center">
               <Button 
                 asChild 
-                className="bg-white text-black hover:bg-neutral-200 font-extrabold px-8 py-5 rounded-xl transition-all duration-300 hover:scale-105 shadow-xl cursor-pointer"
+                className="bg-[#f97316] text-white hover:bg-[#ea580c] font-extrabold px-8 py-5 rounded-xl transition-all duration-300 hover:scale-105 shadow-xl cursor-pointer"
               >
-                <Link href="/agendamento" className="flex items-center text-sm md:text-base">
-                  Solicitar Estudo de Layout
+                <a href="#contato" className="flex items-center text-sm md:text-base">
+                  Quero conversar sobre meu projeto
                   <ArrowRight className="ml-3 h-4 w-4" />
-                </Link>
+                </a>
               </Button>
             </div>
           </div>
