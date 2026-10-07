@@ -34,9 +34,9 @@ if ($LASTEXITCODE -ne 0) {
 
 # 4. Enviar os pacotes para a VPS via SCP
 Write-Host "Enviando pacotes para a VPS via SCP..." -ForegroundColor Yellow
-ssh -p 22 root@184.107.88.189 "mkdir -p /root/dumar-infra/backend /root/dumar-infra/backend/data /root/dumar-infra/backend/uploads/chat /root/dumar-infra/frontend"
-scp -P 22 dist.tar.gz root@184.107.88.189:/root/dumar-infra/frontend/dist.tar.gz
-scp -P 22 backend.tar.gz root@184.107.88.189:/root/dumar-infra/backend/backend.tar.gz
+ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p 22 root@184.107.88.189 "mkdir -p /root/dumar-infra/backend /root/dumar-infra/backend/data /root/dumar-infra/backend/uploads/chat /root/dumar-infra/frontend"
+scp -o BatchMode=yes -o StrictHostKeyChecking=no -P 22 dist.tar.gz root@184.107.88.189:/root/dumar-infra/frontend/dist.tar.gz
+scp -o BatchMode=yes -o StrictHostKeyChecking=no -P 22 backend.tar.gz root@184.107.88.189:/root/dumar-infra/backend/backend.tar.gz
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Erro ao transferir arquivos para a VPS via SCP." -ForegroundColor Red
     exit 1
@@ -44,7 +44,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 5. Extrair e reiniciar Caddy e Backend na VPS
 Write-Host "Extraindo arquivos e reiniciando conteineres na VPS..." -ForegroundColor Yellow
-ssh -p 22 root@184.107.88.189 "tar -xzf /root/dumar-infra/frontend/dist.tar.gz -C /root/dumar-infra/frontend/dist/ && rm /root/dumar-infra/frontend/dist.tar.gz && tar -xzf /root/dumar-infra/backend/backend.tar.gz -C /root/dumar-infra/backend/ && rm /root/dumar-infra/backend/backend.tar.gz && cd /root/dumar-infra && docker compose restart backend caddy"
+ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p 22 root@184.107.88.189 "tar -xzf /root/dumar-infra/frontend/dist.tar.gz -C /root/dumar-infra/frontend/dist/ && rm /root/dumar-infra/frontend/dist.tar.gz && tar -xzf /root/dumar-infra/backend/backend.tar.gz -C /root/dumar-infra/backend/ && rm /root/dumar-infra/backend/backend.tar.gz && cd /root/dumar-infra && docker compose restart backend caddy"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Erro ao extrair arquivos ou reiniciar os conteineres na VPS." -ForegroundColor Red
     exit 1
