@@ -122,6 +122,26 @@ export const insertSupplierSchema = createInsertSchema(suppliers);
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
 export type Supplier = typeof suppliers.$inferSelect;
 
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  cpfCnpj: text("cpf_cnpj").default(""),
+  rg: text("rg").default(""),
+  phone: text("phone").default(""),
+  email: text("email").default(""),
+  address: text("address").default(""),
+  bairro: text("bairro").default(""),
+  city: text("city").default(""),
+  cep: text("cep").default(""),
+  notes: text("notes").default(""),
+  leadId: integer("lead_id"),
+  createdAt: text("created_at").default(""),
+});
+
+export const insertClientSchema = createInsertSchema(clients);
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type Client = typeof clients.$inferSelect;
+
 export const contracts = pgTable("contracts", {
   id: serial("id").primaryKey(),
   contractNumber: text("contract_number").notNull(),

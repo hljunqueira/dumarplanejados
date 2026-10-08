@@ -94,3 +94,25 @@ Antes de qualquer entrega ou deploy em produção na VPS (`deploy-dumar.ps1`):
 2. **Validação do Schema Drizzle**: Garantir que as tabelas em `shared/schema.ts` estejam sincronizadas com o banco via `npm run db:push`.
 3. **Build do Frontend e Backend**: `npm run build` (Vite Build + Esbuild Node bundle).
 4. **Verificação de Segurança**: Sanitização de variáveis de ambiente (`.env`), sem exposição de chaves privadas em logs.
+
+---
+
+## 🔮 6. Roadmap Arquitetural: Dumar Pro & Copiloto JEV (TypeSafe AI + Groq)
+
+O detalhamento completo das futuras implementações está documentado em [`docs/ROADMAP-DUMAR-PRO.md`](file:///c:/Users/Henrique%20-%20PC/Desktop/Projetos%20Dev/dumarplanejados/docs/ROADMAP-DUMAR-PRO.md).
+
+### Resumo dos Módulos Planejados:
+1. **Copiloto JEV (TypeSafe AI) + GROQ**:
+   - Camada 1 (Jev System One): Modelo calibrado sub-100ms para Score de Fechamento (0–100) e Decisão de Próxima Ação (`Choice`, `Score`, `Noul`).
+   - Camada 2 (Groq): Redação instantânea (<1.5s) de 3 sugestões de mensagens de WhatsApp em atendimento manual.
+2. **Simulador de Margem & VPL ("Olhinho da Negociação")**:
+   - Cálculo em tempo real da margem líquida descontando impostos, taxas de parcelamento e custos de matéria-prima, com travas de alerta para margens inferiores a 25%.
+3. **Radar de Prazos (Linha do Tempo de 6 Marcos com SLA)**:
+   - Esteira padronizada da marcenaria: 1. Medição Fina -> 2. Projeto Executivo -> 3. Pedido Fábrica -> 4. Chegada Material -> 5. Montagem -> 6. Vistoria & Garantia.
+4. **DRE por Contrato / Obra**:
+   - Balanço contábil isolado por obra vinculando recebíveis aos custos de fornecedores de MDF e ferragens.
+5. **Portal do Montador (Mobile / PWA)**:
+   - Interface móvel tokenizada para montadores com rotas Waze, checklist e fotos da montagem finalizada.
+6. **Módulo de Assistência Técnica & Garantia**:
+   - Pipeline de chamados de pós-venda amarrado ao contrato e termo de garantia de 5 anos da Dumar.
+

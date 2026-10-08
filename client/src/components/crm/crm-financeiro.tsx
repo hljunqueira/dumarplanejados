@@ -3,15 +3,16 @@ import {
   DollarSign, FileText, CheckCircle2, Clock, AlertCircle, TrendingUp,
   TrendingDown, Plus, Search, Filter, Trash2, Edit3, Download, Check,
   ArrowUpRight, ArrowDownRight, Tag, Calendar, CreditCard, UserCheck, X,
-  Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare
+  Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare, Users
 } from "lucide-react";
 
 import { Lead } from "./types";
-import { Supplier } from "@shared/schema";
+import { Supplier, Client } from "@shared/schema";
 import { useConfirmDialog } from "../ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import CRMContractsView from "./crm-contracts-view";
 import CRMSuppliersModal from "./crm-suppliers-modal";
+import CRMClientsModal from "./crm-clients-modal";
 
 export interface FinancialTransaction {
   id: number;
@@ -72,6 +73,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   const [financialTab, setFinancialTab] = useState<"cashflow" | "contracts">("cashflow");
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [suppliersList, setSuppliersList] = useState<Supplier[]>([]);
+  const [clientsList, setClientsList] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -98,6 +100,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSuppliersModalOpen, setIsSuppliersModalOpen] = useState(false);
+  const [isClientsModalOpen, setIsClientsModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<FinancialTransaction | null>(null);
 
   // Modal Edição de Grupo Recorrente
@@ -198,9 +201,23 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     }
   };
 
+  // Carregar clientes para dropdown e gestão
+  const fetchClients = async () => {
+    try {
+      const res = await fetch("/api/clients");
+      if (res.ok) {
+        const data = await res.json();
+        setClientsList(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar lista de clientes:", err);
+    }
+  };
+
   useEffect(() => {
     fetchTransactions();
     fetchSuppliers();
+    fetchClients();
   }, []);
 
   // Abrir Modal de Novo Lançamento
@@ -998,6 +1015,13 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </button>
 
                 <button
+                  onClick={() => setIsClientsModalOpen(true)}
+                  className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/10"
+                >
+                  <Users size={15} /> Cadastro de Clientes
+                </button>
+
+                <button
                   onClick={() => setGroupByRecurring(prev => !prev)}
                   className={`font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border ${groupByRecurring
                       ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10"
@@ -1702,20 +1726,40 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                       />
                     </div>
 
-                    {/* Vínculo com Lead do CRM (2 colunas para receita, 1 col para despesa) */}
+                    {/* Vínculo com Lead ou Cliente do CRM (2 colunas para receita, 1 col para despesa) */}
                     <div className={formType === "receita" ? "sm:col-span-2 lg:col-span-2" : ""}>
-                      <label className="block text-gray-300 font-semibold mb-1">Vincular a Cliente/Lead</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-gray-300 font-semibold">Vincular a Cliente / Lead</label>
+                        <button
+                          type="button"
+                          onClick={() => setIsClientsModalOpen(true)}
+                          className="text-[10px] text-amber-400 hover:underline flex items-center gap-0.5 cursor-pointer font-semibold"
+                        >
+                          + Gerenciar Clientes
+                        </button>
+                      </div>
                       <select
                         value={formLeadId}
                         onChange={e => setFormLeadId(e.target.value)}
                         className="w-full bg-black/50 border border-white/10 text-white rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
                       >
                         <option value="" className="bg-neutral-900">Nenhum cliente vinculado</option>
-                        {leads.map(lead => (
-                          <option key={lead.id} value={lead.id} className="bg-neutral-900">
-                            {lead.name} {lead.phone ? `(${lead.phone})` : ""}
-                          </option>
-                        ))}
+                        {clientsList.length > 0 && (
+                          <optgroup label="Cadastro de Clientes">
+                            {clientsList.map(cli => (
+                              <option key={`cli-${cli.id}`} value={cli.leadId ? cli.leadId.toString() : cli.name} className="bg-neutral-900">
+                                {cli.name} {cli.cpfCnpj ? `(${cli.cpfCnpj})` : cli.phone ? `(${cli.phone})` : ""}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label="Leads no Funil de Vendas">
+                          {leads.map(lead => (
+                            <option key={`lead-${lead.id}`} value={lead.id} className="bg-neutral-900">
+                              {lead.name} {lead.phone ? `(${lead.phone})` : ""}
+                            </option>
+                          ))}
+                        </optgroup>
                       </select>
                     </div>
 
@@ -2047,6 +2091,24 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
               fetchSuppliers();
             }}
             selectedSupplierId={formSupplierId ? Number(formSupplierId) : null}
+          />
+
+          {/* MODAL DE GESTÃO E CADASTRO DE CLIENTES */}
+          <CRMClientsModal
+            isOpen={isClientsModalOpen}
+            onClose={() => {
+              setIsClientsModalOpen(false);
+              fetchClients();
+            }}
+            onSelectClient={(client) => {
+              if (client.leadId) {
+                setFormLeadId(client.leadId.toString());
+              } else {
+                setFormLeadId(client.name);
+              }
+              setIsClientsModalOpen(false);
+              fetchClients();
+            }}
           />
         </>
       )}

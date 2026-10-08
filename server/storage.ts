@@ -1,13 +1,14 @@
 import { db } from "./db";
 import { 
-  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog, suppliers,
+  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog, suppliers, clients,
   type User, type InsertUser, type Lead, type InsertLead, 
   type WhatsappTemplate, type InsertWhatsappTemplate, 
   type CalendarEventItem, type InsertCalendarEvent,
   type FinancialTransaction, type InsertFinancialTransaction,
   type ContractItem, type InsertContract,
   type MaterialCatalogItem, type InsertMaterialCatalog,
-  type Supplier, type InsertSupplier
+  type Supplier, type InsertSupplier,
+  type Client, type InsertClient
 } from "../shared/schema";
 import { eq, desc, and, ne, inArray } from "drizzle-orm";
 
@@ -46,12 +47,17 @@ export interface IStorage {
   deleteFinancialTransactionsByGroup(recurrenceGroup: string): Promise<boolean>;
   deleteFinancialTransactionsByIds(ids: number[]): Promise<boolean>;
 
-
   getSuppliers(): Promise<Supplier[]>;
   getSupplier(id: number): Promise<Supplier | undefined>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
   updateSupplier(id: number, updates: Partial<InsertSupplier>): Promise<Supplier>;
   deleteSupplier(id: number): Promise<boolean>;
+
+  getClients(): Promise<Client[]>;
+  getClient(id: number): Promise<Client | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: number, updates: Partial<InsertClient>): Promise<Client>;
+  deleteClient(id: number): Promise<boolean>;
 
   getContracts(): Promise<ContractItem[]>;
   getContract(id: number): Promise<ContractItem | undefined>;
@@ -254,6 +260,31 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSupplier(id: number): Promise<boolean> {
     const result = await db.delete(suppliers).where(eq(suppliers.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getClients(): Promise<Client[]> {
+    return await db.select().from(clients).orderBy(desc(clients.id));
+  }
+
+  async getClient(id: number): Promise<Client | undefined> {
+    const [c] = await db.select().from(clients).where(eq(clients.id, id));
+    return c;
+  }
+
+  async createClient(insertClient: InsertClient): Promise<Client> {
+    const [c] = await db.insert(clients).values(insertClient).returning();
+    return c;
+  }
+
+  async updateClient(id: number, updates: Partial<InsertClient>): Promise<Client> {
+    const [c] = await db.update(clients).set(updates).where(eq(clients.id, id)).returning();
+    if (!c) throw new Error("Cliente não encontrado");
+    return c;
+  }
+
+  async deleteClient(id: number): Promise<boolean> {
+    const result = await db.delete(clients).where(eq(clients.id, id)).returning();
     return result.length > 0;
   }
 

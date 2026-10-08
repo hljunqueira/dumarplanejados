@@ -164,7 +164,7 @@ export function getStoredCompanyConfig() {
   const fallback = {
     razaoSocial: "Dumar Móveis Planejados Ltda",
     nomeFantasia: "Dumar Móveis Planejados",
-    cnpj: "45.890.123/0001-90",
+    cnpj: "42.588.140/0001-72",
     address: "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC",
     phone: "(48) 98848-6827",
     email: "dumarmoveisplanejados@gmail.com",
@@ -176,6 +176,9 @@ export function getStoredCompanyConfig() {
       const stored = localStorage.getItem("crm_company_config");
       if (stored) {
         const parsed = JSON.parse(stored);
+        if (parsed.cnpj && parsed.cnpj.includes("45.890.123")) {
+          parsed.cnpj = "42.588.140/0001-72";
+        }
         return { ...fallback, ...parsed };
       }
     }
@@ -190,17 +193,17 @@ export function sanitizeContractCompanyData(c: any): ContractData {
     c.companyRazaoSocial.includes("BATICKOSKI");
 
   const isLegacyCnpj = !c.companyCnpj || 
-    c.companyCnpj.includes("42.588.140");
+    c.companyCnpj.includes("45.890.123");
 
   return {
     ...c,
-    companyName: comp.nomeFantasia || c.companyName || "Dumar Móveis Planejados",
+    companyName: c.companyName || comp.nomeFantasia || "Dumar Móveis Planejados",
     companyRazaoSocial: isLegacyRazao ? (comp.razaoSocial || "Dumar Móveis Planejados Ltda") : c.companyRazaoSocial,
-    companyCnpj: isLegacyCnpj ? (comp.cnpj || "45.890.123/0001-90") : c.companyCnpj,
+    companyCnpj: isLegacyCnpj ? (comp.cnpj || "42.588.140/0001-72") : c.companyCnpj,
     companyAddress: (!c.companyAddress || c.companyAddress.includes("Pereira")) 
       ? (comp.address || "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC") 
       : c.companyAddress,
-    companyPhone: c.companyPhone && !c.companyPhone.includes("98848-6827") ? c.companyPhone : (comp.phone || "(48) 98848-6827"),
+    companyPhone: c.companyPhone || comp.phone || "(48) 98848-6827",
     companyEmail: c.companyEmail || comp.email || "dumarmoveisplanejados@gmail.com",
   };
 }
@@ -230,7 +233,7 @@ export function getDefaultContractData(lead?: any, customCompany?: any): Contrac
     // Contratada (Dumar Móveis Planejados Ltda)
     companyName: comp.nomeFantasia || "Dumar Móveis Planejados",
     companyRazaoSocial: comp.razaoSocial || "Dumar Móveis Planejados Ltda",
-    companyCnpj: comp.cnpj || "45.890.123/0001-90",
+    companyCnpj: comp.cnpj || "42.588.140/0001-72",
     companyAddress: comp.address || "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC",
     companyPhone: comp.phone || "(48) 98848-6827",
     companyEmail: comp.email || "dumarmoveisplanejados@gmail.com",

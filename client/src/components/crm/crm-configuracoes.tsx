@@ -32,7 +32,7 @@ export default function CRMConfiguracoes({
   // --- ESTADO DADOS EMPRESA ---
   const [empresaRazao, setEmpresaRazao] = useState("Dumar Móveis Planejados Ltda");
   const [empresaNomeFantasia, setEmpresaNomeFantasia] = useState("Dumar Móveis Planejados");
-  const [empresaCnpj, setEmpresaCnpj] = useState("45.890.123/0001-90");
+  const [empresaCnpj, setEmpresaCnpj] = useState("42.588.140/0001-72");
   const [empresaTelefone, setEmpresaTelefone] = useState("(48) 98848-6827");
   const [empresaEndereco, setEmpresaEndereco] = useState("Av. Santa Catarina, 551 sala 205, Centro");
   const [empresaCidade, setEmpresaCidade] = useState("Balneário Arroio do Silva - SC");
@@ -52,7 +52,10 @@ export default function CRMConfiguracoes({
         const data = await res.json();
         if (data.razaoSocial) setEmpresaRazao(data.razaoSocial);
         if (data.nomeFantasia) setEmpresaNomeFantasia(data.nomeFantasia);
-        if (data.cnpj) setEmpresaCnpj(data.cnpj);
+        if (data.cnpj) {
+          const cleanCnpj = data.cnpj.includes("45.890.123") ? "42.588.140/0001-72" : data.cnpj;
+          setEmpresaCnpj(cleanCnpj);
+        }
         if (data.phone) setEmpresaTelefone(data.phone);
         if (data.address) setEmpresaEndereco(data.address);
         if (data.city) setEmpresaCidade(data.city);
@@ -67,7 +70,10 @@ export default function CRMConfiguracoes({
           const data = JSON.parse(cached);
           if (data.razaoSocial) setEmpresaRazao(data.razaoSocial);
           if (data.nomeFantasia) setEmpresaNomeFantasia(data.nomeFantasia);
-          if (data.cnpj) setEmpresaCnpj(data.cnpj);
+          if (data.cnpj) {
+            const cleanCnpj = data.cnpj.includes("45.890.123") ? "42.588.140/0001-72" : data.cnpj;
+            setEmpresaCnpj(cleanCnpj);
+          }
           if (data.phone) setEmpresaTelefone(data.phone);
           if (data.address) setEmpresaEndereco(data.address);
           if (data.city) setEmpresaCidade(data.city);

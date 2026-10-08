@@ -1035,6 +1035,176 @@ Olá! Não há contas ou despesas programadas para vencer amanhã (*${formattedT
     }
   });
 
+  // --- CLIENTES (CADASTRO DE CLIENTES CRM & FINANCEIRO) ---
+
+  app.get("/api/clients", async (req, res) => {
+    try {
+      const clientsList = await storage.getClients();
+      return res.status(200).json(clientsList);
+    } catch (err) {
+      console.error("Erro ao obter clientes:", err);
+      return res.status(500).json({ message: "Erro ao obter clientes" });
+    }
+  });
+
+  app.post("/api/clients", async (req, res) => {
+    const { name, cpfCnpj, rg, phone, email, address, bairro, city, cep, notes, leadId } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Nome do cliente é obrigatório" });
+    }
+
+    try {
+      const newClient = await storage.createClient({
+        name: name.trim(),
+        cpfCnpj: cpfCnpj ? cpfCnpj.trim() : "",
+        rg: rg ? rg.trim() : "",
+        phone: phone ? phone.trim() : "",
+        email: email ? email.trim() : "",
+        address: address ? address.trim() : "",
+        bairro: bairro ? bairro.trim() : "",
+        city: city ? city.trim() : "",
+        cep: cep ? cep.trim() : "",
+        notes: notes ? notes.trim() : "",
+        leadId: leadId ? Number(leadId) : null,
+        createdAt: new Date().toISOString()
+      });
+      return res.status(201).json(newClient);
+    } catch (err) {
+      console.error("Erro ao criar cliente:", err);
+      return res.status(500).json({ message: "Erro ao criar cliente" });
+    }
+  });
+
+  app.put("/api/clients/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+
+    try {
+      const updated = await storage.updateClient(id, req.body);
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error("Erro ao atualizar cliente:", err);
+      return res.status(500).json({ message: "Erro ao atualizar cliente" });
+    }
+  });
+
+  app.patch("/api/clients/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+
+    try {
+      const updated = await storage.updateClient(id, req.body);
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error("Erro ao atualizar cliente:", err);
+      return res.status(500).json({ message: "Erro ao atualizar cliente" });
+    }
+  });
+
+  app.delete("/api/clients/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+
+    try {
+      const deleted = await storage.deleteClient(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+      return res.status(200).json({ message: "Cliente excluído com sucesso" });
+    } catch (err) {
+      console.error("Erro ao excluir cliente:", err);
+      return res.status(500).json({ message: "Erro ao excluir cliente" });
+    }
+  });
+
+  // Sincronizar clientes a partir de contratos e leads existentes
+  app.post("/api/clients/sync-from-sources", async (req, res) => {
+    try {
+      const existingClients = await storage.getClients();
+      const existingMap = new Map<string, boolean>();
+      existingClients.forEach(c => {
+        if (c.cpfCnpj && c.cpfCnpj.trim()) existingMap.set(c.cpfCnpj.trim().replace(/\D/g, ""), true);
+        if (c.name) existingMap.set(c.name.trim().toLowerCase(), true);
+      });
+
+      let importedCount = 0;
+
+      // 1. Dos Contratos
+      const contractsList = await storage.getContracts();
+      for (const ctr of contractsList) {
+        if (!ctr.clientName || !ctr.clientName.trim()) continue;
+        const cleanCpf = (ctr.clientCpfCnpj || "").replace(/\D/g, "");
+        const cleanName = ctr.clientName.trim().toLowerCase();
+
+        if ((cleanCpf && existingMap.has(cleanCpf)) || existingMap.has(cleanName)) {
+          continue;
+        }
+
+        let details: any = {};
+        try {
+          details = typeof ctr.dataJson === "string" ? JSON.parse(ctr.dataJson) : (ctr.dataJson || {});
+        } catch (e) {}
+
+        await storage.createClient({
+          name: ctr.clientName.trim(),
+          cpfCnpj: ctr.clientCpfCnpj || details.clientCpfCnpj || "",
+          rg: details.clientRg || "",
+          phone: ctr.clientPhone || details.clientPhone || "",
+          email: details.clientEmail || "",
+          address: ctr.clientAddress || details.clientAddress || "",
+          bairro: details.clientBairro || "",
+          city: details.clientCidadeUf || "",
+          cep: details.clientCep || "",
+          notes: `Importado do Contrato ${ctr.contractNumber}`,
+          leadId: ctr.leadId ? Number(ctr.leadId) : null,
+          createdAt: ctr.createdAt || new Date().toISOString()
+        });
+
+        if (cleanCpf) existingMap.set(cleanCpf, true);
+        existingMap.set(cleanName, true);
+        importedCount++;
+      }
+
+      // 2. Dos Leads
+      const leadsList = await storage.getLeads();
+      for (const ld of leadsList) {
+        if (!ld.name || !ld.name.trim()) continue;
+        const cleanName = ld.name.trim().toLowerCase();
+        if (existingMap.has(cleanName)) continue;
+
+        await storage.createClient({
+          name: ld.name.trim(),
+          cpfCnpj: "",
+          rg: "",
+          phone: ld.phone || "",
+          email: ld.email || "",
+          address: "",
+          bairro: "",
+          city: "",
+          cep: "",
+          notes: `Importado do Lead no funil (${ld.stage})`,
+          leadId: ld.id,
+          createdAt: new Date().toISOString()
+        });
+
+        existingMap.set(cleanName, true);
+        importedCount++;
+      }
+
+      const allUpdated = await storage.getClients();
+      return res.status(200).json({ success: true, imported: importedCount, total: allUpdated.length, clients: allUpdated });
+    } catch (err) {
+      console.error("Erro ao sincronizar clientes:", err);
+      return res.status(500).json({ message: "Erro ao sincronizar clientes" });
+    }
+  });
+
   // --- CATÁLOGO DE MATERIAIS & FERRAGENS ---
 
   app.get("/api/materials-catalog", async (req, res) => {
@@ -1962,7 +2132,7 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
   let companyConfig = {
     razaoSocial: "Dumar Móveis Planejados Ltda",
     nomeFantasia: "Dumar Móveis Planejados",
-    cnpj: "45.890.123/0001-90",
+    cnpj: "42.588.140/0001-72",
     phone: "(48) 98848-6827",
     email: "dumarmoveisplanejados@gmail.com",
     address: "Av. Santa Catarina, 551, sala 205, Centro",
@@ -1974,6 +2144,9 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
     if (fs.existsSync(COMPANY_CONFIG_FILE)) {
       const savedCompany = JSON.parse(fs.readFileSync(COMPANY_CONFIG_FILE, "utf-8"));
       companyConfig = { ...companyConfig, ...savedCompany };
+      if (!companyConfig.cnpj || companyConfig.cnpj.includes("45.890.123")) {
+        companyConfig.cnpj = "42.588.140/0001-72";
+      }
       console.log("Configuração da empresa carregada com sucesso do disco.");
     }
   } catch (e) {

@@ -126,6 +126,22 @@ export async function initDbTables() {
         created_at TEXT DEFAULT ''
       );
 
+      CREATE TABLE IF NOT EXISTS clients (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        cpf_cnpj TEXT DEFAULT '',
+        rg TEXT DEFAULT '',
+        phone TEXT DEFAULT '',
+        email TEXT DEFAULT '',
+        address TEXT DEFAULT '',
+        bairro TEXT DEFAULT '',
+        city TEXT DEFAULT '',
+        cep TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
+        lead_id INTEGER,
+        created_at TEXT DEFAULT ''
+      );
+
       CREATE TABLE IF NOT EXISTS materials_catalog (
         id SERIAL PRIMARY KEY,
         category TEXT NOT NULL,

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { 
   FileText, Plus, Edit3, Printer, CheckCircle2, Clock, 
   Trash2, ShieldCheck, UserCheck, Search, X, Eye, Building, Phone, Mail, MapPin, Layers, DollarSign, AlertCircle, RefreshCw, Image, Upload,
-  CreditCard, BookOpen, Check, ChevronRight, Calculator
+  CreditCard, BookOpen, Check, ChevronRight, Calculator, Users, Save
 } from "lucide-react";
 import { Lead } from "./types";
+import { Client } from "@shared/schema";
 import { ContractData, getDefaultContractData, getStoredCompanyConfig, sanitizeContractCompanyData, buildClause3PaymentText, PaymentPlanType } from "@/lib/contract-generator";
 import { useConfirmDialog } from "../ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +18,7 @@ interface CRMContractsViewProps {
 
 export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.Element {
   const [contracts, setContracts] = useState<ContractData[]>([]);
+  const [registeredClients, setRegisteredClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -98,8 +100,21 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
     setLoading(false);
   };
 
+  const fetchRegisteredClients = async () => {
+    try {
+      const res = await fetch("/api/clients");
+      if (res.ok) {
+        const data = await res.json();
+        setRegisteredClients(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.warn("Erro ao buscar clientes cadastrados:", e);
+    }
+  };
+
   useEffect(() => {
     fetchContracts();
+    fetchRegisteredClients();
 
     const handleConfigUpdated = () => {
       fetchContracts();
@@ -150,26 +165,33 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
         down = total;
         remaining = 0;
         comp = 0;
-      } else if (plan === "entrada_saldo" || plan === "entrada_parcelado") {
+      } else if (plan === "entrada_saldo") {
         comp = 0;
         remaining = Math.max(0, total - down);
+      } else if (plan === "entrada_parcelado") {
+        // Entrada PIX e Saldo no Cartão (parcelado no mesmo dia):
+        // O saldo cartão deve aparecer como COMPLEMENTO (campo do meio), e o Saldo Montagem é R$ 0!
+        comp = Math.max(0, total - down);
+        remaining = 0;
       } else if (plan === "tres_etapas") {
         remaining = Math.max(0, total - (down + comp));
       } else if (plan === "parcelado_cartao") {
         down = 0;
-        comp = 0;
-        remaining = total;
+        comp = total;
+        remaining = 0;
       }
 
       const cardCount = Number(merged.cardInstallmentsCount) || 10;
-      const cardVal = cardCount > 0 ? Math.round(remaining / cardCount) : 0;
+      const cardBase = plan === "entrada_parcelado" ? comp : (plan === "parcelado_cartao" ? total : remaining);
+      const cardVal = cardCount > 0 ? Math.round(cardBase / cardCount) : 0;
 
       const nextObj: ContractData = {
         ...merged,
         downPayment: down,
         downPaymentComplement: comp,
+        downPaymentComplementDate: merged.downPaymentComplementDate || merged.downPaymentDate || new Date().toLocaleDateString("pt-BR"),
         remainingBalance: remaining,
-        assemblyPayment: remaining,
+        assemblyPayment: plan === "entrada_parcelado" ? 0 : (plan === "parcelado_cartao" ? 0 : remaining),
         cardInstallmentsCount: cardCount,
         cardInstallmentValue: cardVal,
       };
@@ -179,12 +201,83 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
     });
   };
 
-  // Preenchimento automático ao selecionar Lead no dropdown
-  const handleSelectLeadChange = (leadIdStr: string) => {
-    setSelectedLeadId(leadIdStr);
-    if (!leadIdStr) return;
+  const handleResetCompanyData = () => {
+    const comp = getStoredCompanyConfig();
+    setCurrentContract(prev => ({
+      ...prev,
+      companyRazaoSocial: comp.razaoSocial || "Dumar Móveis Planejados Ltda",
+      companyName: comp.nomeFantasia || "Dumar Móveis Planejados",
+      companyCnpj: comp.cnpj || "42.588.140/0001-72",
+      companyAddress: comp.address || "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC",
+      companyPhone: comp.phone || "(48) 98848-6827",
+      companyEmail: comp.email || "dumarmoveisplanejados@gmail.com",
+    }));
+    toast({
+      title: "Configurações Carregadas",
+      description: "Dados institucionais da empresa atualizados a partir das configurações do sistema.",
+    });
+  };
 
-    const foundLead = leads.find(l => String(l.id) === leadIdStr);
+  const handleSaveAsDefaultCompanyData = async () => {
+    const payload = {
+      razaoSocial: currentContract.companyRazaoSocial,
+      nomeFantasia: currentContract.companyName,
+      cnpj: currentContract.companyCnpj,
+      address: currentContract.companyAddress,
+      phone: currentContract.companyPhone,
+      email: currentContract.companyEmail,
+    };
+    try {
+      localStorage.setItem("crm_company_config", JSON.stringify(payload));
+      await fetch("/api/company-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      window.dispatchEvent(new Event("dumar_company_config_updated"));
+      toast({
+        title: "Padrão da Empresa Salvo",
+        description: "Estes dados foram salvos como padrão institucional da Dumar para todos os novos contratos!",
+      });
+    } catch (e) {
+      toast({
+        title: "Aviso",
+        description: "Erro ao salvar padrão da empresa.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Preenchimento automático ao selecionar Lead ou Cliente Cadastrado
+  const handleSelectLeadChange = (val: string) => {
+    setSelectedLeadId(val);
+    if (!val) return;
+
+    if (val.startsWith("client-")) {
+      const clientId = Number(val.replace("client-", ""));
+      const foundClient = registeredClients.find(c => c.id === clientId);
+      if (foundClient) {
+        setCurrentContract(prev => ({
+          ...prev,
+          leadId: foundClient.leadId || prev.leadId,
+          clientName: foundClient.name,
+          clientCpfCnpj: foundClient.cpfCnpj || prev.clientCpfCnpj,
+          clientRg: foundClient.rg || prev.clientRg,
+          clientPhone: foundClient.phone || prev.clientPhone,
+          clientEmail: foundClient.email || prev.clientEmail,
+          clientAddress: foundClient.address || prev.clientAddress,
+          clientBairro: foundClient.bairro || prev.clientBairro,
+          clientCidadeUf: foundClient.city || prev.clientCidadeUf,
+        }));
+        toast({
+          title: "Cliente Carregado",
+          description: `Dados cadastrais de ${foundClient.name} preenchidos no contrato!`,
+        });
+        return;
+      }
+    }
+
+    const foundLead = leads.find(l => String(l.id) === val);
     if (foundLead) {
       const defaultData = getDefaultContractData(foundLead);
       updateContractFinance({
@@ -298,6 +391,30 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
           const dbC = await res.json();
           savedBackendId = dbC.id;
           currentContract.id = savedBackendId;
+        }
+      }
+      // Persistir ou atualizar automaticamente no cadastro central de clientes (/api/clients)
+      if (currentContract.clientName?.trim()) {
+        try {
+          await fetch("/api/clients", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: currentContract.clientName.trim(),
+              cpfCnpj: currentContract.clientCpfCnpj || "",
+              rg: currentContract.clientRg || "",
+              phone: currentContract.clientPhone || "",
+              email: currentContract.clientEmail || "",
+              address: currentContract.clientAddress || "",
+              bairro: currentContract.clientBairro || "",
+              city: currentContract.clientCidadeUf || "",
+              notes: `Origem: Contrato ${currentContract.contractNumber}`,
+              leadId: currentContract.leadId ? Number(currentContract.leadId) : null,
+            })
+          });
+          fetchRegisteredClients();
+        } catch (clientSyncErr) {
+          console.warn("Erro ao sincronizar cliente no cadastro central:", clientSyncErr);
         }
       }
     } catch (e) {
@@ -758,14 +875,27 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
                       <select
                         value={selectedLeadId}
                         onChange={e => handleSelectLeadChange(e.target.value)}
-                        className="w-full bg-neutral-800 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                        className="w-full bg-neutral-800 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-amber-400 cursor-pointer text-xs"
                       >
-                        <option value="">-- Selecionar Lead ou Inserir Manualmente --</option>
-                        {leads.map(lead => (
-                          <option key={lead.id} value={String(lead.id)}>
-                            {lead.name} - {lead.phone} ({lead.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })})
-                          </option>
-                        ))}
+                        <option value="">-- Selecionar Cliente Cadastrado ou Lead (Preenchimento Rápido) --</option>
+                        {registeredClients.length > 0 && (
+                          <optgroup label="👥 Clientes Cadastrados no Sistema">
+                            {registeredClients.map(c => (
+                              <option key={`client-${c.id}`} value={`client-${c.id}`}>
+                                {c.name} {c.phone ? `(${c.phone})` : ""} {c.cpfCnpj ? `- ${c.cpfCnpj}` : ""}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {leads.length > 0 && (
+                          <optgroup label="🎯 Leads Ativos do Funil Comercial">
+                            {leads.map(lead => (
+                              <option key={lead.id} value={String(lead.id)}>
+                                {lead.name} - {lead.phone} ({lead.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })})
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
                       </select>
                     </div>
 
@@ -864,27 +994,94 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
                     </div>
 
                     {/* DADOS DA CONTRATADA (DUMAR) */}
-                    <div className="bg-black/30 border border-white/5 rounded-xl p-4 space-y-3">
-                      <h4 className="font-bold text-amber-400 uppercase tracking-wider text-[11px] border-b border-white/10 pb-2 flex items-center justify-between">
-                        <span>Dados da Contratada (Dumar Móveis Planejados)</span>
-                        <span className="text-[10px] text-gray-400 font-normal">Endereço e dados legais impressos no contrato</span>
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="md:col-span-2">
-                          <label className="block text-gray-400 mb-1 font-bold text-xs">Endereço Institucional da Empresa</label>
+                    <div className="bg-black/30 border border-amber-500/20 rounded-xl p-4 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Building size={14} className="text-amber-400" />
+                          <h4 className="font-bold text-amber-400 uppercase tracking-wider text-[11px]">
+                            Dados da Contratada (Dumar Móveis Planejados)
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleResetCompanyData}
+                            className="text-[10px] text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all"
+                            title="Recarregar dados institucionais a partir das Configurações do CRM"
+                          >
+                            <RefreshCw size={11} className="text-amber-400" />
+                            Puxar das Configurações
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveAsDefaultCompanyData}
+                            className="text-[10px] text-amber-300 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all"
+                            title="Salvar estes dados como o padrão institucional permanente da Dumar"
+                          >
+                            <Save size={11} className="text-amber-400" />
+                            Salvar como Padrão
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-gray-400 mb-1 font-bold text-xs">Razão Social</label>
                           <input
                             type="text"
-                            value={currentContract.companyAddress}
-                            onChange={e => setCurrentContract({ ...currentContract, companyAddress: e.target.value })}
+                            value={currentContract.companyRazaoSocial || ""}
+                            onChange={e => setCurrentContract({ ...currentContract, companyRazaoSocial: e.target.value })}
+                            placeholder="Dumar Móveis Planejados Ltda"
+                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-400 mb-1 font-bold text-xs">Nome Fantasia</label>
+                          <input
+                            type="text"
+                            value={currentContract.companyName || ""}
+                            onChange={e => setCurrentContract({ ...currentContract, companyName: e.target.value })}
+                            placeholder="Dumar Móveis Planejados"
                             className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-400 mb-1 font-bold text-xs text-amber-300">CNPJ da Contratada</label>
+                          <input
+                            type="text"
+                            value={currentContract.companyCnpj || ""}
+                            onChange={e => setCurrentContract({ ...currentContract, companyCnpj: e.target.value })}
+                            placeholder="42.588.140/0001-72"
+                            className="w-full bg-black/50 border border-amber-500/40 rounded-lg p-2.5 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-400"
                           />
                         </div>
                         <div>
                           <label className="block text-gray-400 mb-1 font-bold text-xs">Telefone / WhatsApp</label>
                           <input
                             type="text"
-                            value={currentContract.companyPhone}
+                            value={currentContract.companyPhone || ""}
                             onChange={e => setCurrentContract({ ...currentContract, companyPhone: e.target.value })}
+                            placeholder="(48) 98848-6827"
+                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-400 mb-1 font-bold text-xs">E-mail Institucional</label>
+                          <input
+                            type="email"
+                            value={currentContract.companyEmail || ""}
+                            onChange={e => setCurrentContract({ ...currentContract, companyEmail: e.target.value })}
+                            placeholder="dumarmoveisplanejados@gmail.com"
+                            className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-400 mb-1 font-bold text-xs">Endereço com Sede</label>
+                          <input
+                            type="text"
+                            value={currentContract.companyAddress || ""}
+                            onChange={e => setCurrentContract({ ...currentContract, companyAddress: e.target.value })}
+                            placeholder="Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC"
                             className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
                           />
                         </div>
@@ -1757,9 +1954,15 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
                           <p className="font-bold border-b border-gray-300 pb-1 mb-1">3. Condições de Pagamento:</p>
                           <p>{currentContract.clause3Payment}</p>
                           <div className="grid grid-cols-3 gap-2 mt-2 text-[10px]">
-                            <div><strong>Sinal 1:</strong> R$ {currentContract.downPayment.toLocaleString("pt-BR")} ({currentContract.downPaymentDate})</div>
-                            <div><strong>Complemento:</strong> R$ {currentContract.downPaymentComplement.toLocaleString("pt-BR")} ({currentContract.downPaymentComplementDate})</div>
-                            <div><strong>Saldo Montagem:</strong> R$ {currentContract.assemblyPayment.toLocaleString("pt-BR")}</div>
+                            <div className="bg-white/80 p-1.5 rounded border border-gray-200">
+                              <strong>Sinal 1 (Entrada):</strong> R$ {currentContract.downPayment.toLocaleString("pt-BR")} ({currentContract.downPaymentDate || "No Contrato"})
+                            </div>
+                            <div className="bg-white/80 p-1.5 rounded border border-gray-200">
+                              <strong>{currentContract.paymentPlanType === "entrada_parcelado" ? `Complemento (${currentContract.cardInstallmentsCount || 10}x Cartão):` : "Complemento:"}</strong> R$ {currentContract.downPaymentComplement.toLocaleString("pt-BR")} ({currentContract.paymentPlanType === "entrada_parcelado" ? "No ato / Contrato" : (currentContract.downPaymentComplementDate || "-")})
+                            </div>
+                            <div className="bg-white/80 p-1.5 rounded border border-gray-200">
+                              <strong>Saldo Montagem:</strong> R$ {currentContract.assemblyPayment.toLocaleString("pt-BR")} {currentContract.assemblyPayment === 0 ? "(Quitado no Contrato)" : ""}
+                            </div>
                           </div>
                         </div>
 
