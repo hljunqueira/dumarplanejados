@@ -1046,7 +1046,7 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
                           />
                         </div>
                         <div>
-                          <label className="block text-gray-400 mb-1 font-bold text-xs text-amber-300">CNPJ da Contratada</label>
+                          <label className="block text-amber-300 mb-1 font-bold text-xs">CNPJ da Contratada</label>
                           <input
                             type="text"
                             value={currentContract.companyCnpj || ""}
