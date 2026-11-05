@@ -5,6 +5,7 @@ import {
   CheckCheck, Bot, AlertCircle, Play, Pause, UserCheck, X, Download, ZoomIn 
 } from "lucide-react";
 import { Lead } from "./types";
+import { useToast } from "@/hooks/use-toast";
 
 interface Stage {
   id: string;
@@ -163,6 +164,7 @@ export default function CRMLeadDrawer({
   const timerRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sendingMedia, setSendingMedia] = useState(false);
+  const { toast } = useToast();
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title?: string } | null>(null);
   const [togglingAi, setTogglingAi] = useState(false);
 
@@ -181,9 +183,20 @@ export default function CRMLeadDrawer({
           aiPaused: data.aiPaused
         });
         fetchLeads();
+        toast({
+          title: data.aiPaused ? "Atendimento Manual Ativado" : "IA Comercial Habilitada",
+          description: data.aiPaused
+            ? `A IA foi pausada para ${selectedLead.name}. Você pode atender diretamente pelo WhatsApp.`
+            : `A IA comercial voltará a responder e qualificar ${selectedLead.name} automaticamente.`,
+        });
       }
     } catch (e) {
       console.error("Erro ao alternar IA do lead:", e);
+      toast({
+        title: "Erro ao alternar IA",
+        description: "Não foi possível atualizar o status da IA para este lead.",
+        variant: "destructive"
+      });
     } finally {
       setTogglingAi(false);
     }

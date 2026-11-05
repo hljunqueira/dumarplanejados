@@ -103,6 +103,9 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
 1. SAUDAÇÃO & IDENTIFICAÇÃO (APENAS 1 PERGUNTA):
    - Se ainda NÃO sabe o nome do cliente: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?"
    - Se o cliente disser o nome (Ex: {nome}): "Olá, {nome}! Tudo bem? Qual ambiente você gostaria de planejar hoje?"
+   - SE O CLIENTE PERGUNTAR DE ONDE SOMOS, ONDE FICA OU SE TEMOS LOJA/ESCRITÓRIO:
+     👉 Responda sempre com orgulho da nossa sede em Santa Catarina:
+     "Somos da Dumar Móveis Planejados! Nosso escritório comercial fica em Balneário Arroio do Silva (SC), na Av. Santa Catarina, 551, Sala 205, Centro, e atendemos toda a região Sul de Santa Catarina! 😊 Qual ambiente você gostaria de planejar hoje?"
 
 2. COLETA PROGRESSIVA DE DADOS (1 PERGUNTA POR VEZ):
    - Ao identificar o ambiente: Reaja com entusiasmo (Ex: "Home office é maravilhoso para trabalhar com conforto e organização! ✨") e faça UMA única pergunta:
@@ -125,6 +128,7 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
    - Se o cliente for da região (Araranguá, Balneário Arroio do Silva e proximidades) e não mencionou o escritório, você pode complementar: "E como você está aqui na região, se preferir também é super bem-vindo(a) para passar no nosso escritório comercial em Balneário Arroio do Silva para tomar um café e conversarmos pessoalmente!"
 
 5. PROIBIÇÕES RIGOROSAS (NUNCA FAÇA):
+   - 🚫 NUNCA invente cidades ou outros estados como São Paulo, SP, Rio de Janeiro ou Curitiba! A Dumar Móveis Planejados é 100% de Balneário Arroio do Silva - Santa Catarina (SC).
    - 🚫 NUNCA faça mais de UMA pergunta por mensagem. NUNCA pergunte cidade e medidas juntas na mesma mensagem.
    - 🚫 NUNCA repita perguntas que já foram feitas ou que o cliente já respondeu.
    - 🚫 NUNCA mencione o nome "Paulo" ou "Paulo Vargas" nas mensagens para o cliente. Fale sempre em nome de "nossa equipe de projetos" ou "nossa equipe".
@@ -186,6 +190,7 @@ const VARIABLE_BADGES = [
   { tag: "{nome}", label: "Nome do Cliente", icon: User, example: "Paulo Vargas" },
   { tag: "{ambientes}", label: "Ambientes", icon: Building2, example: "Cozinha, Closet" },
   { tag: "{endereco_escritorio}", label: "Endereço do Escritório", icon: MapPin, example: "Av. Santa Catarina, 551, Sala 205" },
+  { tag: "{cidade}", label: "Cidade / Sede", icon: MapPin, example: "Balneário Arroio do Silva - SC" },
   { tag: "{empresa}", label: "Nome da Empresa", icon: Building2, example: "Dumar Móveis Planejados" },
   { tag: "{telefone}", label: "Telefone Formatado", icon: Phone, example: "(48) 99101-3293" }
 ];
@@ -356,6 +361,43 @@ export default function CRMSettings() {
     }
   };
 
+
+  // Alternar IA Global com persistência imediata no PostgreSQL e disco
+  const [togglingGlobalAi, setTogglingGlobalAi] = useState(false);
+  const handleToggleGlobalAi = async () => {
+    if (togglingGlobalAi) return;
+    const nextState = !config.botEnabled;
+    setTogglingGlobalAi(true);
+    setConfig(prev => ({ ...prev, botEnabled: nextState }));
+
+    try {
+      const res = await fetch("/api/ai-assistant/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ botEnabled: nextState })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast({
+          title: nextState ? "IA Ativada no WhatsApp" : "IA Desligada no WhatsApp",
+          description: nextState 
+            ? "O assistente de IA responderá e qualificará novos clientes normalmente." 
+            : "Assistente pausado. Nenhuma mensagem automática será enviada a nenhum lead.",
+        });
+      } else {
+        throw new Error(data.error || "Falha ao alternar IA");
+      }
+    } catch (err: any) {
+      setConfig(prev => ({ ...prev, botEnabled: !nextState }));
+      toast({
+        title: "Erro ao Alternar IA",
+        description: err.message || "Não foi possível salvar o status da IA.",
+        variant: "destructive"
+      });
+    } finally {
+      setTogglingGlobalAi(false);
+    }
+  };
 
   // Aplicar Preset de 1 Clique
   const applyPreset = (key: "qualificador" | "agendador" | "triagem") => {
@@ -563,14 +605,15 @@ export default function CRMSettings() {
 
               <button
                 type="button"
-                onClick={() => setConfig(prev => ({ ...prev, botEnabled: !prev.botEnabled }))}
+                onClick={handleToggleGlobalAi}
+                disabled={togglingGlobalAi}
                 className={`text-xs px-4 py-2 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-2 ${
                   config.botEnabled 
                     ? "bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20" 
                     : "bg-white/10 hover:bg-white/20 text-white"
-                }`}
+                } ${togglingGlobalAi ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                {config.botEnabled ? "IA LIGADA" : "IA DESLIGADA"}
+                {togglingGlobalAi ? "Salvando..." : (config.botEnabled ? "IA LIGADA" : "IA DESLIGADA")}
               </button>
             </div>
 

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog, suppliers, clients,
+  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog, suppliers, clients, quotes, quoteItems,
   type User, type InsertUser, type Lead, type InsertLead, 
   type WhatsappTemplate, type InsertWhatsappTemplate, 
   type CalendarEventItem, type InsertCalendarEvent,
@@ -8,7 +8,9 @@ import {
   type ContractItem, type InsertContract,
   type MaterialCatalogItem, type InsertMaterialCatalog,
   type Supplier, type InsertSupplier,
-  type Client, type InsertClient
+  type Client, type InsertClient,
+  type Quote, type InsertQuote,
+  type QuoteItem, type InsertQuoteItem
 } from "../shared/schema";
 import { eq, desc, and, ne, inArray } from "drizzle-orm";
 
@@ -64,6 +66,12 @@ export interface IStorage {
   createContract(contract: InsertContract): Promise<ContractItem>;
   updateContract(id: number, updates: Partial<InsertContract>): Promise<ContractItem>;
   deleteContract(id: number): Promise<boolean>;
+
+  getQuotes(): Promise<(Quote & { items?: QuoteItem[] })[]>;
+  getQuote(id: number): Promise<{ quote: Quote; items: QuoteItem[] } | undefined>;
+  createQuote(quote: InsertQuote, items?: InsertQuoteItem[]): Promise<{ quote: Quote; items: QuoteItem[] }>;
+  updateQuote(id: number, quoteUpdates: Partial<InsertQuote>, items?: InsertQuoteItem[]): Promise<{ quote: Quote; items: QuoteItem[] }>;
+  deleteQuote(id: number): Promise<boolean>;
 
   getMaterialsCatalog(): Promise<MaterialCatalogItem[]>;
   createMaterialItem(material: InsertMaterialCatalog): Promise<MaterialCatalogItem>;
@@ -330,6 +338,77 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMaterialItem(id: number): Promise<boolean> {
     const result = await db.delete(materialsCatalog).where(eq(materialsCatalog.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getQuotes(): Promise<(Quote & { items?: QuoteItem[] })[]> {
+    const allQuotes = await db.select().from(quotes).orderBy(desc(quotes.id));
+    const allItems = await db.select().from(quoteItems).orderBy(quoteItems.itemOrder);
+    
+    return allQuotes.map(q => {
+      const items = allItems.filter(i => i.quoteId === q.id);
+      return { ...q, items };
+    });
+  }
+
+  async getQuote(id: number): Promise<{ quote: Quote; items: QuoteItem[] } | undefined> {
+    const [quote] = await db.select().from(quotes).where(eq(quotes.id, id));
+    if (!quote) return undefined;
+    const items = await db.select().from(quoteItems).where(eq(quoteItems.quoteId, id)).orderBy(quoteItems.itemOrder);
+    return { quote, items };
+  }
+
+  async createQuote(quoteData: InsertQuote, itemsData: InsertQuoteItem[] = []): Promise<{ quote: Quote; items: QuoteItem[] }> {
+    const [quote] = await db.insert(quotes).values(quoteData).returning();
+    const createdItems: QuoteItem[] = [];
+
+    if (itemsData && itemsData.length > 0) {
+      for (let i = 0; i < itemsData.length; i++) {
+        const item = itemsData[i];
+        const [createdItem] = await db.insert(quoteItems).values({
+          ...item,
+          quoteId: quote.id,
+          itemOrder: item.itemOrder || i + 1,
+          createdAt: new Date().toISOString()
+        }).returning();
+        createdItems.push(createdItem);
+      }
+    }
+
+    return { quote, items: createdItems };
+  }
+
+  async updateQuote(id: number, quoteUpdates: Partial<InsertQuote>, itemsData?: InsertQuoteItem[]): Promise<{ quote: Quote; items: QuoteItem[] }> {
+    const [quote] = await db.update(quotes).set({
+      ...quoteUpdates,
+      updatedAt: new Date().toISOString()
+    }).where(eq(quotes.id, id)).returning();
+
+    if (!quote) throw new Error("Orçamento não encontrado");
+
+    let items: QuoteItem[] = [];
+    if (itemsData !== undefined) {
+      await db.delete(quoteItems).where(eq(quoteItems.quoteId, id));
+      for (let i = 0; i < itemsData.length; i++) {
+        const item = itemsData[i];
+        const [createdItem] = await db.insert(quoteItems).values({
+          ...item,
+          quoteId: quote.id,
+          itemOrder: item.itemOrder || i + 1,
+          createdAt: new Date().toISOString()
+        }).returning();
+        items.push(createdItem);
+      }
+    } else {
+      items = await db.select().from(quoteItems).where(eq(quoteItems.quoteId, id)).orderBy(quoteItems.itemOrder);
+    }
+
+    return { quote, items };
+  }
+
+  async deleteQuote(id: number): Promise<boolean> {
+    await db.delete(quoteItems).where(eq(quoteItems.quoteId, id));
+    const result = await db.delete(quotes).where(eq(quotes.id, id)).returning();
     return result.length > 0;
   }
 }

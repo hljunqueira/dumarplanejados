@@ -25,14 +25,14 @@ export const leads = pgTable("leads", {
   phone: text("phone").notNull(),
   email: text("email"),
   stage: text("stage").notNull().default("entrada"),
-  value: integer("value").notNull().default(0),
+  value: doublePrecision("value").notNull().default(0),
   utmSource: text("utm_source").default("Google Ads"),
   utmCampaign: text("utm_campaign").default("Campanha Manual"),
   rooms: text("rooms").default("[]"), // Armazenado como JSON string do array de ambientes
   promobFiles: text("promob_files").default("[]"), // Armazenado como JSON string
   paymentMethod: text("payment_method").default(""),
   installments: integer("installments").default(1),
-  downPayment: integer("down_payment").default(0),
+  downPayment: doublePrecision("down_payment").default(0),
   deliveryDate: text("delivery_date").default(""),
   assembler: text("assembler").default(""),
   checklist: text("checklist").default("{}"), // Armazenado como JSON string do objeto de checklist técnico de marcenaria
@@ -152,8 +152,8 @@ export const contracts = pgTable("contracts", {
   clientCpfCnpj: text("client_cpf_cnpj").default(""),
   clientAddress: text("client_address").default(""),
   clientPhone: text("client_phone").default(""),
-  totalValue: integer("total_value").notNull().default(0),
-  downPayment: integer("down_payment").notNull().default(0),
+  totalValue: doublePrecision("total_value").notNull().default(0),
+  downPayment: doublePrecision("down_payment").notNull().default(0),
   dataJson: text("data_json").notNull().default("{}"),
   createdAt: text("created_at").default(""),
 });
@@ -161,6 +161,64 @@ export const contracts = pgTable("contracts", {
 export const insertContractSchema = createInsertSchema(contracts);
 export type InsertContract = z.infer<typeof insertContractSchema>;
 export type ContractItem = typeof contracts.$inferSelect;
+
+export const quotes = pgTable("quotes", {
+  id: serial("id").primaryKey(),
+  quoteNumber: text("quote_number").notNull(),
+  quoteDate: text("quote_date").notNull(),
+  validUntil: text("valid_until").notNull(),
+  status: text("status").notNull().default("rascunho"), // "rascunho" | "enviado" | "aprovado" | "recusado" | "expirado"
+  leadId: integer("lead_id"),
+  clientId: integer("client_id"),
+  contractId: integer("contract_id"),
+  clientName: text("client_name").notNull(),
+  clientCpfCnpj: text("client_cpf_cnpj").default(""),
+  clientPhone: text("client_phone").default(""),
+  clientEmail: text("client_email").default(""),
+  clientAddress: text("client_address").default(""),
+  clientBairro: text("client_bairro").default(""),
+  clientCity: text("client_city").default("Balneário Arroio do Silva - SC"),
+  subtotal: doublePrecision("subtotal").notNull().default(0),
+  discountType: text("discount_type").default("fixed"), // "fixed" | "percentage"
+  discountValue: doublePrecision("discount_value").default(0),
+  totalValue: doublePrecision("total_value").notNull().default(0),
+  downPayment: doublePrecision("down_payment").default(0),
+  downPaymentMethod: text("down_payment_method").default("PIX"),
+  remainingBalance: doublePrecision("remaining_balance").default(0),
+  remainingPaymentMethod: text("remaining_payment_method").default("Cartão de Crédito"),
+  installmentsCount: integer("installments_count").default(1),
+  cardInstallmentValue: doublePrecision("card_installment_value").default(0),
+  paymentTerms: text("payment_terms").default(""),
+  deliveryDays: integer("delivery_days").default(35),
+  notes: text("notes").default(""),
+  dataJson: text("data_json").default("{}"),
+  createdAt: text("created_at").default(""),
+  updatedAt: text("updated_at").default(""),
+});
+
+export const insertQuoteSchema = createInsertSchema(quotes);
+export type InsertQuote = z.infer<typeof insertQuoteSchema>;
+export type Quote = typeof quotes.$inferSelect;
+
+export const quoteItems = pgTable("quote_items", {
+  id: serial("id").primaryKey(),
+  quoteId: integer("quote_id").notNull(),
+  itemOrder: integer("item_order").notNull().default(1),
+  itemType: text("item_type").notNull().default("produto"), // "produto" | "servico"
+  environment: text("environment").notNull(), // ex: "Dormitório casal", "Cozinha"
+  description: text("description").notNull(),
+  quantity: doublePrecision("quantity").notNull().default(1),
+  unitMeasure: text("unit_measure").default("UN"),
+  unitPrice: doublePrecision("unit_price").notNull().default(0),
+  totalPrice: doublePrecision("total_price").notNull().default(0),
+  ncm: text("ncm").default("9403.60.00"),
+  cfop: text("cfop").default("5101"),
+  createdAt: text("created_at").default(""),
+});
+
+export const insertQuoteItemSchema = createInsertSchema(quoteItems);
+export type InsertQuoteItem = z.infer<typeof insertQuoteItemSchema>;
+export type QuoteItem = typeof quoteItems.$inferSelect;
 
 export const materialsCatalog = pgTable("materials_catalog", {
   id: serial("id").primaryKey(),

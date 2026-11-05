@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Filter, GripVertical, CheckSquare, Phone, Download, FileText, Box, MessageSquare, CheckCheck, Clock, Trash2, Plus, RotateCw, Sparkles } from "lucide-react";
+import { Search, Filter, GripVertical, CheckSquare, Phone, Download, FileText, Box, MessageSquare, CheckCheck, Clock, Trash2, Plus, RotateCw, Sparkles, Bot } from "lucide-react";
 import { Lead } from "./types";
 import { useConfirmDialog } from "../ui/confirm-dialog";
 
@@ -26,6 +26,9 @@ interface CRMKanbanProps {
   handleMouseMove: (e: React.MouseEvent) => void;
   setShowNewLeadModal?: (val: boolean) => void;
   fetchLeads?: () => void;
+  aiBotEnabled?: boolean;
+  onToggleGlobalAi?: () => void;
+  togglingGlobalAi?: boolean;
 }
 
 export default function CRMKanban({
@@ -44,7 +47,10 @@ export default function CRMKanban({
   handleMouseUp,
   handleMouseMove,
   setShowNewLeadModal,
-  fetchLeads
+  fetchLeads,
+  aiBotEnabled = true,
+  onToggleGlobalAi,
+  togglingGlobalAi = false
 }: CRMKanbanProps) {
   const { confirm, showAlert } = useConfirmDialog();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
@@ -318,6 +324,27 @@ export default function CRMKanban({
             <RotateCw size={13} className={syncingWhatsapp ? "animate-spin text-emerald-400" : ""} />
             <span>{syncingWhatsapp ? "Sincronizando..." : "Sincronizar WhatsApp"}</span>
           </button>
+
+          {onToggleGlobalAi && (
+            <button
+              type="button"
+              onClick={onToggleGlobalAi}
+              disabled={togglingGlobalAi}
+              className={`text-xs py-1.5 px-3 rounded-lg flex items-center gap-1.5 font-bold transition-all border shadow-sm cursor-pointer ${
+                aiBotEnabled
+                  ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:border-emerald-500/50 shadow-emerald-500/5"
+                  : "bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 hover:border-red-500/50 shadow-red-500/5"
+              } ${togglingGlobalAi ? "opacity-50 cursor-not-allowed" : ""}`}
+              title={
+                aiBotEnabled
+                  ? "IA Comercial ATIVA no WhatsApp. Clique para pausar o robô globalmente."
+                  : "IA Comercial DESLIGADA no WhatsApp. Clique para ativar o robô globalmente."
+              }
+            >
+              <Bot size={13} className={aiBotEnabled ? "text-emerald-400" : "text-red-400"} />
+              <span>{togglingGlobalAi ? "Salvando..." : (aiBotEnabled ? "IA Ligada" : "IA Desligada")}</span>
+            </button>
+          )}
 
           {setShowNewLeadModal && (
             <button

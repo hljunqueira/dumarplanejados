@@ -49,7 +49,7 @@ function saveBase64MediaToFile(base64Data: string, mimeType: string = "image/jpe
   }
 }
 
-import { initDbTables } from "./db";
+import { initDbTables, pool } from "./db";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await initDbTables();
@@ -456,8 +456,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Atualizar Lead (Etapa, Checklist, Chat, Valores)
-  app.patch("/api/leads/:id", async (req, res) => {
+  // Atualizar Lead (Etapa, Checklist, Chat, Valores) - Suporta PATCH e PUT
+  const handleUpdateLead = async (req: any, res: any) => {
     const leadId = Number(req.params.id);
     if (isNaN(leadId)) {
       return res.status(400).json({ message: "ID do lead inválido" });
@@ -476,14 +476,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.phone !== undefined) updateData.phone = req.body.phone;
       if (req.body.email !== undefined) updateData.email = req.body.email;
       if (req.body.stage !== undefined) updateData.stage = req.body.stage;
-      if (req.body.value !== undefined) updateData.value = Number(req.body.value);
+      if (req.body.value !== undefined) updateData.value = parseFloat(String(req.body.value).replace(",", ".")) || 0;
       if (req.body.assembler !== undefined) updateData.assembler = req.body.assembler;
       if (req.body.deliveryDate !== undefined) updateData.deliveryDate = req.body.deliveryDate;
       if (req.body.paymentMethod !== undefined) updateData.paymentMethod = req.body.paymentMethod;
       if (req.body.installments !== undefined) updateData.installments = Number(req.body.installments);
-      if (req.body.downPayment !== undefined) updateData.downPayment = Number(req.body.downPayment);
+      if (req.body.downPayment !== undefined) updateData.downPayment = parseFloat(String(req.body.downPayment).replace(",", ".")) || 0;
 
-      // Serializa arrays/objetos se vierem como objeto/array nativo do body
       // Serializa arrays/objetos se vierem como objeto/array nativo do body
       if (req.body.rooms !== undefined) {
         updateData.rooms = typeof req.body.rooms === "string" ? req.body.rooms : JSON.stringify(req.body.rooms);
@@ -516,7 +515,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(err);
       return res.status(500).json({ message: "Erro ao atualizar lead" });
     }
-  });
+  };
+
+  app.patch("/api/leads/:id", handleUpdateLead);
+  app.put("/api/leads/:id", handleUpdateLead);
 
   // Alternar Status da IA para um Lead específico (Intervenção Humana / Hand-off)
   app.post("/api/leads/:id/toggle-ai", async (req, res) => {
@@ -1652,9 +1654,78 @@ Olá! Não há contas ou despesas programadas para vencer amanhã (*${formattedT
   });
 
   // =========================================================================
+  // DADOS INSTITUCIONAIS DA EMPRESA (DUMAR MÓVEIS PLANEJADOS LTDA)
+  // =========================================================================
+  let companyConfig = {
+    razaoSocial: "Dumar Móveis Planejados Ltda",
+    nomeFantasia: "Dumar Móveis Planejados",
+    cnpj: "42.588.140/0001-72",
+    phone: "(48) 98848-6827",
+    email: "dumarmoveisplanejados@gmail.com",
+    address: "Av. Santa Catarina, 551, sala 205, Centro",
+    city: "Balneário Arroio do Silva - SC",
+  };
+
+  const COMPANY_CONFIG_FILE = path.join(process.cwd(), "data", "company-config.json");
+
+  function persistCompanyConfig() {
+    try {
+      const dir = path.dirname(COMPANY_CONFIG_FILE);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(COMPANY_CONFIG_FILE, JSON.stringify(companyConfig, null, 2), "utf-8");
+    } catch (e) {
+      console.error("Erro ao salvar company-config.json:", e);
+    }
+  }
+
+  async function saveCompanyConfigToDb() {
+    try {
+      const configStr = JSON.stringify(companyConfig);
+      await pool.query(
+        `INSERT INTO company_config (config_json, updated_at) VALUES ($1, $2)`,
+        [configStr, new Date().toISOString()]
+      );
+    } catch (e) {
+      console.warn("Aviso ao salvar companyConfig no PostgreSQL:", e);
+    }
+  }
+
+  async function loadCompanyConfigFromDb() {
+    try {
+      const result = await pool.query(`SELECT config_json FROM company_config ORDER BY id DESC LIMIT 1`);
+      if (result.rows.length > 0 && result.rows[0].config_json) {
+        const saved = JSON.parse(result.rows[0].config_json);
+        companyConfig = { ...companyConfig, ...saved };
+        if (!companyConfig.cnpj || companyConfig.cnpj.includes("45.890.123")) {
+          companyConfig.cnpj = "42.588.140/0001-72";
+        }
+        console.log(`[Banco PostgreSQL] companyConfig carregada com sucesso do banco.`);
+        return;
+      }
+    } catch (e) {
+      console.warn("Aviso ao carregar companyConfig do banco PostgreSQL:", e);
+    }
+
+    try {
+      if (fs.existsSync(COMPANY_CONFIG_FILE)) {
+        const savedCompany = JSON.parse(fs.readFileSync(COMPANY_CONFIG_FILE, "utf-8"));
+        companyConfig = { ...companyConfig, ...savedCompany };
+        if (!companyConfig.cnpj || companyConfig.cnpj.includes("45.890.123")) {
+          companyConfig.cnpj = "42.588.140/0001-72";
+        }
+        console.log("Configuração da empresa carregada com sucesso do disco.");
+      }
+    } catch (e) {
+      console.error("Erro ao carregar company-config.json:", e);
+    }
+  }
+
+  // =========================================================================
   // MOTOR DE INTELIGÊNCIA ARTIFICIAL COMERCIAL DUMAR (NATIVO / ALTA VELOCIDADE)
   // =========================================================================
   const AI_API_KEY = process.env.AI_API_KEY || ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
+
+  const AI_CONFIG_FILE = path.join(process.cwd(), "data", "ai-config.json");
 
   let aiConfig = {
     botEnabled: true,
@@ -1688,13 +1759,16 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
    - Envie o portfólio oficial no Instagram: "Com certeza! Já entregamos projetos lindos de {ambiente}. Você pode conferir alguns dos nossos trabalhos aqui no nosso Instagram: https://instagram.com/dumarmoveisplanejados 📸✨"
 
 4. ENCAMINHAMENTO FINAL PARA A EQUIPE:
+   - Se o cliente perguntar DE ONDE SOMOS ("Da onde vocês são?", "Onde fica?", "Qual cidade?"):
+     👉 "Somos da Dumar Móveis Planejados, com sede em {cidade} (Santa Catarina / SC), com escritório comercial na {endereco_escritorio}. Atendemos toda a região sul de SC com fabricação própria e montagem especializada! ✨ Qual ambiente você gostaria de planejar hoje?"
    - Se o cliente preferir ir ao ESCRITÓRIO COMERCIAL (Ex: "vou no escritório", "prefiro ir aí", "visitar vocês"):
-     👉 Passe o endereço completo com entusiasmo: "Maravilha, {nome}! Nosso escritório comercial fica na Av. Santa Catarina, 551, Sala 205, Centro de Balneário Arroio do Silva. Nossa equipe de projetos vai entrar em contato com você por aqui em breve para combinarmos o melhor dia para tomar um café e conversarmos pessoalmente! ✨"
+     👉 Passe o endereço completo com entusiasmo: "Maravilha, {nome}! Nosso escritório comercial fica na {endereco_escritorio}. Nossa equipe de projetos vai entrar em contato com você por aqui em breve para combinarmos o melhor dia para tomar um café e conversarmos pessoalmente! ✨"
    - Se o cliente preferir VISITA TÉCNICA no imóvel ou após coletar as informações básicas:
      👉 "Perfeito, {nome}! Já anotei todos os detalhes do seu {ambiente} em {cidade/bairro}. Nossa equipe de projetos vai entrar em contato com você por aqui em breve para darmos andamento ao seu projeto! ✨"
    - Se o cliente for da região (Araranguá, Balneário Arroio do Silva e proximidades) e não mencionou o escritório, você pode complementar: "E como você está aqui na região, se preferir também é super bem-vindo(a) para passar no nosso escritório comercial em Balneário Arroio do Silva para tomar um café e conversarmos pessoalmente!"
 
 5. PROIBIÇÕES RIGOROSAS (NUNCA FAÇA):
+   - 🚫 NUNCA diga que a empresa é de São Paulo (SP) ou qualquer outro estado fora de Santa Catarina! A DUMAR É EXCLUSIVAMENTE DE SANTA CATARINA (SC).
    - 🚫 NUNCA faça mais de UMA pergunta por mensagem. NUNCA pergunte cidade e medidas juntas na mesma mensagem.
    - 🚫 NUNCA repita perguntas que já foram feitas ou que o cliente já respondeu.
    - 🚫 NUNCA mencione o nome "Paulo" ou "Paulo Vargas" nas mensagens para o cliente. Fale sempre em nome de "nossa equipe de projetos" ou "nossa equipe".
@@ -1745,6 +1819,72 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
       completo: 45000
     }
   };
+
+  function persistAiConfig() {
+    try {
+      const dir = path.dirname(AI_CONFIG_FILE);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(AI_CONFIG_FILE, JSON.stringify(aiConfig, null, 2), "utf-8");
+    } catch (e) {
+      console.error("Erro ao salvar ai-config.json:", e);
+    }
+  }
+
+  async function saveAiConfigToDb() {
+    try {
+      const configStr = JSON.stringify(aiConfig);
+      await pool.query(`
+        INSERT INTO ai_config (active_preset, system_prompt, welcome_message, rules, schedule, bot_enabled, config_json, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [
+        aiConfig.activePreset || "qualificador",
+        aiConfig.systemPrompt || "",
+        aiConfig.welcomeMessage || "",
+        JSON.stringify(aiConfig.rules || {}),
+        JSON.stringify(aiConfig.businessHours || {}),
+        Boolean(aiConfig.botEnabled),
+        configStr,
+        new Date().toISOString()
+      ]);
+    } catch (e) {
+      console.warn("Aviso ao salvar aiConfig no PostgreSQL:", e);
+    }
+  }
+
+  async function loadAiConfigFromDb() {
+    try {
+      const result = await pool.query(`SELECT config_json, bot_enabled FROM ai_config ORDER BY id DESC LIMIT 1`);
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        let saved: any = {};
+        if (row.config_json) {
+          try { saved = JSON.parse(row.config_json); } catch (e) {}
+        }
+        if (row.bot_enabled !== null && row.bot_enabled !== undefined) {
+          saved.botEnabled = row.bot_enabled;
+        }
+        aiConfig = { ...aiConfig, ...saved };
+        console.log(`[Banco PostgreSQL] aiConfig carregada com sucesso do banco (botEnabled: ${aiConfig.botEnabled}).`);
+        return;
+      }
+    } catch (e) {
+      console.warn("Aviso ao carregar aiConfig do banco PostgreSQL:", e);
+    }
+
+    try {
+      if (fs.existsSync(AI_CONFIG_FILE)) {
+        const savedConfig = JSON.parse(fs.readFileSync(AI_CONFIG_FILE, "utf-8"));
+        aiConfig = { ...aiConfig, ...savedConfig };
+        console.log(`Configuração da IA carregada do disco (botEnabled: ${aiConfig.botEnabled}).`);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar ai-config.json:", e);
+    }
+  }
+
+  // Carregar configurações persistidas do PostgreSQL / disco
+  await loadCompanyConfigFromDb();
+  await loadAiConfigFromDb();
 
   // Helper para transcrever áudios de voz via Whisper-large-v3 da Groq
   async function transcribeAudioWithWhisper(audioBuffer: Buffer, mimeType: string = "audio/ogg"): Promise<string> {
@@ -1894,11 +2034,30 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
 
       const GROQ_PRIMARY_KEY = ["gsk", "ZKzLd5y3Px0TRp7j8pJRWGdyb3FY6pOQi4aXwlZQTmAASQIuqNZx"].join("_");
 
+      const fullCompanyAddress = aiConfig.officeAddress || `${companyConfig.address}, ${companyConfig.city}`;
+      const companyCity = companyConfig.city || "Balneário Arroio do Silva - SC";
+      const companyName = companyConfig.nomeFantasia || aiConfig.companyName || "Dumar Móveis Planejados";
+      const companyPhone = companyConfig.phone || "(48) 98848-6827";
+
       let compiledPrompt = aiConfig.systemPrompt
         .replace(/{nome}/g, isGenericName ? "" : clientName)
         .replace(/{nome_cliente}/g, isGenericName ? "" : clientName)
         .replace(/{telefone}/g, clientPhone)
-        .replace(/{empresa}/g, aiConfig.companyName);
+        .replace(/{empresa}/g, companyName)
+        .replace(/{endereco_escritorio}/g, fullCompanyAddress)
+        .replace(/{endereco}/g, fullCompanyAddress)
+        .replace(/{cidade}/g, companyCity)
+        .replace(/{telefone_empresa}/g, companyPhone);
+
+      compiledPrompt += `\n\n📍 DADOS OFICIAIS DE LOCALIZAÇÃO DA DUMAR MÓVEIS PLANEJADOS (MANDATÓRIO & REGRA DE OURO):
+- Nome da Empresa: ${companyName} (${companyConfig.razaoSocial})
+- Sede / Escritório Comercial: ${fullCompanyAddress}
+- Cidade e Estado: ${companyCity}
+- Telefone Comercial Oficial: ${companyPhone}
+- Região de Atendimento: Balneário Arroio do Silva, Araranguá, Criciúma, Tubarão e toda a Região Sul de Santa Catarina (SC).
+- SE O CLIENTE PERGUNTAR DE ONDE SOMOS ("Da onde vocês são?", "Onde fica?", "Qual a cidade?", "Onde vocês atendem?"):
+  👉 Responda COM CLAREZA, SIMPATIA E ORGULHO que somos da ${companyName}, sediados em ${companyCity} (Santa Catarina / SC), com escritório na ${fullCompanyAddress}, e atendemos com medição, fabricação e montagem própria toda a região Sul Catarinense!
+  🚫 PROIBIÇÃO ABSOLUTA: NUNCA, SOB NENHUMA HIPÓTESE, invente ou diga que é de São Paulo (SP) ou qualquer outro estado! A DUMAR É EXCLUSIVAMENTE DE SANTA CATARINA (SC)!`;
 
       if (isGenericName) {
         compiledPrompt += `\n\nCONTEXTO DO CLIENTE:\n- Você AINDA NÃO tem o nome do cliente (o nome atual é genérico, código ou desconhecido).\n- REGRA MANDATÓRIA (RIGOROSAMENTE 1 PERGUNTA): Na primeira saudação, faça UMA ÚNICA pergunta para descobrir o nome: "Olá! Tudo bem? Aqui é da equipe de projetos da Dumar Móveis Planejados. 😊 Com quem tenho o prazer de falar?". NUNCA pergunte o ambiente antes de o cliente responder o nome. NUNCA faça duas perguntas ao mesmo tempo. NUNCA chame o cliente por códigos ou nicks como "${clientName}".`;
@@ -1996,24 +2155,8 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
             let rawContent = data.choices?.[0]?.message?.content?.trim() || "";
             // Limpar eventuais tags de pensamento (<think>...</think>)
             rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-            // Sanitização de segurança: remover endereço apenas se o contexto não for de escritório/visita/endereço
-            const lastClientMsg = messages.filter(m => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
-            const isAddressContext = lastClientMsg.includes("onde") ||
-              lastClientMsg.includes("endereço") ||
-              lastClientMsg.includes("endereco") ||
-              lastClientMsg.includes("localiza") ||
-              lastClientMsg.includes("escritório") ||
-              lastClientMsg.includes("escritorio") ||
-              lastClientMsg.includes("visitar") ||
-              lastClientMsg.includes("passar") ||
-              lastClientMsg.includes("ir aí") ||
-              lastClientMsg.includes("ir ai") ||
-              lastClientMsg.includes("conhecer");
-
-            if (!isAddressContext) {
-              rawContent = rawContent.replace(/\(?Av\.?\s+Santa\s+Catarina[^)]*\)?/gi, "").trim();
-              rawContent = rawContent.replace(/\s{2,}/g, " ").trim();
-            }
+            // Blindagem anti-alucinação: se a IA mencionar São Paulo acidentalmente, substitui pela sede real em SC
+            rawContent = rawContent.replace(/São Paulo\s*(\(SP\))?/gi, companyCity).replace(/\(SP\)/gi, "(SC)");
 
             // Sanitização de segurança: bloquear valores em R$ gerados acidentalmente pela IA
             if (/R\$\s*\d+/i.test(rawContent) || /parcelas\s+de/i.test(rawContent)) {
@@ -2073,37 +2216,36 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
     }
   });
 
-  // Persistência em disco de aiConfig
-  const AI_CONFIG_FILE = path.join(process.cwd(), "data", "ai-config.json");
-  try {
-    if (fs.existsSync(AI_CONFIG_FILE)) {
-      const savedConfig = JSON.parse(fs.readFileSync(AI_CONFIG_FILE, "utf-8"));
-      aiConfig = { ...aiConfig, ...savedConfig };
-      console.log("Configuração da IA carregada com sucesso do disco.");
-    }
-  } catch (e) {
-    console.error("Erro ao carregar ai-config.json:", e);
-  }
-
-  function persistAiConfig() {
-    try {
-      const dir = path.dirname(AI_CONFIG_FILE);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(AI_CONFIG_FILE, JSON.stringify(aiConfig, null, 2), "utf-8");
-    } catch (e) {
-      console.error("Erro ao salvar ai-config.json:", e);
-    }
-  }
-
   // Rotas de configuração e testes da IA
   app.get("/api/ai-assistant/config", (req, res) => {
     return res.status(200).json(aiConfig);
   });
 
-  app.post("/api/ai-assistant/config", (req, res) => {
-    aiConfig = { ...aiConfig, ...req.body };
-    persistAiConfig();
-    return res.status(200).json({ success: true, config: aiConfig });
+  app.post("/api/ai-assistant/config", async (req, res) => {
+    try {
+      aiConfig = { ...aiConfig, ...req.body };
+      persistAiConfig();
+      await saveAiConfigToDb();
+      return res.status(200).json({ success: true, config: aiConfig });
+    } catch (e: any) {
+      console.error("Erro ao salvar aiConfig:", e);
+      return res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Alternar IA Global em 1 clique (LIGADA / DESLIGADA) com persistência definitiva
+  app.post("/api/ai-assistant/toggle", async (req, res) => {
+    try {
+      const nextEnabled = req.body.botEnabled !== undefined ? Boolean(req.body.botEnabled) : !aiConfig.botEnabled;
+      aiConfig.botEnabled = nextEnabled;
+      persistAiConfig();
+      await saveAiConfigToDb();
+      console.log(`IA Comercial Dumar: Status Global alterado para: ${nextEnabled ? "LIGADA" : "DESLIGADA"}`);
+      return res.status(200).json({ success: true, botEnabled: nextEnabled, config: aiConfig });
+    } catch (e: any) {
+      console.error("Erro ao alternar IA global:", e);
+      return res.status(500).json({ success: false, error: e.message });
+    }
   });
 
   // Simulador de Chat para testes da IA antes de ativar
@@ -2121,64 +2263,76 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
 
   // Legado ZernFlow/Typebot config (para retrocompatibilidade da UI antiga se necessário)
   app.get("/api/typebot/config", (req, res) => res.status(200).json(aiConfig));
-  app.post("/api/typebot/config", (req, res) => {
+  app.post("/api/typebot/config", async (req, res) => {
     aiConfig = { ...aiConfig, ...req.body };
+    persistAiConfig();
+    await saveAiConfigToDb();
     return res.status(200).json({ success: true, config: aiConfig });
   });
 
-  // =========================================================================
-  // DADOS INSTITUCIONAIS DA EMPRESA (DUMAR MÓVEIS PLANEJADOS LTDA)
-  // =========================================================================
-  let companyConfig = {
-    razaoSocial: "Dumar Móveis Planejados Ltda",
-    nomeFantasia: "Dumar Móveis Planejados",
-    cnpj: "42.588.140/0001-72",
-    phone: "(48) 98848-6827",
-    email: "dumarmoveisplanejados@gmail.com",
-    address: "Av. Santa Catarina, 551, sala 205, Centro",
-    city: "Balneário Arroio do Silva - SC",
-  };
-
-  const COMPANY_CONFIG_FILE = path.join(process.cwd(), "data", "company-config.json");
-  try {
-    if (fs.existsSync(COMPANY_CONFIG_FILE)) {
-      const savedCompany = JSON.parse(fs.readFileSync(COMPANY_CONFIG_FILE, "utf-8"));
-      companyConfig = { ...companyConfig, ...savedCompany };
-      if (!companyConfig.cnpj || companyConfig.cnpj.includes("45.890.123")) {
-        companyConfig.cnpj = "42.588.140/0001-72";
-      }
-      console.log("Configuração da empresa carregada com sucesso do disco.");
-    }
-  } catch (e) {
-    console.error("Erro ao carregar company-config.json:", e);
-  }
-
-  function persistCompanyConfig() {
-    try {
-      const dir = path.dirname(COMPANY_CONFIG_FILE);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(COMPANY_CONFIG_FILE, JSON.stringify(companyConfig, null, 2), "utf-8");
-    } catch (e) {
-      console.error("Erro ao salvar company-config.json:", e);
-    }
-  }
-
+  // Rotas de dados institucionais da empresa
   app.get("/api/company-config", (req, res) => {
     return res.status(200).json(companyConfig);
   });
 
-  app.post("/api/company-config", (req, res) => {
-    companyConfig = { ...companyConfig, ...req.body };
-    persistCompanyConfig();
-    return res.status(200).json({ success: true, config: companyConfig });
+  app.post("/api/company-config", async (req, res) => {
+    try {
+      companyConfig = { ...companyConfig, ...req.body };
+      if (!companyConfig.cnpj || companyConfig.cnpj.includes("45.890.123")) {
+        companyConfig.cnpj = "42.588.140/0001-72";
+      }
+      // Sincroniza o endereço de escritório com aiConfig
+      if (companyConfig.address && companyConfig.city) {
+        aiConfig.officeAddress = `${companyConfig.address}, ${companyConfig.city}`;
+        persistAiConfig();
+        await saveAiConfigToDb();
+      }
+      persistCompanyConfig();
+      await saveCompanyConfigToDb();
+      return res.status(200).json({ success: true, config: companyConfig });
+    } catch (e: any) {
+      console.error("Erro ao salvar companyConfig:", e);
+      return res.status(500).json({ success: false, error: e.message });
+    }
   });
 
+  // Extração de chaves telefônicas brasileiras (DDD e últimos 8 dígitos) para matching à prova de falhas
+  function extractPhoneKey(phone: string): { ddd: string; last8: string; fullClean: string } {
+    const clean = (phone || "").replace(/\D/g, "");
+    const last8 = clean.slice(-8);
+    let ddd = "";
+    if (clean.length >= 10) {
+      if (clean.startsWith("55") && clean.length >= 12) {
+        ddd = clean.slice(2, 4);
+      } else {
+        ddd = clean.slice(0, 2);
+      }
+    }
+    return { ddd, last8, fullClean: clean };
+  }
 
-  // Funções utilitárias para normalização de telefone e salas
+  function arePhonesMatching(phone1: string, phone2: string): boolean {
+    if (!phone1 || !phone2) return false;
+    const p1 = extractPhoneKey(phone1);
+    const p2 = extractPhoneKey(phone2);
+
+    if (!p1.last8 || !p2.last8 || p1.last8.length < 8 || p2.last8.length < 8) {
+      return p1.fullClean === p2.fullClean;
+    }
+
+    if (p1.last8 === p2.last8) {
+      if (p1.ddd && p2.ddd) {
+        return p1.ddd === p2.ddd;
+      }
+      return true;
+    }
+
+    return p1.fullClean.includes(p2.fullClean) || p2.fullClean.includes(p1.fullClean);
+  }
+
   function normalizePhoneForMatching(phone: string): string {
     const clean = (phone || "").replace(/\D/g, "");
     if (clean.length === 13 && clean.startsWith("55")) {
-      // Ex: 5548991013293 -> 554891013293 (removendo 9º dígito móvel)
       return clean.slice(0, 4) + clean.slice(5);
     }
     return clean;
@@ -2371,16 +2525,14 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
 
         // REGRA MANDATÓRIA: O número do Paulo (Diretoria) NUNCA deve ser importado como Lead!
         const ownerClean = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
-        if (phoneClean.includes(ownerClean) || ownerClean.includes(phoneClean)) return;
+        if (arePhonesMatching(phoneClean, ownerClean)) return;
 
-        const normalizedPhone = normalizePhoneForMatching(phoneClean);
-        if (processedPhones.has(normalizedPhone)) return;
-        processedPhones.add(normalizedPhone);
+        const phoneKey = extractPhoneKey(phoneClean);
+        const dedupeKey = phoneKey.ddd && phoneKey.last8 ? `${phoneKey.ddd}_${phoneKey.last8}` : phoneKey.fullClean;
+        if (processedPhones.has(dedupeKey)) return;
+        processedPhones.add(dedupeKey);
 
-        const existingLead = allLeads.find(l => {
-          const cleanLead = normalizePhoneForMatching(l.phone);
-          return cleanLead.includes(normalizedPhone) || normalizedPhone.includes(cleanLead);
-        });
+        const existingLead = allLeads.find(l => arePhonesMatching(l.phone, phoneClean));
 
         const rawPushName = item.lastMessage?.pushName || item.pushName || item.name || item.verifiedName;
         const pushName = formatLeadDisplayName(rawPushName, phoneClean);
@@ -2693,13 +2845,9 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
 
           const isFromMe = Boolean(key.fromMe);
           const pushName = formatLeadDisplayName(messageData.pushName || messageData.verifiedBizName, phoneFromJid);
-          const normalizedIncoming = normalizePhoneForMatching(phoneFromJid);
 
           const allLeads = await storage.getLeads();
-          let targetLead = allLeads.find(l => {
-            const cleanLead = normalizePhoneForMatching(l.phone);
-            return cleanLead.includes(normalizedIncoming) || normalizedIncoming.includes(cleanLead);
-          });
+          let targetLead = allLeads.find(l => arePhonesMatching(l.phone, phoneFromJid));
 
           // Extrair conteúdo da mensagem (Texto, Áudio, Imagem, PDF)
           let msgContent = "Nova mensagem no WhatsApp";
@@ -2862,7 +3010,7 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
           // TRATAMENTO EXCLUSIVO DE COMANDOS DO DIRETOR (PAULO VARGAS)
           // =========================================================================
           const ownerClean = (aiConfig.ownerPhone || "555196682257").replace(/\D/g, "");
-          const isFromOwner = !isFromMe && (phoneFromJid.includes(ownerClean) || ownerClean.includes(phoneFromJid));
+          const isFromOwner = !isFromMe && arePhonesMatching(phoneFromJid, ownerClean);
 
           if (isFromOwner) {
             console.log(`Webhook Evolution: Mensagem recebida do Diretor Paulo (${phoneFromJid}): "${msgContent}"`);
@@ -3261,6 +3409,9 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
         return res.status(400).json({ message: "Número do contrato e nome do cliente são obrigatórios" });
       }
 
+      const parsedTotal = parseFloat(String(totalValue || 0).replace(",", ".")) || 0;
+      const parsedDown = parseFloat(String(downPayment || 0).replace(",", ".")) || 0;
+
       const newContract = await storage.createContract({
         contractNumber,
         contractDate: contractDate || new Date().toLocaleDateString("pt-BR"),
@@ -3270,8 +3421,8 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
         clientCpfCnpj: clientCpfCnpj || "",
         clientAddress: clientAddress || "",
         clientPhone: clientPhone || "",
-        totalValue: Number(totalValue) || 0,
-        downPayment: Number(downPayment) || 0,
+        totalValue: parsedTotal,
+        downPayment: parsedDown,
         dataJson: typeof dataJson === "string" ? dataJson : JSON.stringify(dataJson || {}),
         createdAt: new Date().toISOString()
       });
@@ -3289,6 +3440,12 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
       if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
 
       const updates = { ...req.body };
+      if (updates.totalValue !== undefined) {
+        updates.totalValue = parseFloat(String(updates.totalValue).replace(",", ".")) || 0;
+      }
+      if (updates.downPayment !== undefined) {
+        updates.downPayment = parseFloat(String(updates.downPayment).replace(",", ".")) || 0;
+      }
       if (updates.dataJson && typeof updates.dataJson !== "string") {
         updates.dataJson = JSON.stringify(updates.dataJson);
       }
@@ -3313,6 +3470,241 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
     } catch (err) {
       console.error("Erro ao excluir contrato:", err);
       return res.status(500).json({ message: "Erro ao excluir contrato" });
+    }
+  });
+
+  // =========================================================================
+  // ENDPOINTS DE ORÇAMENTOS COMERCIAIS & PROPOSTAS (TIPO NF)
+  // =========================================================================
+  app.get("/api/quotes", async (req, res) => {
+    try {
+      const list = await storage.getQuotes();
+      return res.status(200).json(list);
+    } catch (err) {
+      console.error("Erro ao buscar orçamentos:", err);
+      return res.status(500).json({ message: "Erro ao buscar orçamentos" });
+    }
+  });
+
+  app.get("/api/quotes/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+
+      const quoteData = await storage.getQuote(id);
+      if (!quoteData) return res.status(404).json({ message: "Orçamento não encontrado" });
+
+      return res.status(200).json(quoteData);
+    } catch (err) {
+      console.error("Erro ao buscar detalhes do orçamento:", err);
+      return res.status(500).json({ message: "Erro ao buscar detalhes do orçamento" });
+    }
+  });
+
+  app.post("/api/quotes", async (req, res) => {
+    try {
+      const { items, ...quotePayload } = req.body;
+
+      if (!quotePayload.clientName) {
+        return res.status(400).json({ message: "Nome do cliente é obrigatório" });
+      }
+
+      const quoteNumber = quotePayload.quoteNumber || `ORC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const quoteDate = quotePayload.quoteDate || new Date().toISOString().split("T")[0];
+      
+      // Validade padrão: 15 dias após emissão
+      let validUntil = quotePayload.validUntil;
+      if (!validUntil) {
+        const vDate = new Date();
+        vDate.setDate(vDate.getDate() + 15);
+        validUntil = vDate.toISOString().split("T")[0];
+      }
+
+      const subtotal = parseFloat(String(quotePayload.subtotal || 0).replace(",", ".")) || 0;
+      const discountValue = parseFloat(String(quotePayload.discountValue || 0).replace(",", ".")) || 0;
+      const totalValue = parseFloat(String(quotePayload.totalValue || 0).replace(",", ".")) || (subtotal - discountValue);
+      const downPayment = parseFloat(String(quotePayload.downPayment || 0).replace(",", ".")) || 0;
+      const remainingBalance = parseFloat(String(quotePayload.remainingBalance || (totalValue - downPayment)).replace(",", ".")) || 0;
+
+      const created = await storage.createQuote({
+        quoteNumber,
+        quoteDate,
+        validUntil,
+        status: quotePayload.status || "rascunho",
+        leadId: quotePayload.leadId ? Number(quotePayload.leadId) : null,
+        clientId: quotePayload.clientId ? Number(quotePayload.clientId) : null,
+        clientName: quotePayload.clientName,
+        clientCpfCnpj: quotePayload.clientCpfCnpj || "",
+        clientPhone: quotePayload.clientPhone || "",
+        clientEmail: quotePayload.clientEmail || "",
+        clientAddress: quotePayload.clientAddress || "",
+        clientBairro: quotePayload.clientBairro || "",
+        clientCity: quotePayload.clientCity || "Balneário Arroio do Silva - SC",
+        subtotal,
+        discountType: quotePayload.discountType || "fixed",
+        discountValue,
+        totalValue,
+        downPayment,
+        downPaymentMethod: quotePayload.downPaymentMethod || "PIX",
+        remainingBalance,
+        remainingPaymentMethod: quotePayload.remainingPaymentMethod || "Cartão de Crédito",
+        installmentsCount: Number(quotePayload.installmentsCount) || 1,
+        cardInstallmentValue: parseFloat(String(quotePayload.cardInstallmentValue || 0).replace(",", ".")) || 0,
+        paymentTerms: quotePayload.paymentTerms || "",
+        deliveryDays: Number(quotePayload.deliveryDays) || 35,
+        notes: quotePayload.notes || "",
+        dataJson: typeof quotePayload.dataJson === "string" ? quotePayload.dataJson : JSON.stringify(quotePayload.dataJson || {}),
+        createdAt: new Date().toISOString()
+      }, Array.isArray(items) ? items : []);
+
+      return res.status(201).json(created);
+    } catch (err) {
+      console.error("Erro ao criar orçamento:", err);
+      return res.status(500).json({ message: "Erro ao criar orçamento" });
+    }
+  });
+
+  app.put("/api/quotes/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+
+      const { items, ...quotePayload } = req.body;
+      const updates: any = { ...quotePayload };
+
+      if (updates.subtotal !== undefined) updates.subtotal = parseFloat(String(updates.subtotal).replace(",", ".")) || 0;
+      if (updates.discountValue !== undefined) updates.discountValue = parseFloat(String(updates.discountValue).replace(",", ".")) || 0;
+      if (updates.totalValue !== undefined) updates.totalValue = parseFloat(String(updates.totalValue).replace(",", ".")) || 0;
+      if (updates.downPayment !== undefined) updates.downPayment = parseFloat(String(updates.downPayment).replace(",", ".")) || 0;
+      if (updates.remainingBalance !== undefined) updates.remainingBalance = parseFloat(String(updates.remainingBalance).replace(",", ".")) || 0;
+      if (updates.cardInstallmentValue !== undefined) updates.cardInstallmentValue = parseFloat(String(updates.cardInstallmentValue).replace(",", ".")) || 0;
+      if (updates.dataJson && typeof updates.dataJson !== "string") updates.dataJson = JSON.stringify(updates.dataJson);
+
+      const updated = await storage.updateQuote(id, updates, Array.isArray(items) ? items : undefined);
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error("Erro ao atualizar orçamento:", err);
+      return res.status(500).json({ message: "Erro ao atualizar orçamento" });
+    }
+  });
+
+  app.delete("/api/quotes/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+
+      const deleted = await storage.deleteQuote(id);
+      if (!deleted) return res.status(404).json({ message: "Orçamento não encontrado" });
+
+      return res.status(200).json({ success: true, message: "Orçamento excluído com sucesso" });
+    } catch (err) {
+      console.error("Erro ao excluir orçamento:", err);
+      return res.status(500).json({ message: "Erro ao excluir orçamento" });
+    }
+  });
+
+  // CONVERSÃO DE ORÇAMENTO EM CONTRATO (1 CLIQUE)
+  app.post("/api/quotes/:id/convert-to-contract", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+
+      const quoteData = await storage.getQuote(id);
+      if (!quoteData) return res.status(404).json({ message: "Orçamento não encontrado" });
+
+      const { quote, items } = quoteData;
+
+      // Ambientes extraídos dos itens da proposta
+      const roomNames = items && items.length > 0 ? items.map(i => i.environment) : ["Móveis Planejados"];
+      const contractNumber = `CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      // Gerar minuta de contrato já pronta
+      const contractPayload = {
+        contractNumber,
+        contractDate: new Date().toLocaleDateString("pt-BR"),
+        status: "aguardando_assinatura",
+        signatureLocation: "end_only",
+        companyName: companyConfig.nomeFantasia || "Dumar Móveis Planejados",
+        companyRazaoSocial: companyConfig.razaoSocial || "Dumar Móveis Planejados Ltda",
+        companyCnpj: companyConfig.cnpj || "42.588.140/0001-72",
+        companyAddress: companyConfig.address || "Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva - SC",
+        companyPhone: companyConfig.phone || "(48) 98848-6827",
+        companyEmail: companyConfig.email || "dumarmoveisplanejados@gmail.com",
+        leadId: quote.leadId,
+        clientName: quote.clientName,
+        clientCpfCnpj: quote.clientCpfCnpj || "",
+        clientPhone: quote.clientPhone || "",
+        clientEmail: quote.clientEmail || "",
+        clientAddress: quote.clientAddress || "",
+        clientBairro: quote.clientBairro || "",
+        clientCidadeUf: quote.clientCity || "Balneário Arroio do Silva - SC",
+        rooms: roomNames,
+        materialsDescription: items.map(i => `${i.environment}: ${i.description}`).join(" | "),
+        totalValue: quote.totalValue,
+        paymentPlanType: (Number(quote.downPayment || 0) > 0 && Number(quote.installmentsCount || 1) > 1) ? "entrada_parcelado" : "entrada_saldo",
+        downPayment: Number(quote.downPayment || 0),
+        downPaymentDate: new Date().toLocaleDateString("pt-BR"),
+        downPaymentMethod: quote.downPaymentMethod || "PIX",
+        remainingBalance: Number(quote.remainingBalance || 0),
+        assemblyPayment: Number(quote.remainingBalance || 0),
+        cardInstallmentsCount: Number(quote.installmentsCount || 1),
+        cardInstallmentValue: Number(quote.cardInstallmentValue || (Number(quote.installmentsCount || 1) > 1 ? Math.round(Number(quote.remainingBalance || 0) / Number(quote.installmentsCount || 1)) : 0)),
+        installmentsCount: Number(quote.installmentsCount || 1),
+        paymentMethod: `${quote.downPaymentMethod || "PIX"} + ${quote.remainingPaymentMethod || "Cartão"}`,
+        paymentTermsDetails: quote.paymentTerms || `Entrada de R$ ${Number(quote.downPayment || 0).toLocaleString("pt-BR")} + Saldo de R$ ${Number(quote.remainingBalance || 0).toLocaleString("pt-BR")}.`,
+        productionDays: quote.deliveryDays || 35,
+        items: items.map(i => ({
+          environment: i.environment,
+          description: i.description,
+          quantity: i.quantity,
+          unitMeasure: i.unitMeasure,
+          unitPrice: i.unitPrice,
+          totalPrice: i.totalPrice,
+          ncm: i.ncm
+        })),
+        originQuoteId: quote.id,
+        originQuoteNumber: quote.quoteNumber
+      };
+
+      const createdContract = await storage.createContract({
+        contractNumber,
+        contractDate: new Date().toLocaleDateString("pt-BR"),
+        status: "aguardando_assinatura",
+        leadId: quote.leadId,
+        clientName: quote.clientName,
+        clientCpfCnpj: quote.clientCpfCnpj || "",
+        clientAddress: quote.clientAddress || "",
+        clientPhone: quote.clientPhone || "",
+        totalValue: quote.totalValue,
+        downPayment: Number(quote.downPayment || 0),
+        dataJson: JSON.stringify(contractPayload),
+        createdAt: new Date().toISOString()
+      });
+
+      // Atualizar o Orçamento para 'aprovado' e vincular contractId
+      await storage.updateQuote(quote.id, {
+        status: "aprovado",
+        contractId: createdContract.id
+      });
+
+      // Se houver lead vinculado, atualizar etapa para 'contrato' e valor fechado
+      if (quote.leadId) {
+        await storage.updateLead(quote.leadId, {
+          stage: "contrato",
+          value: quote.totalValue,
+          rooms: JSON.stringify(roomNames)
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Orçamento aprovado e contrato gerado com sucesso!",
+        contract: createdContract,
+        quote: { ...quote, status: "aprovado", contractId: createdContract.id }
+      });
+    } catch (err) {
+      console.error("Erro ao converter orçamento em contrato:", err);
+      return res.status(500).json({ message: "Erro ao converter orçamento em contrato" });
     }
   });
 

@@ -74,7 +74,21 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
 
             return sanitizeContractCompanyData(merged);
           });
-          setContracts(parsed);
+
+          // Merge seguro com contratos locais não sincronizados para nunca descartar dados locais
+          let finalContracts = parsed;
+          try {
+            const localRaw = localStorage.getItem("dumar_contracts_db");
+            if (localRaw) {
+              const localList = JSON.parse(localRaw);
+              const unSynced = localList.filter((lc: any) => !parsed.some(pc => pc.contractNumber === lc.contractNumber));
+              if (unSynced.length > 0) {
+                finalContracts = [...parsed, ...unSynced.map((c: any) => sanitizeContractCompanyData(c))];
+              }
+            }
+          } catch (mErr) {}
+
+          setContracts(finalContracts);
           setLoading(false);
           return;
         }
@@ -371,6 +385,8 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
         dataJson: JSON.stringify(currentContract)
       };
 
+      let saveError: string | null = null;
+
       if (currentContract.id) {
         const res = await fetch(`/api/contracts/${currentContract.id}`, {
           method: "PUT",
@@ -380,6 +396,9 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
         if (res.ok) {
           const dbC = await res.json();
           savedBackendId = dbC.id;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          saveError = errData.message || "Erro ao atualizar contrato no servidor.";
         }
       } else {
         const res = await fetch("/api/contracts", {
@@ -391,7 +410,19 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
           const dbC = await res.json();
           savedBackendId = dbC.id;
           currentContract.id = savedBackendId;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          saveError = errData.message || "Erro ao registrar contrato no servidor.";
         }
+      }
+
+      if (saveError) {
+        await showAlert({
+          title: "Falha ao Salvar Contrato",
+          message: `Não foi possível salvar o contrato no banco de dados: ${saveError}`,
+          variant: "danger",
+        });
+        return;
       }
       // Persistir ou atualizar automaticamente no cadastro central de clientes (/api/clients)
       if (currentContract.clientName?.trim()) {
@@ -477,32 +508,84 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
 
     setIsSyncing(true);
     try {
-      await fetch(`/api/leads/${currentContract.leadId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stage: "contrato" })
-      });
+      // 1. Assegurar salvamento do contrato no banco primeiro se ainda não persistido
+      let savedId = currentContract.id;
+      const payload = {
+        contractNumber: currentContract.contractNumber,
+        contractDate: currentContract.contractDate,
+        status: currentContract.status,
+        leadId: currentContract.leadId ? Number(currentContract.leadId) : null,
+        clientName: currentContract.clientName,
+        clientCpfCnpj: currentContract.clientCpfCnpj,
+        clientAddress: currentContract.clientAddress,
+        clientPhone: currentContract.clientPhone,
+        totalValue: Number(currentContract.totalValue) || 0,
+        downPayment: Number(currentContract.downPayment) || 0,
+        dataJson: JSON.stringify(currentContract)
+      };
 
-      await fetch("/api/financial/transactions", {
-        method: "POST",
+      if (currentContract.id) {
+        await fetch(`/api/contracts/${currentContract.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        const resC = await fetch("/api/contracts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (resC.ok) {
+          const dbC = await resC.json();
+          savedId = dbC.id;
+          setCurrentContract(prev => ({ ...prev, id: savedId }));
+        }
+      }
+
+      // 2. Atualizar estágio do lead para 'contrato' e valor fechado
+      await fetch(`/api/leads/${currentContract.leadId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: `Sinal Contrato ${currentContract.contractNumber} - ${currentContract.clientName}`,
-          type: "receita",
-          amount: currentContract.downPayment,
-          category: "venda_marcenaria",
-          status: "pago",
-          dueDate: currentContract.downPaymentDate,
-          paymentDate: currentContract.downPaymentDate,
-          paymentMethod: currentContract.paymentMethod,
-          leadId: Number(currentContract.leadId),
-          notes: `Contrato ${currentContract.contractNumber} Assinado`
+        body: JSON.stringify({ 
+          stage: "contrato",
+          value: Number(currentContract.totalValue) || 0
         })
       });
 
+      // 3. Lançar no financeiro se houver entrada definida
+      if (Number(currentContract.downPayment) > 0) {
+        await fetch("/api/financial/transactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description: `Sinal Contrato ${currentContract.contractNumber} - ${currentContract.clientName}`,
+            type: "receita",
+            amount: Number(currentContract.downPayment),
+            category: "venda_marcenaria",
+            status: "pago",
+            dueDate: currentContract.downPaymentDate,
+            paymentDate: currentContract.downPaymentDate,
+            paymentMethod: currentContract.paymentMethod,
+            leadId: Number(currentContract.leadId),
+            notes: `Contrato ${currentContract.contractNumber} Assinado`
+          })
+        });
+      }
+
+      // 4. Atualizar lista em memória e local
+      const existingIdx = contracts.findIndex(c => c.contractNumber === currentContract.contractNumber);
+      let updatedList = [...contracts];
+      if (existingIdx >= 0) {
+        updatedList[existingIdx] = { ...currentContract, id: savedId };
+      } else {
+        updatedList = [{ ...currentContract, id: savedId }, ...contracts];
+      }
+      saveContractsLocal(updatedList);
+
       toast({
         title: "Sincronização Concluída",
-        description: `Lead movido para "Fechamento/Contrato" e receita de R$ ${currentContract.downPayment.toLocaleString("pt-BR")} lançada no Financeiro!`,
+        description: `Contrato salvo, Lead movido para "Fechamento/Contrato" e sinal de R$ ${Number(currentContract.downPayment).toLocaleString("pt-BR")} registrado no Financeiro!`,
       });
     } catch (e) {
       await showAlert({

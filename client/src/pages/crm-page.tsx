@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import logoDumar from "@/assets/logo1.jpeg";
-import { Plus, QrCode, Menu, Upload, CheckCircle2, Box } from "lucide-react";
+import { Plus, QrCode, Menu, Upload, CheckCircle2, Box, Bot } from "lucide-react";
 import { parsePromobFile } from "@/lib/promob-parser";
 
 // Subcomponentes importados
@@ -85,6 +85,56 @@ export default function CRMPage() {
   const [newLeadPromobFiles, setNewLeadPromobFiles] = useState<string[]>([]);
   const [isParsingPromob, setIsParsingPromob] = useState(false);
   const [promobStatusMsg, setPromobStatusMsg] = useState("");
+
+  // Estado e controle global da IA Comercial
+  const [aiBotEnabled, setAiBotEnabled] = useState<boolean>(true);
+  const [togglingGlobalAi, setTogglingGlobalAi] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetch("/api/ai-assistant/config")
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data.botEnabled === "boolean") {
+          setAiBotEnabled(data.botEnabled);
+        }
+      })
+      .catch(err => console.error("Erro ao carregar status da IA:", err));
+  }, []);
+
+  const handleToggleGlobalAi = async () => {
+    if (togglingGlobalAi) return;
+    const nextState = !aiBotEnabled;
+    setTogglingGlobalAi(true);
+    setAiBotEnabled(nextState);
+
+    try {
+      const res = await fetch("/api/ai-assistant/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ botEnabled: nextState })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast({
+          title: nextState ? "IA Ativada no WhatsApp" : "IA Desligada no WhatsApp",
+          description: nextState 
+            ? "O robô comercial responderá novos clientes automaticamente." 
+            : "Robô comercial pausado. Nenhum lead receberá mensagens automáticas.",
+        });
+      } else {
+        throw new Error(data.error || "Falha ao alternar IA");
+      }
+    } catch (err: any) {
+      setAiBotEnabled(!nextState);
+      toast({
+        title: "Erro ao alternar IA",
+        description: err.message || "Não foi possível alterar o status global da IA.",
+        variant: "destructive"
+      });
+    } finally {
+      setTogglingGlobalAi(false);
+    }
+  };
 
 
   // Sincronizar aba ativa com a URL do navegador e validar RBAC
@@ -547,13 +597,30 @@ export default function CRMPage() {
             </div>
           </div>
 
-          <button 
-            onClick={() => setShowNewLeadModal(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-lg shadow-amber-500/20"
-          >
-            <Plus size={14} />
-            Lead
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleToggleGlobalAi}
+              disabled={togglingGlobalAi}
+              className={`text-[10px] font-bold px-2 py-1.5 rounded-xl border flex items-center gap-1 transition-all shadow-sm ${
+                aiBotEnabled
+                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                  : "bg-red-500/20 text-red-300 border-red-500/40"
+              } ${togglingGlobalAi ? "opacity-50 cursor-not-allowed" : ""}`}
+              title={aiBotEnabled ? "IA Comercial LIGADA. Clique para desligar." : "IA Comercial DESLIGADA. Clique para ligar."}
+            >
+              <Bot size={12} className={aiBotEnabled ? "text-emerald-400" : "text-red-400"} />
+              <span>{aiBotEnabled ? "IA ON" : "IA OFF"}</span>
+            </button>
+
+            <button 
+              onClick={() => setShowNewLeadModal(true)}
+              className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-lg shadow-amber-500/20"
+            >
+              <Plus size={14} />
+              Lead
+            </button>
+          </div>
         </header>
 
         {/* Header Desktop de Seção */}
@@ -570,6 +637,25 @@ export default function CRMPage() {
               </h2>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleToggleGlobalAi}
+                disabled={togglingGlobalAi}
+                className={`text-xs py-1.5 px-3 rounded-lg flex items-center gap-1.5 font-bold transition-all border shadow-sm cursor-pointer ${
+                  aiBotEnabled
+                    ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:border-emerald-500/50 shadow-emerald-500/5"
+                    : "bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 hover:border-red-500/50 shadow-red-500/5"
+                } ${togglingGlobalAi ? "opacity-50 cursor-not-allowed" : ""}`}
+                title={
+                  aiBotEnabled
+                    ? "IA Comercial ATIVA no WhatsApp. Clique para pausar o robô globalmente."
+                    : "IA Comercial DESLIGADA no WhatsApp. Clique para ativar o robô globalmente."
+                }
+              >
+                <Bot size={13} className={aiBotEnabled ? "text-emerald-400" : "text-red-400"} />
+                <span>{togglingGlobalAi ? "Salvando..." : (aiBotEnabled ? "IA Ligada" : "IA Desligada")}</span>
+              </button>
+
               <button 
                 onClick={() => setShowNewLeadModal(true)}
                 className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/10 transition-all"
@@ -614,6 +700,9 @@ export default function CRMPage() {
             handleMouseMove={handleMouseMove}
             setShowNewLeadModal={setShowNewLeadModal}
             fetchLeads={fetchLeads}
+            aiBotEnabled={aiBotEnabled}
+            onToggleGlobalAi={handleToggleGlobalAi}
+            togglingGlobalAi={togglingGlobalAi}
           />
         )}
 

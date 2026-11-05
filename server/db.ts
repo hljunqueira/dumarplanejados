@@ -110,6 +110,61 @@ export async function initDbTables() {
       ALTER TABLE financial_transactions ADD COLUMN IF NOT EXISTS installment_index INTEGER DEFAULT 1;
       ALTER TABLE financial_transactions ALTER COLUMN amount TYPE double precision;
 
+      ALTER TABLE contracts ALTER COLUMN total_value TYPE DOUBLE PRECISION;
+      ALTER TABLE contracts ALTER COLUMN down_payment TYPE DOUBLE PRECISION;
+      ALTER TABLE leads ALTER COLUMN value TYPE DOUBLE PRECISION;
+      ALTER TABLE leads ALTER COLUMN down_payment TYPE DOUBLE PRECISION;
+
+      CREATE TABLE IF NOT EXISTS quotes (
+        id SERIAL PRIMARY KEY,
+        quote_number TEXT NOT NULL,
+        quote_date TEXT NOT NULL,
+        valid_until TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'rascunho',
+        lead_id INTEGER,
+        client_id INTEGER,
+        contract_id INTEGER,
+        client_name TEXT NOT NULL,
+        client_cpf_cnpj TEXT DEFAULT '',
+        client_phone TEXT DEFAULT '',
+        client_email TEXT DEFAULT '',
+        client_address TEXT DEFAULT '',
+        client_bairro TEXT DEFAULT '',
+        client_city TEXT DEFAULT 'Balneário Arroio do Silva - SC',
+        subtotal DOUBLE PRECISION NOT NULL DEFAULT 0,
+        discount_type TEXT DEFAULT 'fixed',
+        discount_value DOUBLE PRECISION DEFAULT 0,
+        total_value DOUBLE PRECISION NOT NULL DEFAULT 0,
+        down_payment DOUBLE PRECISION DEFAULT 0,
+        down_payment_method TEXT DEFAULT 'PIX',
+        remaining_balance DOUBLE PRECISION DEFAULT 0,
+        remaining_payment_method TEXT DEFAULT 'Cartão de Crédito',
+        installments_count INTEGER DEFAULT 1,
+        card_installment_value DOUBLE PRECISION DEFAULT 0,
+        payment_terms TEXT DEFAULT '',
+        delivery_days INTEGER DEFAULT 35,
+        notes TEXT DEFAULT '',
+        data_json TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT '',
+        updated_at TEXT DEFAULT ''
+      );
+
+      CREATE TABLE IF NOT EXISTS quote_items (
+        id SERIAL PRIMARY KEY,
+        quote_id INTEGER NOT NULL,
+        item_order INTEGER NOT NULL DEFAULT 1,
+        item_type TEXT NOT NULL DEFAULT 'produto',
+        environment TEXT NOT NULL,
+        description TEXT NOT NULL,
+        quantity DOUBLE PRECISION NOT NULL DEFAULT 1,
+        unit_measure TEXT DEFAULT 'UN',
+        unit_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+        total_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+        ncm TEXT DEFAULT '9403.60.00',
+        cfop TEXT DEFAULT '5101',
+        created_at TEXT DEFAULT ''
+      );
+
 
       CREATE TABLE IF NOT EXISTS suppliers (
         id SERIAL PRIMARY KEY,
@@ -159,6 +214,15 @@ export async function initDbTables() {
         rules TEXT DEFAULT '{}',
         schedule TEXT DEFAULT '{}',
         voice_settings TEXT DEFAULT '{}',
+        updated_at TEXT DEFAULT ''
+      );
+
+      ALTER TABLE ai_config ADD COLUMN IF NOT EXISTS bot_enabled BOOLEAN DEFAULT TRUE;
+      ALTER TABLE ai_config ADD COLUMN IF NOT EXISTS config_json TEXT DEFAULT '{}';
+
+      CREATE TABLE IF NOT EXISTS company_config (
+        id SERIAL PRIMARY KEY,
+        config_json TEXT DEFAULT '{}',
         updated_at TEXT DEFAULT ''
       );
 

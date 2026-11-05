@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  DollarSign, FileText, CheckCircle2, Clock, AlertCircle, TrendingUp,
+  DollarSign, FileText, Calculator, CheckCircle2, Clock, AlertCircle, TrendingUp,
   TrendingDown, Plus, Search, Filter, Trash2, Edit3, Download, Check,
   ArrowUpRight, ArrowDownRight, Tag, Calendar, CreditCard, UserCheck, X,
   Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare, Users
@@ -11,6 +11,7 @@ import { Supplier, Client } from "@shared/schema";
 import { useConfirmDialog } from "../ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import CRMContractsView from "./crm-contracts-view";
+import CRMQuotesView from "./crm-quotes-view";
 import CRMSuppliersModal from "./crm-suppliers-modal";
 import CRMClientsModal from "./crm-clients-modal";
 
@@ -70,7 +71,7 @@ const CATEGORIES = [
 ];
 
 export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroProps) {
-  const [financialTab, setFinancialTab] = useState<"cashflow" | "contracts">("cashflow");
+  const [financialTab, setFinancialTab] = useState<"cashflow" | "quotes" | "contracts">("cashflow");
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [suppliersList, setSuppliersList] = useState<Supplier[]>([]);
   const [clientsList, setClientsList] = useState<Client[]>([]);
@@ -822,6 +823,16 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
         </button>
 
         <button
+          onClick={() => setFinancialTab("quotes")}
+          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "quotes"
+              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+        >
+          <Calculator size={16} /> Orçamentos & Propostas
+        </button>
+
+        <button
           onClick={() => setFinancialTab("contracts")}
           className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "contracts"
               ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
@@ -831,6 +842,14 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
           <FileText size={16} /> Contratos & Minuta Jurídica
         </button>
       </div>
+
+      {/* RENDERIZAÇÃO DA ABA ORÇAMENTOS */}
+      {financialTab === "quotes" && (
+        <CRMQuotesView 
+          leads={leads}
+          onOpenContract={() => setFinancialTab("contracts")}
+        />
+      )}
 
       {/* RENDERIZAÇÃO DA ABA CONTRATOS */}
       {financialTab === "contracts" && (
