@@ -79,7 +79,7 @@ export default function CRMQuotesView({ leads, onOpenContract }: CRMQuotesViewPr
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [editSubTab, setEditSubTab] = useState<"client" | "items" | "payment">("items");
+  const [editSubTab, setEditSubTab] = useState<"client" | "items" | "payment">("client");
   const [isSaving, setIsSaving] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [copiedQuoteId, setCopiedQuoteId] = useState<number | null>(null);
@@ -91,41 +91,44 @@ export default function CRMQuotesView({ leads, onOpenContract }: CRMQuotesViewPr
     const validUntil = vDate.toISOString().split("T")[0];
     const quoteNum = `ORC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    let initialItems: QuoteItemFormData[] = [
-      {
-        itemOrder: 1,
-        itemType: "produto",
-        environment: "Cozinha Planejada",
-        description: "Módulos inferiores e superiores em MDF BP 15mm c/ amortecedores",
-        quantity: 1,
-        unitMeasure: "UN",
-        unitPrice: 8500,
-        totalPrice: 8500,
-        ncm: "9403.60.00",
-        cfop: "5101"
-      }
-    ];
+    let initialItems: QuoteItemFormData[] = [];
 
     if (lead?.rooms) {
-      const roomsArr = Array.isArray(lead.rooms) ? lead.rooms : String(lead.rooms).split(",").map(r => r.trim()).filter(Boolean);
+      const roomsArr = Array.isArray(lead.rooms) 
+        ? lead.rooms 
+        : String(lead.rooms).split(",").map(r => r.trim()).filter(Boolean);
       if (roomsArr.length > 0) {
         initialItems = roomsArr.map((r, idx) => ({
           itemOrder: idx + 1,
           itemType: "produto",
           environment: r,
-          description: `Mobiliário sob medida para ${r} em MDF de primeira linha`,
+          description: `Mobiliário sob medida para ${r}`,
           quantity: 1,
           unitMeasure: "UN",
-          unitPrice: Math.round((Number(lead.value) || 12000) / roomsArr.length),
-          totalPrice: Math.round((Number(lead.value) || 12000) / roomsArr.length),
+          unitPrice: 0,
+          totalPrice: 0,
           ncm: "9403.60.00",
           cfop: "5101"
         }));
       }
     }
 
-    const sub = initialItems.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
-    const down = Math.round(sub * 0.35);
+    if (initialItems.length === 0) {
+      initialItems = [
+        {
+          itemOrder: 1,
+          itemType: "produto",
+          environment: "",
+          description: "",
+          quantity: 1,
+          unitMeasure: "UN",
+          unitPrice: 0,
+          totalPrice: 0,
+          ncm: "9403.60.00",
+          cfop: "5101"
+        }
+      ];
+    }
 
     return {
       quoteNumber: quoteNum,
@@ -142,17 +145,17 @@ export default function CRMQuotesView({ leads, onOpenContract }: CRMQuotesViewPr
       clientAddress: "",
       clientBairro: "",
       clientCity: "Balneário Arroio do Silva - SC",
-      subtotal: sub,
+      subtotal: 0,
       discountType: "fixed",
       discountValue: 0,
-      totalValue: sub,
-      downPayment: down,
+      totalValue: 0,
+      downPayment: 0,
       downPaymentMethod: "PIX",
-      remainingBalance: sub - down,
+      remainingBalance: 0,
       remainingPaymentMethod: "Cartão de Crédito",
-      installmentsCount: 10,
-      cardInstallmentValue: Math.round((sub - down) / 10),
-      paymentTerms: `Entrada de R$ ${down.toLocaleString("pt-BR")} + Saldo em até 10x no cartão ou na entrega da montagem.`,
+      installmentsCount: 1,
+      cardInstallmentValue: 0,
+      paymentTerms: "",
       deliveryDays: 35,
       notes: "Valores válidos por 15 dias. Projeto executivo e conferência final de medidas incluídos.",
       items: initialItems
@@ -218,7 +221,7 @@ export default function CRMQuotesView({ leads, onOpenContract }: CRMQuotesViewPr
         downPayment: down,
         remainingBalance: rem,
         cardInstallmentValue: cardInst,
-        paymentTerms: merged.paymentTerms || `Entrada de R$ ${down.toLocaleString("pt-BR")} + Saldo de R$ ${rem.toLocaleString("pt-BR")} em até ${instCount}x.`
+        paymentTerms: merged.paymentTerms !== undefined ? merged.paymentTerms : ""
       };
     });
   };
@@ -227,7 +230,7 @@ export default function CRMQuotesView({ leads, onOpenContract }: CRMQuotesViewPr
   const handleOpenNewQuote = (lead?: Lead) => {
     const q = getEmptyQuote(lead);
     setCurrentQuote(q);
-    setEditSubTab("items");
+    setEditSubTab("client");
     setActiveTab("edit");
     setIsModalOpen(true);
   };
@@ -494,12 +497,12 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
     const newItem: QuoteItemFormData = {
       itemOrder: nextOrder,
       itemType: "produto",
-      environment: "Novo Ambiente",
-      description: "Mobiliário sob medida em MDF 15mm de primeira linha",
+      environment: "",
+      description: "",
       quantity: 1,
       unitMeasure: "UN",
-      unitPrice: 3500,
-      totalPrice: 3500,
+      unitPrice: 0,
+      totalPrice: 0,
       ncm: "9403.60.00",
       cfop: "5101"
     };
@@ -787,9 +790,9 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                 {/* SUB-ABAS DE EDIÇÃO */}
                 <div className="flex items-center border-b border-white/5 bg-[#121212] px-4 gap-2">
                   {[
-                    { id: "items", label: "Grade de Ambientes & Itens (Tipo NF)" },
-                    { id: "payment", label: "Formas de Pagamento & Prazos" },
-                    { id: "client", label: "Dados do Cliente & Proposta" }
+                    { id: "client", label: "1. Dados do Cliente & Lead" },
+                    { id: "items", label: "2. Grade de Ambientes & Itens (Tipo NF)" },
+                    { id: "payment", label: "3. Formas de Pagamento & Prazos" }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -806,319 +809,19 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                  {/* SUB-ABA 1: GRADE DE ITENS (TIPO NF) */}
-                  {editSubTab === "items" && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                            Discriminação dos Ambientes e Peças
-                          </h4>
-                          <p className="text-[11px] text-gray-400">
-                            Informe cada ambiente, quantidade e valor unitário. O total é calculado automaticamente.
-                          </p>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleAddItem}
-                          className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Plus size={14} /> Adicionar Ambiente
-                        </button>
-                      </div>
-
-                      {/* TABELA DE ITENS ESTILO NF */}
-                      <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0d0d0d]">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead>
-                            <tr className="border-b border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-wider text-gray-400">
-                              <th className="py-2.5 px-3 w-10 text-center">Item</th>
-                              <th className="py-2.5 px-3 w-48">Ambiente</th>
-                              <th className="py-2.5 px-3">Descrição / Especificação do MDF</th>
-                              <th className="py-2.5 px-3 w-16 text-center">Qtd</th>
-                              <th className="py-2.5 px-3 w-28 text-right">Unitário (R$)</th>
-                              <th className="py-2.5 px-3 w-28 text-right">Total (R$)</th>
-                              <th className="py-2.5 px-3 w-10 text-center"></th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {currentQuote.items.map((item, idx) => (
-                              <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                                <td className="py-2 px-3 text-center text-gray-500 font-mono font-bold">
-                                  {String(idx + 1).padStart(2, "0")}
-                                </td>
-
-                                {/* Ambiente com sugestões */}
-                                <td className="py-2 px-3">
-                                  <input
-                                    type="text"
-                                    list={`envs-${idx}`}
-                                    value={item.environment}
-                                    onChange={e => handleUpdateItem(idx, { environment: e.target.value })}
-                                    className="w-full bg-[#181818] border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                                    placeholder="Ex: Cozinha, Quarto"
-                                  />
-                                  <datalist id={`envs-${idx}`}>
-                                    {COMMON_ENVIRONMENTS.map(env => (
-                                      <option key={env} value={env} />
-                                    ))}
-                                  </datalist>
-                                </td>
-
-                                {/* Descrição Técnica */}
-                                <td className="py-2 px-3">
-                                  <input
-                                    type="text"
-                                    value={item.description}
-                                    onChange={e => handleUpdateItem(idx, { description: e.target.value })}
-                                    className="w-full bg-[#181818] border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                                    placeholder="Ex: MDF Branco c/ frentes Cinza Urbe e amortecedores"
-                                  />
-                                </td>
-
-                                {/* Quantidade */}
-                                <td className="py-2 px-3 text-center">
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    value={item.quantity}
-                                    onChange={e => handleUpdateItem(idx, { quantity: Number(e.target.value) || 1 })}
-                                    className="w-14 text-center bg-[#181818] border border-white/10 rounded px-1 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                                  />
-                                </td>
-
-                                {/* Valor Unitário */}
-                                <td className="py-2 px-3 text-right">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.unitPrice}
-                                    onChange={e => handleUpdateItem(idx, { unitPrice: parseFloat(e.target.value) || 0 })}
-                                    className="w-24 text-right bg-[#181818] border border-white/10 rounded px-2 py-1.5 text-xs text-emerald-400 font-bold focus:outline-none focus:border-amber-500"
-                                  />
-                                </td>
-
-                                {/* Total Linha */}
-                                <td className="py-2 px-3 text-right font-black text-white">
-                                  R$ {Number(item.totalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                </td>
-
-                                {/* Excluir Linha */}
-                                <td className="py-2 px-3 text-center">
-                                  {currentQuote.items.length > 1 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveItem(idx)}
-                                      className="p-1 text-gray-500 hover:text-rose-400 transition-colors"
-                                      title="Remover Item"
-                                    >
-                                      <Trash2 size={13} />
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* CARD RESUMO DE TOTAIS */}
-                      <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-[#111] rounded-xl border border-white/5 gap-4">
-                        <div className="text-xs text-gray-400">
-                          Total de <span className="text-white font-bold">{currentQuote.items.length}</span> ambiente(s) orçado(s).
-                        </div>
-                        <div className="flex items-center gap-6">
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-gray-500 block">Subtotal dos Itens</span>
-                            <span className="text-sm font-black text-white">
-                              R$ {currentQuote.subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-emerald-500 block">Total Líquido Proposta</span>
-                            <span className="text-lg font-black text-emerald-400">
-                              R$ {currentQuote.totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* SUB-ABA 2: FORMAS DE PAGAMENTO & PRAZOS */}
-                  {editSubTab === "payment" && (
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {/* Subtotal */}
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                            Subtotal dos Itens
-                          </label>
-                          <input
-                            type="text"
-                            disabled
-                            value={`R$ ${currentQuote.subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                            className="w-full bg-[#181818] border border-white/5 rounded-lg px-3 py-2 text-xs text-gray-400 font-bold"
-                          />
-                        </div>
-
-                        {/* Desconto */}
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                            Desconto Comercial (R$)
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={currentQuote.discountValue}
-                            onChange={e => recalculateQuote({ discountValue: parseFloat(e.target.value) || 0 })}
-                            className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                            placeholder="0.00"
-                          />
-                        </div>
-
-                        {/* Total Final */}
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block mb-1">
-                            Valor Total da Proposta
-                          </label>
-                          <input
-                            type="text"
-                            disabled
-                            value={`R$ ${currentQuote.totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                            className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 text-xs text-emerald-400 font-black"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="p-4 bg-[#111] rounded-xl border border-white/5 space-y-4">
-                        <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">
-                          Condições de Pagamento
-                        </h4>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Entrada / Sinal */}
-                          <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                              Entrada / Sinal (R$)
-                            </label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={currentQuote.downPayment}
-                              onChange={e => recalculateQuote({ downPayment: parseFloat(e.target.value) || 0 })}
-                              className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                            />
-                          </div>
-
-                          {/* Meio da Entrada */}
-                          <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                              Forma da Entrada
-                            </label>
-                            <select
-                              value={currentQuote.downPaymentMethod}
-                              onChange={e => recalculateQuote({ downPaymentMethod: e.target.value })}
-                              className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                            >
-                              <option value="PIX">PIX</option>
-                              <option value="Dinheiro">Dinheiro</option>
-                              <option value="Transferência Bancária">Transferência Bancária / TED</option>
-                              <option value="Cartão de Débito">Cartão de Débito</option>
-                            </select>
-                          </div>
-
-                          {/* Saldo Restante */}
-                          <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                              Saldo Restante (R$)
-                            </label>
-                            <input
-                              type="text"
-                              disabled
-                              value={`R$ ${currentQuote.remainingBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                              className="w-full bg-[#181818] border border-white/5 rounded-lg px-3 py-2 text-xs text-white font-bold"
-                            />
-                          </div>
-
-                          {/* Parcelamento no Cartão */}
-                          <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                              Parcelas no Cartão (Máx. 12x)
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={currentQuote.installmentsCount}
-                                onChange={e => recalculateQuote({ installmentsCount: Number(e.target.value) || 1 })}
-                                className="w-24 bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                              >
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
-                                  <option key={n} value={n}>{n}x</option>
-                                ))}
-                              </select>
-                              <span className="text-xs text-gray-400">
-                                de R$ {currentQuote.cardInstallmentValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Descritivo Comercial das Condições */}
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                            Texto Comercial das Condições de Pagamento
-                          </label>
-                          <textarea
-                            rows={2}
-                            value={currentQuote.paymentTerms}
-                            onChange={e => setCurrentQuote(prev => ({ ...prev, paymentTerms: e.target.value }))}
-                            className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 resize-none"
-                            placeholder="Ex: Entrada de R$ 3.000 no PIX + 10x de R$ 800 no cartão de crédito na assinatura."
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                              Prazo de Fabricação & Montagem (Dias Úteis)
-                            </label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={currentQuote.deliveryDays}
-                              onChange={e => setCurrentQuote(prev => ({ ...prev, deliveryDays: Number(e.target.value) || 35 }))}
-                              className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
-                              Validade da Proposta (Data)
-                            </label>
-                            <input
-                              type="date"
-                              value={currentQuote.validUntil}
-                              onChange={e => setCurrentQuote(prev => ({ ...prev, validUntil: e.target.value }))}
-                              className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* SUB-ABA 3: DADOS DO CLIENTE & PROPOSTA */}
+                  {/* SUB-ABA 1: DADOS DO CLIENTE & PROPOSTA */}
                   {editSubTab === "client" && (
                     <div className="space-y-4">
                       {/* Vínculo Rápido com Clientes Cadastrados ou Leads */}
                       <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-3">
-                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
-                          Puxar Dados de Cliente ou Lead Existente
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
+                            Puxar Dados de Cliente ou Lead Existente
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            Selecione para preencher dados cadastrais e ambientes automaticamente
+                          </span>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="text-[10px] text-gray-400 font-bold block mb-1">Leads do Funil:</label>
@@ -1128,12 +831,35 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                                 const lId = String(e.target.value);
                                 const l = leads.find(item => String(item.id) === lId);
                                 if (l) {
+                                  let updatedItems = [...currentQuote.items];
+                                  const isCurrentlyEmpty = updatedItems.length === 0 || 
+                                    (updatedItems.length === 1 && !updatedItems[0].environment && (Number(updatedItems[0].unitPrice) || 0) === 0);
+                                  
+                                  if (isCurrentlyEmpty && l.rooms) {
+                                    const roomsArr = Array.isArray(l.rooms) ? l.rooms : String(l.rooms).split(",").map(r => r.trim()).filter(Boolean);
+                                    if (roomsArr.length > 0) {
+                                      updatedItems = roomsArr.map((r, idx) => ({
+                                        itemOrder: idx + 1,
+                                        itemType: "produto",
+                                        environment: r,
+                                        description: `Mobiliário sob medida para ${r}`,
+                                        quantity: 1,
+                                        unitMeasure: "UN",
+                                        unitPrice: 0,
+                                        totalPrice: 0,
+                                        ncm: "9403.60.00",
+                                        cfop: "5101"
+                                      }));
+                                    }
+                                  }
+
                                   setCurrentQuote(prev => ({
                                     ...prev,
                                     leadId: Number(l.id) || null,
                                     clientName: l.name,
                                     clientPhone: l.phone,
-                                    clientEmail: l.email || ""
+                                    clientEmail: l.email || "",
+                                    items: updatedItems
                                   }));
                                 }
                               }}
@@ -1243,6 +969,373 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                             placeholder="Rua, número, complemento"
                           />
                         </div>
+                      </div>
+
+                      {/* Botão de avanço rápido */}
+                      <div className="pt-4 border-t border-white/5 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setEditSubTab("items")}
+                          className="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer uppercase tracking-wider"
+                        >
+                          Avançar para Itens & Ambientes <ArrowRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-ABA 2: GRADE DE ITENS (TIPO NF) */}
+                  {editSubTab === "items" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                            Discriminação dos Ambientes e Peças
+                          </h4>
+                          <p className="text-[11px] text-gray-400">
+                            Informe cada ambiente, quantidade e valor unitário. O total é calculado automaticamente.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleAddItem}
+                          className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus size={14} /> Adicionar Ambiente
+                        </button>
+                      </div>
+
+                      {/* TABELA DE ITENS ESTILO NF */}
+                      <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0d0d0d]">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-wider text-gray-400">
+                              <th className="py-2.5 px-3 w-10 text-center">Item</th>
+                              <th className="py-2.5 px-3 w-48">Ambiente</th>
+                              <th className="py-2.5 px-3">Descrição / Especificação do MDF</th>
+                              <th className="py-2.5 px-3 w-16 text-center">Qtd</th>
+                              <th className="py-2.5 px-3 w-28 text-right">Unitário (R$)</th>
+                              <th className="py-2.5 px-3 w-28 text-right">Total (R$)</th>
+                              <th className="py-2.5 px-3 w-10 text-center"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {currentQuote.items.map((item, idx) => (
+                              <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="py-2 px-3 text-center text-gray-500 font-mono font-bold">
+                                  {String(idx + 1).padStart(2, "0")}
+                                </td>
+
+                                {/* Ambiente com sugestões */}
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    list={`envs-${idx}`}
+                                    value={item.environment}
+                                    onChange={e => handleUpdateItem(idx, { environment: e.target.value })}
+                                    className="w-full bg-[#181818] border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                                    placeholder="Ex: Cozinha, Quarto"
+                                  />
+                                  <datalist id={`envs-${idx}`}>
+                                    {COMMON_ENVIRONMENTS.map(env => (
+                                      <option key={env} value={env} />
+                                    ))}
+                                  </datalist>
+                                </td>
+
+                                {/* Descrição Técnica */}
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    value={item.description}
+                                    onChange={e => handleUpdateItem(idx, { description: e.target.value })}
+                                    className="w-full bg-[#181818] border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                                    placeholder="Ex: MDF Branco c/ frentes Cinza Urbe e amortecedores"
+                                  />
+                                </td>
+
+                                {/* Quantidade */}
+                                <td className="py-2 px-3 text-center">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={item.quantity}
+                                    onChange={e => handleUpdateItem(idx, { quantity: Number(e.target.value) || 1 })}
+                                    className="w-14 text-center bg-[#181818] border border-white/10 rounded px-1 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                                  />
+                                </td>
+
+                                {/* Valor Unitário */}
+                                <td className="py-2 px-3 text-right">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.unitPrice || ""}
+                                    onChange={e => handleUpdateItem(idx, { unitPrice: parseFloat(e.target.value) || 0 })}
+                                    className="w-24 text-right bg-[#181818] border border-white/10 rounded px-2 py-1.5 text-xs text-emerald-400 font-bold focus:outline-none focus:border-amber-500"
+                                    placeholder="0,00"
+                                  />
+                                </td>
+
+                                {/* Total Linha */}
+                                <td className="py-2 px-3 text-right font-black text-white">
+                                  R$ {Number(item.totalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </td>
+
+                                {/* Excluir Linha */}
+                                <td className="py-2 px-3 text-center">
+                                  {currentQuote.items.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveItem(idx)}
+                                      className="p-1 text-gray-500 hover:text-rose-400 transition-colors"
+                                      title="Remover Item"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* CARD RESUMO DE TOTAIS */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-[#111] rounded-xl border border-white/5 gap-4">
+                        <div className="text-xs text-gray-400">
+                          Total de <span className="text-white font-bold">{currentQuote.items.length}</span> ambiente(s) orçado(s).
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-gray-500 block">Subtotal dos Itens</span>
+                            <span className="text-sm font-black text-white">
+                              R$ {currentQuote.subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-emerald-500 block">Total Líquido Proposta</span>
+                            <span className="text-lg font-black text-emerald-400">
+                              R$ {currentQuote.totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Navegação entre abas */}
+                      <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setEditSubTab("client")}
+                          className="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                          ← Voltar para Dados do Cliente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditSubTab("payment")}
+                          className="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer uppercase tracking-wider"
+                        >
+                          Avançar para Pagamento & Prazos <ArrowRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-ABA 3: FORMAS DE PAGAMENTO & PRAZOS */}
+                  {editSubTab === "payment" && (
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* Subtotal */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                            Subtotal dos Itens
+                          </label>
+                          <input
+                            type="text"
+                            disabled
+                            value={`R$ ${currentQuote.subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                            className="w-full bg-[#181818] border border-white/5 rounded-lg px-3 py-2 text-xs text-gray-400 font-bold"
+                          />
+                        </div>
+
+                        {/* Desconto */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                            Desconto Comercial (R$)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={currentQuote.discountValue || ""}
+                            onChange={e => recalculateQuote({ discountValue: parseFloat(e.target.value) || 0 })}
+                            className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                            placeholder="0,00"
+                          />
+                        </div>
+
+                        {/* Total Final */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block mb-1">
+                            Valor Total da Proposta
+                          </label>
+                          <input
+                            type="text"
+                            disabled
+                            value={`R$ ${currentQuote.totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                            className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 text-xs text-emerald-400 font-black"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-[#111] rounded-xl border border-white/5 space-y-4">
+                        <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                          Condições de Pagamento
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Entrada / Sinal */}
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                              Entrada / Sinal (R$)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={currentQuote.downPayment || ""}
+                              onChange={e => recalculateQuote({ downPayment: parseFloat(e.target.value) || 0 })}
+                              className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                              placeholder="0,00"
+                            />
+                          </div>
+
+                          {/* Meio da Entrada */}
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                              Forma da Entrada
+                            </label>
+                            <select
+                              value={currentQuote.downPaymentMethod}
+                              onChange={e => recalculateQuote({ downPaymentMethod: e.target.value })}
+                              className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                            >
+                              <option value="PIX">PIX</option>
+                              <option value="Dinheiro">Dinheiro</option>
+                              <option value="Transferência Bancária">Transferência Bancária / TED</option>
+                              <option value="Cartão de Débito">Cartão de Débito</option>
+                            </select>
+                          </div>
+
+                          {/* Saldo Restante */}
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                              Saldo Restante (R$)
+                            </label>
+                            <input
+                              type="text"
+                              disabled
+                              value={`R$ ${currentQuote.remainingBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                              className="w-full bg-[#181818] border border-white/5 rounded-lg px-3 py-2 text-xs text-white font-bold"
+                            />
+                          </div>
+
+                          {/* Parcelamento no Cartão */}
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                              Parcelas no Cartão (Máx. 12x)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={currentQuote.installmentsCount}
+                                onChange={e => recalculateQuote({ installmentsCount: Number(e.target.value) || 1 })}
+                                className="w-24 bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                              >
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                                  <option key={n} value={n}>{n}x</option>
+                                ))}
+                              </select>
+                              <span className="text-xs text-gray-400">
+                                de R$ {currentQuote.cardInstallmentValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Descritivo Comercial das Condições */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                              Texto Comercial das Condições de Pagamento
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const total = currentQuote.totalValue;
+                                const down = currentQuote.downPayment;
+                                const rem = currentQuote.remainingBalance;
+                                const inst = currentQuote.installmentsCount;
+                                const text = total > 0
+                                  ? down > 0 
+                                    ? `Entrada de R$ ${down.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} no ${currentQuote.downPaymentMethod} + Saldo de R$ ${rem.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em até ${inst}x no ${currentQuote.remainingPaymentMethod}.`
+                                    : `Valor total de R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em até ${inst}x no ${currentQuote.remainingPaymentMethod}.`
+                                  : "";
+                                setCurrentQuote(prev => ({ ...prev, paymentTerms: text }));
+                              }}
+                              className="text-[10px] text-amber-400 hover:underline cursor-pointer"
+                            >
+                              Gerar Texto Automático
+                            </button>
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={currentQuote.paymentTerms}
+                            onChange={e => setCurrentQuote(prev => ({ ...prev, paymentTerms: e.target.value }))}
+                            className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 resize-none"
+                            placeholder="Ex: Entrada de R$ 3.000 no PIX + 10x de R$ 800 no cartão de crédito na assinatura."
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                              Prazo de Fabricação & Montagem (Dias Úteis)
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={currentQuote.deliveryDays}
+                              onChange={e => setCurrentQuote(prev => ({ ...prev, deliveryDays: Number(e.target.value) || 35 }))}
+                              className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                              Validade da Proposta (Data)
+                            </label>
+                            <input
+                              type="date"
+                              value={currentQuote.validUntil}
+                              onChange={e => setCurrentQuote(prev => ({ ...prev, validUntil: e.target.value }))}
+                              className="w-full bg-[#181818] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Navegação */}
+                      <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setEditSubTab("items")}
+                          className="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                          ← Voltar para Grade de Itens
+                        </button>
                       </div>
                     </div>
                   )}
