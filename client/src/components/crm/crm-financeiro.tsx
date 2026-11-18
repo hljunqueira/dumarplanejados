@@ -945,8 +945,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
           <button
             onClick={() => setFinancialTab("cashflow")}
             className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "cashflow"
-                ? "bg-white text-black shadow-lg"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+              ? "bg-white text-black shadow-lg"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
             <DollarSign size={15} /> Lançamentos & Fluxo de Caixa
@@ -955,8 +955,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
           <button
             onClick={() => setFinancialTab("quotes")}
             className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "quotes"
-                ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
             <Calculator size={15} /> Orçamentos & Propostas
@@ -965,8 +965,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
           <button
             onClick={() => setFinancialTab("contracts")}
             className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "contracts"
-                ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
             <FileText size={15} /> Contratos & Minuta Jurídica
@@ -978,8 +978,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
               setFinancialTab("receipts");
             }}
             className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "receipts"
-                ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
             <Receipt size={15} /> Recibos de Pagamento
@@ -1158,11 +1158,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
 
                 <button
                   onClick={() => setGroupByRecurring(prev => !prev)}
-                  className={`font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer border ${
-                    groupByRecurring
-                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                      : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
-                  }`}
+                  className={`font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer border ${groupByRecurring
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
                   title="Agrupar ou desagrupar parcelas recorrentes"
                 >
                   <Repeat size={13} className={groupByRecurring ? "text-amber-400" : ""} />
@@ -1288,10 +1287,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                           <tr
                             onClick={() => toggleGroup(group.groupId)}
                             className={`transition-all cursor-pointer border-l-4 shadow-sm h-10 ${isGroupToday
-                                ? "bg-red-950/30 hover:bg-red-950/50 border-l-rose-500"
-                                : isGroupTomorrow
-                                  ? "bg-amber-950/30 hover:bg-amber-950/50 border-l-amber-400"
-                                  : "bg-neutral-900/80 hover:bg-neutral-800/90 border-l-amber-500"
+                              ? "bg-red-950/30 hover:bg-red-950/50 border-l-rose-500"
+                              : isGroupTomorrow
+                                ? "bg-amber-950/30 hover:bg-amber-950/50 border-l-amber-400"
+                                : "bg-neutral-900/80 hover:bg-neutral-800/90 border-l-amber-500"
                               }`}
                           >
                             {/* Vencimento Próxima Parcela */}
@@ -1319,8 +1318,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                             {/* Tipo */}
                             <td className="py-2 px-3 whitespace-nowrap">
                               <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase inline-flex items-center gap-1 ${isReceita
-                                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                                  : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                : "bg-amber-500/15 text-amber-400 border-amber-500/30"
                                 }`}>
                                 <Repeat size={10} className={isReceita ? "text-emerald-400" : "text-amber-400"} />
                                 Recorrente
@@ -1337,8 +1336,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                                   {group.totalCount}x
                                 </span>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${isAllPaid
-                                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                                    : "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                  : "bg-blue-500/20 text-blue-300 border-blue-500/30"
                                   }`}>
                                   {group.paidCount}/{group.totalCount} ({Math.round((group.paidCount / group.totalCount) * 100)}%)
                                 </span>
@@ -1442,8 +1441,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                                         >
                                           <div className="flex items-center gap-2.5">
                                             <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] border ${isSubPaid
-                                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                                                : "bg-white/5 text-gray-400 border-white/10"
+                                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                              : "bg-white/5 text-gray-400 border-white/10"
                                               }`}>
                                               {instNum}
                                             </span>
@@ -1470,8 +1469,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                                                 handleToggleStatus(subTx);
                                               }}
                                               className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase cursor-pointer transition-all ${isSubPaid
-                                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                                                  : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                                : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
                                                 }`}
                                             >
                                               {isSubPaid ? "✅ Pago" : "⏳ Pendente"}
@@ -1547,10 +1546,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                         onClick={() => setViewingTx(tx)}
                         title="Clique para abrir detalhes completos deste lançamento"
                         className={`transition-colors cursor-pointer group h-10 ${isDueToday
-                            ? "bg-red-950/20 hover:bg-red-950/35"
-                            : isDueTomorrow
-                              ? "bg-amber-950/20 hover:bg-amber-950/35"
-                              : "hover:bg-amber-500/10"
+                          ? "bg-red-950/20 hover:bg-red-950/35"
+                          : isDueTomorrow
+                            ? "bg-amber-950/20 hover:bg-amber-950/35"
+                            : "hover:bg-amber-500/10"
                           }`}
                       >
                         {/* Vencimento */}
@@ -1575,8 +1574,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                         {/* Tipo Badge */}
                         <td className="py-2 px-3 whitespace-nowrap">
                           <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase inline-flex items-center gap-1 ${isReceita
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : "bg-rose-500/10 text-rose-400 border-rose-500/20"
                             }`}>
                             {isReceita ? <ArrowDownRight size={11} /> : <ArrowUpRight size={11} />}
                             {isReceita ? "Entrada" : "Saída"}
@@ -1631,10 +1630,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                             }}
                             title="Clique para alternar entre Pago e Pendente"
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase cursor-pointer transition-all ${isPaid
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                                : tx.status === "atrasado"
-                                  ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
-                                  : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                              : tx.status === "atrasado"
+                                ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
+                                : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
                               }`}
                           >
                             {isPaid ? "✅ Pago" : tx.status === "atrasado" ? "⚠️ Atrasado" : "⏳ Pendente"}
@@ -1730,9 +1729,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                           setItemsPerPage(n);
                           setCurrentPage(1);
                         }}
-                        className={`px-1.5 py-0.2 rounded font-bold cursor-pointer transition-colors ${
-                          itemsPerPage === n ? "bg-amber-500 text-black" : "text-gray-400 hover:text-white hover:bg-white/5"
-                        }`}
+                        className={`px-1.5 py-0.2 rounded font-bold cursor-pointer transition-colors ${itemsPerPage === n ? "bg-amber-500 text-black" : "text-gray-400 hover:text-white hover:bg-white/5"
+                          }`}
                       >
                         {n}
                       </button>
@@ -1791,30 +1789,27 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </div>
 
                 {/* Banner de Valor e Tipo */}
-                <div className={`p-4 rounded-xl border flex items-center justify-between ${
-                  viewingTx.type === "receita"
-                    ? "bg-emerald-950/20 border-emerald-500/30"
-                    : "bg-rose-950/20 border-rose-500/30"
-                }`}>
+                <div className={`p-4 rounded-xl border flex items-center justify-between ${viewingTx.type === "receita"
+                  ? "bg-emerald-950/20 border-emerald-500/30"
+                  : "bg-rose-950/20 border-rose-500/30"
+                  }`}>
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
                       {viewingTx.type === "receita" ? "Receita (Entrada)" : "Despesa (Saída)"}
                     </span>
-                    <span className={`text-2xl font-black ${
-                      viewingTx.type === "receita" ? "text-emerald-400" : "text-rose-400"
-                    }`}>
+                    <span className={`text-2xl font-black ${viewingTx.type === "receita" ? "text-emerald-400" : "text-rose-400"
+                      }`}>
                       {viewingTx.type === "receita" ? "+" : "-"} {formatBRL(viewingTx.amount)}
                     </span>
                   </div>
 
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase ${
-                      viewingTx.status === "pago"
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                        : viewingTx.status === "atrasado"
+                    <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase ${viewingTx.status === "pago"
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                      : viewingTx.status === "atrasado"
                         ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
                         : "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                    }`}>
+                      }`}>
                       {viewingTx.status === "pago" ? "✅ Pago / Liquidado" : viewingTx.status === "atrasado" ? "⚠️ Atrasado" : "⏳ Pendente"}
                     </span>
                     <span className="text-[10px] text-gray-400">
@@ -2236,8 +2231,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                                   type="button"
                                   onClick={() => setFormRecurringMonths(opt.val)}
                                   className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${formRecurringMonths === opt.val
-                                      ? "bg-amber-500 text-black shadow-md shadow-amber-500/20"
-                                      : "bg-white/5 text-gray-400 hover:text-white border border-white/10"
+                                    ? "bg-amber-500 text-black shadow-md shadow-amber-500/20"
+                                    : "bg-white/5 text-gray-400 hover:text-white border border-white/10"
                                     }`}
                                 >
                                   {opt.label}
@@ -2431,8 +2426,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                         type="button"
                         onClick={() => setGroupFormScope("all")}
                         className={`py-2 px-3 rounded-lg font-bold text-xs border text-left transition-all cursor-pointer ${groupFormScope === "all"
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
-                            : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                          : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
                           }`}
                       >
                         <div>🔁 Todas as {editingGroup.totalCount} Parcelas</div>
@@ -2443,8 +2438,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                         type="button"
                         onClick={() => setGroupFormScope("pending")}
                         className={`py-2 px-3 rounded-lg font-bold text-xs border text-left transition-all cursor-pointer ${groupFormScope === "pending"
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
-                            : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                          : "bg-black/30 text-gray-400 border-white/5 hover:text-white"
                           }`}
                       >
                         <div>⏳ Apenas Pendentes ({editingGroup.totalCount - editingGroup.paidCount})</div>
