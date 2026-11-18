@@ -630,13 +630,15 @@ export default function CRMPage() {
               <span>{aiBotEnabled ? "IA ON" : "IA OFF"}</span>
             </button>
 
-            <button 
-              onClick={() => setShowNewLeadModal(true)}
-              className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-lg shadow-amber-500/20"
-            >
-              <Plus size={14} />
-              Lead
-            </button>
+            {activeSection === "kanban" && (
+              <button 
+                onClick={() => setShowNewLeadModal(true)}
+                className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-lg shadow-amber-500/20"
+              >
+                <Plus size={14} />
+                Lead
+              </button>
+            )}
           </div>
         </header>
 
@@ -672,14 +674,6 @@ export default function CRMPage() {
               >
                 <Bot size={13} className={aiBotEnabled ? "text-emerald-400" : "text-red-400"} />
                 <span>{togglingGlobalAi ? "Salvando..." : (aiBotEnabled ? "IA Ligada" : "IA Desligada")}</span>
-              </button>
-
-              <button 
-                onClick={() => setShowNewLeadModal(true)}
-                className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/10 transition-all"
-              >
-                <Plus size={13} />
-                Novo Lead
               </button>
             </div>
           </header>

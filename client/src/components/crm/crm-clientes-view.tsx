@@ -5,10 +5,12 @@ import {
   RefreshCw, ExternalLink, ShieldCheck, ChevronRight, Receipt, DollarSign,
   Calendar, Layers, CheckCircle2, Copy
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { Client, InsertClient } from "@shared/schema";
 import { Lead } from "./types";
 import { useConfirmDialog } from "../ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateSafeBR } from "./crm-financeiro";
 
 interface CRMClientesViewProps {
   leads?: Lead[];
@@ -18,6 +20,7 @@ interface CRMClientesViewProps {
 export default function CRMClientesView({ leads = [], onSelectClientForContext }: CRMClientesViewProps): JSX.Element {
   const { confirm, showAlert } = useConfirmDialog();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
@@ -25,6 +28,16 @@ export default function CRMClientesView({ leads = [], onSelectClientForContext }
   const [loading, setLoading] = useState<boolean>(true);
   const [isDeduplicating, setIsDeduplicating] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Redirecionamento para o módulo de Contratos
+  const handleNavigateToContract = (contractNumber?: string) => {
+    if (contractNumber) {
+      try {
+        sessionStorage.setItem("contract_search_target", contractNumber);
+      } catch (e) {}
+    }
+    setLocation("/crm/contratos");
+  };
 
   // Seleção e Modos do Painel Direito (Tudo na Mesma Página)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -342,7 +355,18 @@ export default function CRMClientesView({ leads = [], onSelectClientForContext }
     });
   }, [selectedClient, contracts]);
 
-  // Recibos vinculados ao cliente selecionado
+  // Obter contratos vinculados a qualquer cliente
+  const getContractsForClient = (cli: Client) => {
+    const cleanDoc = (cli.cpfCnpj || "").replace(/\D/g, "");
+    const cleanName = (cli.name || "").trim().toLowerCase();
+    return contracts.filter(ctr => {
+      if (ctr.clientId && ctr.clientId === cli.id) return true;
+      const ctrDoc = (ctr.clientCpfCnpj || "").replace(/\D/g, "");
+      if (cleanDoc && cleanDoc.length >= 11 && ctrDoc === cleanDoc) return true;
+      if (ctr.clientName && ctr.clientName.trim().toLowerCase() === cleanName) return true;
+      return false;
+    });
+  };
   const clientReceipts = useMemo(() => {
     if (!selectedClient) return [];
     const cleanDoc = (selectedClient.cpfCnpj || "").replace(/\D/g, "");
@@ -632,6 +656,32 @@ export default function CRMClientesView({ leads = [], onSelectClientForContext }
                             <span className="truncate">{cli.city || cli.address}</span>
                           </div>
                         )}
+
+                        {/* Contratos Vinculados com clique para abrir */}
+                        {(() => {
+                          const cliCtrs = getContractsForClient(cli);
+                          if (cliCtrs.length === 0) return null;
+                          return (
+                            <div className="flex items-center gap-1 mt-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
+                              {cliCtrs.map(ctr => (
+                                <button
+                                  key={ctr.id}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNavigateToContract(ctr.contractNumber);
+                                  }}
+                                  className="text-[10px] font-mono text-amber-300 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Clique para abrir este contrato no módulo de Contratos"
+                                >
+                                  <FileText size={10} />
+                                  <span>{ctr.contractNumber}</span>
+                                  <ExternalLink size={9} className="opacity-70" />
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -851,6 +901,44 @@ export default function CRMClientesView({ leads = [], onSelectClientForContext }
                           </p>
                         </div>
                       )}
+
+                      {/* Contratos Vinculados (Clique para Redirecionar) */}
+                      {clientContracts.length > 0 && (
+                        <div className="bg-[#14171f] border border-amber-500/25 rounded-2xl p-5 space-y-3 md:col-span-2">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                              <FileText size={13} /> Contratos Vinculados ({clientContracts.length})
+                            </h4>
+                            <span className="text-[11px] text-gray-400">Clique no contrato para abrir e gerenciar na aba Contratos</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            {clientContracts.map(ctr => (
+                              <div
+                                key={ctr.id}
+                                onClick={() => handleNavigateToContract(ctr.contractNumber)}
+                                className="bg-black/40 hover:bg-amber-500/10 border border-white/10 hover:border-amber-400/50 p-3.5 rounded-xl flex items-center justify-between cursor-pointer transition-all group shadow-sm"
+                                title="Clique para abrir este contrato no módulo de Contratos"
+                              >
+                                <div className="space-y-1">
+                                  <span className="font-mono font-bold text-amber-400 text-xs block group-hover:underline flex items-center gap-1">
+                                    <FileText size={13} /> {ctr.contractNumber}
+                                  </span>
+                                  <span className="text-[11px] text-gray-400 block">
+                                    Data: {formatDateSafeBR(ctr.contractDate)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono font-bold text-xs text-emerald-400">
+                                    {Number(ctr.totalValue || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                  </span>
+                                  <ExternalLink size={13} className="text-amber-400 opacity-60 group-hover:opacity-100" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -877,15 +965,18 @@ export default function CRMClientesView({ leads = [], onSelectClientForContext }
                         {clientContracts.map(ctr => (
                           <div
                             key={ctr.id}
-                            className="bg-[#14171f] border border-white/10 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 hover:border-amber-400/40 transition-colors"
+                            onClick={() => handleNavigateToContract(ctr.contractNumber)}
+                            className="bg-[#14171f] hover:bg-[#1a1e27] border border-white/10 hover:border-amber-400/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 transition-all cursor-pointer group shadow-sm"
+                            title="Clique para abrir e gerenciar este contrato no módulo de Contratos"
                           >
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold text-amber-400 text-xs">
+                                <span className="font-mono font-bold text-amber-400 text-xs group-hover:underline flex items-center gap-1.5">
+                                  <FileText size={14} />
                                   {ctr.contractNumber}
                                 </span>
                                 <span className="text-xs text-gray-400">
-                                  • {ctr.contractDate ? new Date(ctr.contractDate).toLocaleDateString("pt-BR") : "-"}
+                                  • {formatDateSafeBR(ctr.contractDate)}
                                 </span>
                               </div>
                               <p className="text-xs font-medium text-white">
@@ -893,11 +984,25 @@ export default function CRMClientesView({ leads = [], onSelectClientForContext }
                               </p>
                             </div>
 
-                            <div className="text-right">
-                              <span className="text-[10px] text-gray-400 block uppercase font-bold">Valor Total</span>
-                              <span className="font-mono font-bold text-sm text-emerald-400">
-                                {Number(ctr.totalValue || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                              </span>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <span className="text-[10px] text-gray-400 block uppercase font-bold">Valor Total</span>
+                                <span className="font-mono font-bold text-sm text-emerald-400">
+                                  {Number(ctr.totalValue || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNavigateToContract(ctr.contractNumber);
+                                }}
+                                className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-amber-500/10"
+                              >
+                                <span>Abrir Contrato</span>
+                                <ExternalLink size={12} />
+                              </button>
                             </div>
                           </div>
                         ))}

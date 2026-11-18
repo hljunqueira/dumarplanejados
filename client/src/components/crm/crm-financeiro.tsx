@@ -134,9 +134,32 @@ const CATEGORIES = [
 ];
 
 export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroProps) {
-  const [financialTab, setFinancialTab] = useState<"cashflow" | "quotes" | "contracts" | "receipts">("cashflow");
+  const [location, setLocation] = useLocation();
+  const [financialTab, setFinancialTab] = useState<"cashflow" | "quotes" | "contracts" | "receipts">(() => {
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      if (path.includes("contratos") || search.includes("tab=contracts") || window.location.hash.includes("contratos")) {
+        return "contracts";
+      }
+      if (search.includes("tab=quotes")) return "quotes";
+      if (search.includes("tab=receipts")) return "receipts";
+    }
+    return "cashflow";
+  });
   const [receiptInitialData, setReceiptInitialData] = useState<Partial<ReceiptData> | null>(null);
-  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    const path = location.toLowerCase();
+    const search = typeof window !== "undefined" ? window.location.search.toLowerCase() : "";
+    if (path.includes("contratos") || search.includes("tab=contracts") || (typeof window !== "undefined" && window.location.hash.includes("contratos"))) {
+      setFinancialTab("contracts");
+    } else if (search.includes("tab=quotes")) {
+      setFinancialTab("quotes");
+    } else if (search.includes("tab=receipts")) {
+      setFinancialTab("receipts");
+    }
+  }, [location]);
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [suppliersList, setSuppliersList] = useState<Supplier[]>([]);
   const [clientsList, setClientsList] = useState<Client[]>([]);

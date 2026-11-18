@@ -130,6 +130,17 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
     fetchContracts();
     fetchRegisteredClients();
 
+    // Se veio de redirecionamento com contrato alvo
+    try {
+      const target = sessionStorage.getItem("contract_search_target");
+      if (target) {
+        setSearchTerm(target);
+        sessionStorage.removeItem("contract_search_target");
+      }
+    } catch (e) {
+      // ignore
+    }
+
     const handleConfigUpdated = () => {
       fetchContracts();
     };
