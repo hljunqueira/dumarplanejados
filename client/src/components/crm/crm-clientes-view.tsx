@@ -921,7 +921,7 @@ export default function CRMClientesView({ leads = [], onSelectClientForContext }
                                 title="Clique para abrir este contrato no módulo de Contratos"
                               >
                                 <div className="space-y-1">
-                                  <span className="font-mono font-bold text-amber-400 text-xs block group-hover:underline flex items-center gap-1">
+                                  <span className="font-mono font-bold text-amber-400 text-xs group-hover:underline flex items-center gap-1">
                                     <FileText size={13} /> {ctr.contractNumber}
                                   </span>
                                   <span className="text-[11px] text-gray-400 block">

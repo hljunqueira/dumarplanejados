@@ -1869,7 +1869,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 {/* Observações / Notas / Origem de Contrato */}
                 {viewingTx.notes && (
                   <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs">
-                    <span className="text-[10px] text-amber-400 block uppercase font-bold mb-1 flex items-center gap-1">
+                    <span className="text-[10px] text-amber-400 uppercase font-bold mb-1 flex items-center gap-1">
                       <Info size={12} /> Observações & Detalhes Adicionais
                     </span>
                     <p className="text-gray-200 text-xs leading-relaxed whitespace-pre-wrap">{viewingTx.notes}</p>
