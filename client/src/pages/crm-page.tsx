@@ -1,25 +1,38 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useRoute, useLocation } from "wouter";
 import logoDumar from "@/assets/logo1.jpeg";
 import { Plus, QrCode, Menu, Upload, CheckCircle2, Box, Bot } from "lucide-react";
 import { parsePromobFile } from "@/lib/promob-parser";
 
-// Subcomponentes importados
+// Subcomponentes essenciais
 import { Lead } from "@/components/crm/types";
 import CRMLogin from "@/components/crm/crm-login";
 import CRMSidebar from "@/components/crm/crm-sidebar";
 import CRMDashboard from "@/components/crm/crm-dashboard";
 import CRMKanban from "@/components/crm/crm-kanban";
 import CRMLeadDrawer from "@/components/crm/crm-lead-drawer";
-import CRMAgenda from "@/components/crm/crm-agenda";
-import CRMConnections from "@/components/crm/crm-connections";
-import CRMPerfil from "@/components/crm/crm-perfil";
-import CRMFinanceiro from "@/components/crm/crm-financeiro";
-import CRMSettings from "@/components/crm/crm-settings";
-import CRMConfiguracoes from "@/components/crm/crm-configuracoes";
-import CRMConfirmModal from "@/components/crm/crm-confirm-modal";
+
+// Lazy loading das abas pesadas do CRM
+const CRMAgenda = lazy(() => import("@/components/crm/crm-agenda"));
+const CRMConnections = lazy(() => import("@/components/crm/crm-connections"));
+const CRMPerfil = lazy(() => import("@/components/crm/crm-perfil"));
+const CRMFinanceiro = lazy(() => import("@/components/crm/crm-financeiro"));
+const CRMSettings = lazy(() => import("@/components/crm/crm-settings"));
+const CRMConfiguracoes = lazy(() => import("@/components/crm/crm-configuracoes"));
+
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
+
+function CrmModuleFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center p-8 text-xs text-gray-400">
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+        <span>Carregando módulo...</span>
+      </div>
+    </div>
+  );
+}
 
 // --- COLUNAS DO FUNIL OPERACIONAL ---
 const STAGES = [
@@ -345,18 +358,21 @@ export default function CRMPage() {
     }
   };
 
-  const [deleteConfirmLeadId, setDeleteConfirmLeadId] = useState<string | null>(null);
-
-  const confirmDeleteLead = async () => {
-    if (!deleteConfirmLeadId) return;
-    const targetId = deleteConfirmLeadId;
-    setDeleteConfirmLeadId(null);
+  const handleDeleteLead = async (leadId: string) => {
+    const lead = leads.find(l => String(l.id) === String(leadId));
+    const ok = await confirm({
+      title: "Excluir Lead do Funil",
+      message: `Tem certeza que deseja excluir permanentemente o lead "${lead?.name || 'selecionado'}" do banco de dados?\nTodo o histórico de mensagens e projetos associados será removido.`,
+      variant: "danger",
+      confirmText: "Sim, Excluir Lead"
+    });
+    if (!ok) return;
 
     try {
-      const res = await fetch(`/api/leads/${targetId}`, { method: "DELETE" });
+      const res = await fetch(`/api/leads/${leadId}`, { method: "DELETE" });
       if (res.ok) {
-        setLeads(prev => prev.filter(l => String(l.id) !== String(targetId)));
-        if (selectedLead && String(selectedLead.id) === String(targetId)) {
+        setLeads(prev => prev.filter(l => String(l.id) !== String(leadId)));
+        if (selectedLead && String(selectedLead.id) === String(leadId)) {
           setSelectedLead(null);
         }
         toast({
@@ -380,11 +396,6 @@ export default function CRMPage() {
         variant: "danger",
       });
     }
-  };
-
-
-  const handleDeleteLead = (leadId: string) => {
-    setDeleteConfirmLeadId(leadId);
   };
 
   // --- ENVIAR MENSAGEM CHAT REAL VIA EVOLUTION API ---
@@ -706,35 +717,37 @@ export default function CRMPage() {
           />
         )}
 
-        {activeSection === "agenda" && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
-            <CRMAgenda leads={leads} />
-          </div>
-        )}
+        <Suspense fallback={<CrmModuleFallback />}>
+          {activeSection === "agenda" && (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+              <CRMAgenda leads={leads} />
+            </div>
+          )}
 
-        {activeSection === "perfil" && (
-          <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
-            <CRMPerfil currentUser={currentUser} setCurrentUser={setCurrentUser} />
-          </div>
-        )}
+          {activeSection === "perfil" && (
+            <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
+              <CRMPerfil currentUser={currentUser} setCurrentUser={setCurrentUser} />
+            </div>
+          )}
 
-        {activeSection === "financeiro" && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
-            <CRMFinanceiro leads={leads} setSelectedLead={setSelectedLead} />
-          </div>
-        )}
+          {activeSection === "financeiro" && (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+              <CRMFinanceiro leads={leads} setSelectedLead={setSelectedLead} />
+            </div>
+          )}
 
-        {activeSection === "mensagens" && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
-            <CRMSettings />
-          </div>
-        )}
+          {activeSection === "mensagens" && (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+              <CRMSettings />
+            </div>
+          )}
 
-        {activeSection === "configuracoes" && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
-            <CRMConfiguracoes currentUser={currentUser} setCurrentUser={setCurrentUser} />
-          </div>
-        )}
+          {activeSection === "configuracoes" && (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+              <CRMConfiguracoes currentUser={currentUser} setCurrentUser={setCurrentUser} />
+            </div>
+          )}
+        </Suspense>
       </main>
 
       {/* Drawer de Detalhes */}
@@ -886,18 +899,6 @@ export default function CRMPage() {
           </form>
         </div>
       )}
-
-      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE LEAD SEGURO */}
-      <CRMConfirmModal
-        isOpen={Boolean(deleteConfirmLeadId)}
-        title="Excluir Lead do Funil?"
-        description={`Tem certeza que deseja excluir permanentemente o lead "${leads.find(l => String(l.id) === String(deleteConfirmLeadId))?.name || 'selecionado'}" do banco de dados? Todo o histórico de mensagens e projetos será removido.`}
-        confirmText="Sim, Excluir Lead"
-        cancelText="Cancelar"
-        isDestructive={true}
-        onConfirm={confirmDeleteLead}
-        onClose={() => setDeleteConfirmLeadId(null)}
-      />
     </div>
   );
 }

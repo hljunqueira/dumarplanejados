@@ -3708,6 +3708,135 @@ FLUXO DIRETO DE ATENDIMENTO (RIGOROSAMENTE 1 PERGUNTA POR MENSAGEM):
     }
   });
 
+  // =========================================================================
+  // ENDPOINTS DE RECIBOS DE PAGAMENTO (CRUD COMPLETO)
+  // =========================================================================
+  app.get("/api/receipts", async (req, res) => {
+    try {
+      const list = await storage.getReceipts();
+      return res.status(200).json(list);
+    } catch (err) {
+      console.error("Erro ao listar recibos:", err);
+      return res.status(500).json({ message: "Erro ao listar recibos" });
+    }
+  });
+
+  app.get("/api/receipts/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+      const item = await storage.getReceipt(id);
+      if (!item) return res.status(404).json({ message: "Recibo não encontrado" });
+      return res.status(200).json(item);
+    } catch (err) {
+      console.error("Erro ao obter recibo:", err);
+      return res.status(500).json({ message: "Erro ao obter recibo" });
+    }
+  });
+
+  app.post("/api/receipts", async (req, res) => {
+    try {
+      const {
+        receiptNumber,
+        receiptDate,
+        clientName,
+        clientCpfCnpj,
+        clientPhone,
+        clientAddress,
+        amount,
+        amountExtenso,
+        description,
+        paymentMethod,
+        leadId,
+        clientId,
+        financialTransactionId,
+        notes
+      } = req.body;
+
+      if (!clientName || !clientName.trim()) {
+        return res.status(400).json({ message: "Nome do cliente é obrigatório" });
+      }
+
+      const numAmount = sanitizeMonetaryAmount(amount);
+      if (numAmount <= 0) {
+        return res.status(400).json({ message: "Valor válido (maior que zero) é obrigatório" });
+      }
+
+      if (!description || !description.trim()) {
+        return res.status(400).json({ message: "Descrição do recibo é obrigatória" });
+      }
+
+      const generatedNumber = receiptNumber && receiptNumber.trim()
+        ? receiptNumber.trim()
+        : `REC-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+
+      const created = await storage.createReceipt({
+        receiptNumber: generatedNumber,
+        receiptDate: receiptDate || new Date().toISOString().split("T")[0],
+        clientName: clientName.trim(),
+        clientCpfCnpj: clientCpfCnpj ? clientCpfCnpj.trim() : "",
+        clientPhone: clientPhone ? clientPhone.trim() : "",
+        clientAddress: clientAddress ? clientAddress.trim() : "",
+        amount: numAmount,
+        amountExtenso: amountExtenso || "",
+        description: description.trim(),
+        paymentMethod: paymentMethod || "PIX",
+        leadId: leadId ? Number(leadId) : null,
+        clientId: clientId ? Number(clientId) : null,
+        financialTransactionId: financialTransactionId ? Number(financialTransactionId) : null,
+        notes: notes ? notes.trim() : "",
+        createdAt: new Date().toISOString()
+      });
+
+      return res.status(201).json(created);
+    } catch (err) {
+      console.error("Erro ao criar recibo:", err);
+      return res.status(500).json({ message: "Erro ao criar recibo" });
+    }
+  });
+
+  app.put("/api/receipts/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+
+      const updates: any = { ...req.body };
+      if (updates.amount !== undefined) {
+        updates.amount = sanitizeMonetaryAmount(updates.amount);
+      }
+      if (updates.leadId !== undefined) {
+        updates.leadId = updates.leadId ? Number(updates.leadId) : null;
+      }
+      if (updates.clientId !== undefined) {
+        updates.clientId = updates.clientId ? Number(updates.clientId) : null;
+      }
+      if (updates.financialTransactionId !== undefined) {
+        updates.financialTransactionId = updates.financialTransactionId ? Number(updates.financialTransactionId) : null;
+      }
+
+      const updated = await storage.updateReceipt(id, updates);
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error("Erro ao atualizar recibo:", err);
+      return res.status(500).json({ message: "Erro ao atualizar recibo" });
+    }
+  });
+
+  app.delete("/api/receipts/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+
+      const deleted = await storage.deleteReceipt(id);
+      if (!deleted) return res.status(404).json({ message: "Recibo não encontrado" });
+
+      return res.status(200).json({ success: true, message: "Recibo excluído com sucesso" });
+    } catch (err) {
+      console.error("Erro ao excluir recibo:", err);
+      return res.status(500).json({ message: "Erro ao excluir recibo" });
+    }
+  });
+
   return httpServer;
 }
 

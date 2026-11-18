@@ -5,7 +5,7 @@ import {
   Power, Clock, Sparkles, LogOut, ChevronRight, Save
 } from "lucide-react";
 import CRMUsersView from "./crm-users-view";
-import CRMConfirmModal from "./crm-confirm-modal";
+import { useConfirmDialog } from "../ui/confirm-dialog";
 
 interface CRMConfiguracoesProps {
   currentUser?: { username: string; name?: string; role?: string; permissions?: string[] };
@@ -27,7 +27,7 @@ export default function CRMConfiguracoes({
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [loadingQR, setLoadingQR] = useState(false);
   const [syncingChats, setSyncingChats] = useState(false);
-  const [isDisconnectModalOpen, setIsDisconnectModalOpen] = useState(false);
+  const { confirm, showAlert } = useConfirmDialog();
 
   // --- ESTADO DADOS EMPRESA ---
   const [empresaRazao, setEmpresaRazao] = useState("Dumar Móveis Planejados Ltda");
@@ -153,6 +153,14 @@ export default function CRMConfiguracoes({
   };
 
   const handleConfirmDisconnect = async () => {
+    const ok = await confirm({
+      title: "Desconectar WhatsApp",
+      message: "Deseja realmente desconectar esta conta do WhatsApp? Para restabelecer o canal, será necessário ler um novo QR Code.",
+      variant: "danger",
+      confirmText: "Sim, Desconectar"
+    });
+    if (!ok) return;
+
     try {
       const res = await fetch("/api/evolution/logout", {
         method: "POST",
@@ -169,8 +177,6 @@ export default function CRMConfiguracoes({
       }
     } catch (e) {
       showToast("Falha ao desconectar.", "error");
-    } finally {
-      setIsDisconnectModalOpen(false);
     }
   };
 
@@ -324,7 +330,7 @@ export default function CRMConfiguracoes({
                   {isConnected && (
                     <button
                       type="button"
-                      onClick={() => setIsDisconnectModalOpen(true)}
+                      onClick={handleConfirmDisconnect}
                       className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <LogOut size={12} />
@@ -466,18 +472,6 @@ export default function CRMConfiguracoes({
           </div>
         </form>
       )}
-
-      {/* Modal de Confirmação para Desconectar WhatsApp */}
-      <CRMConfirmModal
-        isOpen={isDisconnectModalOpen}
-        onClose={() => setIsDisconnectModalOpen(false)}
-        onConfirm={handleConfirmDisconnect}
-        title="Desconectar WhatsApp"
-        description="Deseja realmente desconectar esta conta do WhatsApp? Para restabelecer o canal, será necessário ler um novo QR Code."
-        confirmText="Sim, Desconectar"
-        cancelText="Cancelar"
-        isDestructive={true}
-      />
     </div>
   );
 }

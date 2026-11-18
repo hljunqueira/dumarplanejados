@@ -516,13 +516,37 @@ export default function CRMSettings() {
   };
 
   const handleDeleteTemplate = async (id: number) => {
+    const target = templates.find(t => t.id === id);
+    const ok = await confirm({
+      title: "Excluir Template de Mensagem",
+      message: `Tem certeza que deseja excluir o modelo "${target?.title || "Template"}"?\nEsta ação não poderá ser desfeita.`,
+      variant: "danger",
+      confirmText: "Sim, Excluir"
+    });
+    if (!ok) return;
+
     try {
       const res = await fetch(`/api/whatsapp/templates/${id}`, { method: "DELETE" });
       if (res.ok) {
         setTemplates(prev => prev.filter(t => t.id !== id));
+        toast({
+          title: "Template Excluído",
+          description: "O modelo de mensagem foi removido com sucesso.",
+        });
+      } else {
+        await showAlert({
+          title: "Erro ao Excluir",
+          message: "Não foi possível excluir o modelo.",
+          variant: "danger"
+        });
       }
     } catch (err) {
       console.error(err);
+      await showAlert({
+        title: "Erro de Conexão",
+        message: "Falha ao conectar com o servidor.",
+        variant: "danger"
+      });
     }
   };
 

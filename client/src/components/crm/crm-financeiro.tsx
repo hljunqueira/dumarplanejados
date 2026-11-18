@@ -3,7 +3,7 @@ import {
   DollarSign, FileText, Calculator, CheckCircle2, Clock, AlertCircle, TrendingUp,
   TrendingDown, Plus, Search, Filter, Trash2, Edit3, Download, Check,
   ArrowUpRight, ArrowDownRight, Tag, Calendar, CreditCard, UserCheck, X,
-  Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare, Users
+  Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare, Users, Receipt
 } from "lucide-react";
 
 import { Lead } from "./types";
@@ -12,8 +12,11 @@ import { useConfirmDialog } from "../ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import CRMContractsView from "./crm-contracts-view";
 import CRMQuotesView from "./crm-quotes-view";
+import CRMReceiptsView from "./crm-receipts-view";
 import CRMSuppliersModal from "./crm-suppliers-modal";
 import CRMClientsModal from "./crm-clients-modal";
+import { ReceiptData } from "@/lib/receipt-utils";
+import { parseMonetaryInput, formatBRL } from "@/lib/currency";
 
 export interface FinancialTransaction {
   id: number;
@@ -71,7 +74,8 @@ const CATEGORIES = [
 ];
 
 export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroProps) {
-  const [financialTab, setFinancialTab] = useState<"cashflow" | "quotes" | "contracts">("cashflow");
+  const [financialTab, setFinancialTab] = useState<"cashflow" | "quotes" | "contracts" | "receipts">("cashflow");
+  const [receiptInitialData, setReceiptInitialData] = useState<Partial<ReceiptData> | null>(null);
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [suppliersList, setSuppliersList] = useState<Supplier[]>([]);
   const [clientsList, setClientsList] = useState<Client[]>([]);
@@ -134,20 +138,6 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
 
   const { confirm, showAlert } = useConfirmDialog();
   const { toast } = useToast();
-
-  // Helper para normalizar valores monetários digitados (suporta "104,90", "104.90", "1.250,00", etc.)
-  const parseMonetaryInput = (val: string): number => {
-    if (!val) return 0;
-    let clean = val.toString().replace(/R\$\s?/, "").trim();
-    if (clean.includes(",") && clean.includes(".")) {
-      clean = clean.replace(/\./g, "").replace(",", ".");
-    } else if (clean.includes(",")) {
-      clean = clean.replace(",", ".");
-    }
-    const parsed = parseFloat(clean);
-    return isNaN(parsed) ? 0 : parseFloat(parsed.toFixed(2));
-  };
-
 
   // Atalhos Rápidos de Despesas Fixas (Custos Fixos Dumar)
   const applyFixedExpensePreset = (preset: { desc: string; category: string; amount?: string; method?: string; supplierKeyword?: string }) => {
@@ -441,6 +431,32 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
         variant: "danger",
       });
     }
+  };
+
+  // Gerar Recibo a partir de Lançamento Financeiro
+  const handleGenerateReceiptFromTx = (tx: FinancialTransaction) => {
+    const linkedLead = tx.leadId ? leads.find(l => String(l.id) === String(tx.leadId)) : null;
+    const linkedClient = clientsList.find(c => c.leadId === tx.leadId || (linkedLead && c.name === linkedLead.name));
+
+    let clientName = linkedClient?.name || linkedLead?.name || "";
+    if (!clientName && tx.description.includes(" - ")) {
+      clientName = tx.description.split(" - ")[1].trim();
+    }
+
+    setReceiptInitialData({
+      clientName,
+      clientCpfCnpj: linkedClient?.cpfCnpj || "",
+      clientPhone: linkedClient?.phone || linkedLead?.phone || "",
+      amount: tx.amount,
+      description: tx.description,
+      paymentMethod: tx.paymentMethod || "PIX",
+      receiptDate: tx.paymentDate || tx.dueDate || new Date().toISOString().split("T")[0],
+      paymentDate: tx.paymentDate || tx.dueDate || new Date().toISOString().split("T")[0],
+      leadId: tx.leadId,
+      clientId: linkedClient?.id || null,
+      financialTransactionId: tx.id
+    });
+    setFinancialTab("receipts");
   };
 
   // Abrir Modal de Edição de Grupo Recorrente
@@ -841,7 +857,29 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
         >
           <FileText size={16} /> Contratos & Minuta Jurídica
         </button>
+
+        <button
+          onClick={() => {
+            setReceiptInitialData(null);
+            setFinancialTab("receipts");
+          }}
+          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "receipts"
+              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+        >
+          <Receipt size={16} /> Recibos de Pagamento
+        </button>
       </div>
+
+      {/* RENDERIZAÇÃO DA ABA RECIBOS */}
+      {financialTab === "receipts" && (
+        <CRMReceiptsView
+          leads={leads}
+          initialData={receiptInitialData}
+          onNewTransaction={fetchTransactions}
+        />
+      )}
 
       {/* RENDERIZAÇÃO DA ABA ORÇAMENTOS */}
       {financialTab === "quotes" && (
@@ -1544,7 +1582,21 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                         </td>
 
                         {/* Ações */}
-                        <td className="py-3.5 px-4 text-right space-x-1 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          {isReceita && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGenerateReceiptFromTx(tx);
+                              }}
+                              className="p-1.5 text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-600 border border-emerald-500/30 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold"
+                              title="Gerar Recibo deste Lançamento"
+                            >
+                              <Receipt size={12} />
+                              <span className="hidden md:inline">Recibo</span>
+                            </button>
+                          )}
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1562,10 +1614,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                               e.stopPropagation();
                               handleDeleteTransaction(tx.id);
                             }}
-                            className="p-1.5 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold"
                             title="Excluir Lançamento"
                           >
                             <Trash2 size={13} />
+                            <span className="hidden sm:inline">Excluir</span>
                           </button>
                         </td>
                       </tr>
@@ -1917,22 +1970,55 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                   </div>
 
                   {/* Botões de Ação */}
-                  <div className="flex items-center gap-3 pt-3 border-t border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-white/10">
+                    {editingTx && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const id = editingTx.id;
+                          setIsModalOpen(false);
+                          await handleDeleteTransaction(id);
+                        }}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                        title="Excluir este lançamento definitivamente"
+                      >
+                        <Trash2 size={14} />
+                        <span>Excluir Lançamento</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-1 py-2.5 rounded-xl font-bold text-black bg-amber-500 hover:bg-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
-                    >
-                      {isSubmitting ? "Salvando..." : editingTx ? "Salvar Alterações" : formIsRecurring ? `Lançar ${formRecurringMonths}x Meses Recorrentes` : "Criar Lançamento"}
-                    </button>
+                    {editingTx && editingTx.type === "receita" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          handleGenerateReceiptFromTx(editingTx);
+                        }}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-600 border border-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                        title="Emitir recibo para este recebimento"
+                      >
+                        <Receipt size={14} />
+                        <span>Gerar Recibo</span>
+                      </button>
+                    )}
+
+                    <div className="flex-1 flex items-center gap-3 w-full sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-bold text-black bg-amber-500 hover:bg-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
+                      >
+                        {isSubmitting ? "Salvando..." : editingTx ? "Salvar Alterações" : formIsRecurring ? `Lançar ${formRecurringMonths}x Meses Recorrentes` : "Criar Lançamento"}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>

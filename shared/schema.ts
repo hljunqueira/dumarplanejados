@@ -233,5 +233,29 @@ export const insertMaterialCatalogSchema = createInsertSchema(materialsCatalog);
 export type InsertMaterialCatalog = z.infer<typeof insertMaterialCatalogSchema>;
 export type MaterialCatalogItem = typeof materialsCatalog.$inferSelect;
 
+export const receipts = pgTable("receipts", {
+  id: serial("id").primaryKey(),
+  receiptNumber: text("receipt_number").notNull(),
+  receiptDate: text("receipt_date").notNull(),
+  clientName: text("client_name").notNull(),
+  clientCpfCnpj: text("client_cpf_cnpj").default(""),
+  clientPhone: text("client_phone").default(""),
+  clientAddress: text("client_address").default(""),
+  amount: doublePrecision("amount").notNull().default(0),
+  amountExtenso: text("amount_extenso").default(""),
+  description: text("description").notNull(),
+  paymentMethod: text("payment_method").notNull().default("PIX"),
+  leadId: integer("lead_id"),
+  clientId: integer("client_id"),
+  financialTransactionId: integer("financial_transaction_id"),
+  notes: text("notes").default(""),
+  createdAt: text("created_at").default(""),
+});
+
+export const insertReceiptSchema = createInsertSchema(receipts);
+export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
+export type ReceiptItem = typeof receipts.$inferSelect;
+
+
 
 

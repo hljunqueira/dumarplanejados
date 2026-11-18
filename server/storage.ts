@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog, suppliers, clients, quotes, quoteItems,
+  users, leads, whatsappTemplates, calendarEvents, financialTransactions, contracts, materialsCatalog, suppliers, clients, quotes, quoteItems, receipts,
   type User, type InsertUser, type Lead, type InsertLead, 
   type WhatsappTemplate, type InsertWhatsappTemplate, 
   type CalendarEventItem, type InsertCalendarEvent,
@@ -10,7 +10,8 @@ import {
   type Supplier, type InsertSupplier,
   type Client, type InsertClient,
   type Quote, type InsertQuote,
-  type QuoteItem, type InsertQuoteItem
+  type QuoteItem, type InsertQuoteItem,
+  type ReceiptItem, type InsertReceipt
 } from "../shared/schema";
 import { eq, desc, and, ne, inArray } from "drizzle-orm";
 
@@ -77,6 +78,12 @@ export interface IStorage {
   createMaterialItem(material: InsertMaterialCatalog): Promise<MaterialCatalogItem>;
   updateMaterialItem(id: number, updates: Partial<InsertMaterialCatalog>): Promise<MaterialCatalogItem>;
   deleteMaterialItem(id: number): Promise<boolean>;
+
+  getReceipts(): Promise<ReceiptItem[]>;
+  getReceipt(id: number): Promise<ReceiptItem | undefined>;
+  createReceipt(receipt: InsertReceipt): Promise<ReceiptItem>;
+  updateReceipt(id: number, updates: Partial<InsertReceipt>): Promise<ReceiptItem>;
+  deleteReceipt(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -409,6 +416,31 @@ export class DatabaseStorage implements IStorage {
   async deleteQuote(id: number): Promise<boolean> {
     await db.delete(quoteItems).where(eq(quoteItems.quoteId, id));
     const result = await db.delete(quotes).where(eq(quotes.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getReceipts(): Promise<ReceiptItem[]> {
+    return await db.select().from(receipts).orderBy(desc(receipts.id));
+  }
+
+  async getReceipt(id: number): Promise<ReceiptItem | undefined> {
+    const [item] = await db.select().from(receipts).where(eq(receipts.id, id));
+    return item;
+  }
+
+  async createReceipt(insertReceipt: InsertReceipt): Promise<ReceiptItem> {
+    const [item] = await db.insert(receipts).values(insertReceipt).returning();
+    return item;
+  }
+
+  async updateReceipt(id: number, updates: Partial<InsertReceipt>): Promise<ReceiptItem> {
+    const [item] = await db.update(receipts).set(updates).where(eq(receipts.id, id)).returning();
+    if (!item) throw new Error("Recibo não encontrado");
+    return item;
+  }
+
+  async deleteReceipt(id: number): Promise<boolean> {
+    const result = await db.delete(receipts).where(eq(receipts.id, id)).returning();
     return result.length > 0;
   }
 }

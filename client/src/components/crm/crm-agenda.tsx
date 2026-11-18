@@ -7,7 +7,8 @@ import {
   ChevronDown, Video, Users, AlignLeft, Check
 } from "lucide-react";
 import { Lead } from "./types";
-import CRMConfirmModal from "./crm-confirm-modal";
+import { useConfirmDialog } from "../ui/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface CRMAgendaProps {
   leads: Lead[];
@@ -141,9 +142,8 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
   const [eventNotes, setEventNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Modal de Confirmação de Exclusão
-  const [deletingEvent, setDeletingEvent] = useState<CalendarEvent | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { confirm, showAlert } = useConfirmDialog();
+  const { toast } = useToast();
 
   // Carregar eventos do Banco PostgreSQL
   const fetchEvents = async () => {
@@ -439,20 +439,38 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
   };
 
   // Excluir Evento
-  const confirmDeleteEvent = async () => {
-    if (!deletingEvent) return;
-    setIsDeleting(true);
+  const handleDeleteEvent = async (ev: CalendarEvent) => {
+    const ok = await confirm({
+      title: "Excluir Compromisso da Agenda",
+      message: `Tem certeza que deseja excluir "${ev.title}" agendado para ${ev.date}?\nEsta ação removerá o registro definitivamente.`,
+      variant: "danger",
+      confirmText: "Sim, Excluir Registro"
+    });
+    if (!ok) return;
+
     try {
-      const res = await fetch(`/api/calendar-events/${deletingEvent.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/calendar-events/${ev.id}`, { method: "DELETE" });
       if (res.ok) {
-        setDbEvents(prev => prev.filter(e => e.id !== deletingEvent.id));
-        setDeletingEvent(null);
+        setDbEvents(prev => prev.filter(e => e.id !== ev.id));
         setViewingEvent(null);
+        toast({
+          title: "Compromisso Excluído",
+          description: "O evento foi removido da agenda com sucesso.",
+        });
+      } else {
+        await showAlert({
+          title: "Erro ao Excluir",
+          message: "Não foi possível excluir o evento.",
+          variant: "danger"
+        });
       }
     } catch (err) {
       console.error("Erro ao excluir evento:", err);
-    } finally {
-      setIsDeleting(false);
+      await showAlert({
+        title: "Erro de Conexão",
+        message: "Falha ao conectar com o servidor.",
+        variant: "danger"
+      });
     }
   };
 
@@ -915,7 +933,7 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDeletingEvent(ev);
+                            handleDeleteEvent(ev);
                           }}
                           className="text-gray-400 hover:text-red-400 p-1.5 rounded bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
                           title="Excluir"
@@ -1086,10 +1104,7 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
                 {!viewingEvent.id.startsWith("lead-") && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setDeletingEvent(viewingEvent);
-                      setViewingEvent(null);
-                    }}
+                    onClick={() => handleDeleteEvent(viewingEvent)}
                     className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
                     title="Excluir"
                   >
@@ -1471,19 +1486,6 @@ export default function CRMAgenda({ leads }: CRMAgendaProps) {
           </div>
         </div>
       )}
-
-      {/* Modal de Confirmação Segura de Exclusão */}
-      <CRMConfirmModal
-        isOpen={Boolean(deletingEvent)}
-        title="Excluir Compromisso da Agenda?"
-        description={`Tem certeza que deseja excluir "${deletingEvent?.title}" agendado para o dia ${deletingEvent?.date}? Esta ação removerá o registro do banco de dados.`}
-        confirmText="Sim, Excluir Registro"
-        cancelText="Cancelar"
-        isDestructive={true}
-        loading={isDeleting}
-        onConfirm={confirmDeleteEvent}
-        onClose={() => setDeletingEvent(null)}
-      />
     </div>
   );
 }

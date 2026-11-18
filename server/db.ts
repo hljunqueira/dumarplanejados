@@ -226,6 +226,25 @@ export async function initDbTables() {
         updated_at TEXT DEFAULT ''
       );
 
+      CREATE TABLE IF NOT EXISTS receipts (
+        id SERIAL PRIMARY KEY,
+        receipt_number TEXT NOT NULL,
+        receipt_date TEXT NOT NULL,
+        client_name TEXT NOT NULL,
+        client_cpf_cnpj TEXT DEFAULT '',
+        client_phone TEXT DEFAULT '',
+        client_address TEXT DEFAULT '',
+        amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+        amount_extenso TEXT DEFAULT '',
+        description TEXT NOT NULL,
+        payment_method TEXT NOT NULL DEFAULT 'PIX',
+        lead_id INTEGER,
+        client_id INTEGER,
+        financial_transaction_id INTEGER,
+        notes TEXT DEFAULT '',
+        created_at TEXT DEFAULT ''
+      );
+
       CREATE TABLE IF NOT EXISTS whatsapp_templates (
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,

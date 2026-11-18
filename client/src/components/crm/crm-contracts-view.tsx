@@ -553,24 +553,48 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
         })
       });
 
-      // 3. Lançar no financeiro se houver entrada definida
+      // 3. Lançar no financeiro se houver entrada definida (evitando duplicações)
       if (Number(currentContract.downPayment) > 0) {
-        await fetch("/api/financial/transactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description: `Sinal Contrato ${currentContract.contractNumber} - ${currentContract.clientName}`,
-            type: "receita",
-            amount: Number(currentContract.downPayment),
-            category: "venda_marcenaria",
-            status: "pago",
-            dueDate: currentContract.downPaymentDate,
-            paymentDate: currentContract.downPaymentDate,
-            paymentMethod: currentContract.paymentMethod,
-            leadId: Number(currentContract.leadId),
-            notes: `Contrato ${currentContract.contractNumber} Assinado`
-          })
-        });
+        let existingTx: any = null;
+        try {
+          const txRes = await fetch("/api/financial/transactions");
+          if (txRes.ok) {
+            const allTxs = await txRes.json();
+            existingTx = allTxs.find((t: any) =>
+              (t.notes && t.notes.includes(currentContract.contractNumber)) ||
+              (t.description && t.description.includes(currentContract.contractNumber))
+            );
+          }
+        } catch (fErr) {
+          console.warn("Erro ao checar lançamentos existentes:", fErr);
+        }
+
+        const txPayload = {
+          description: `Sinal Contrato ${currentContract.contractNumber} - ${currentContract.clientName}`,
+          type: "receita",
+          amount: Number(currentContract.downPayment),
+          category: "venda_marcenaria",
+          status: "pago",
+          dueDate: currentContract.downPaymentDate || new Date().toISOString().split("T")[0],
+          paymentDate: currentContract.downPaymentDate || new Date().toISOString().split("T")[0],
+          paymentMethod: currentContract.paymentMethod || "PIX",
+          leadId: Number(currentContract.leadId),
+          notes: `Contrato ${currentContract.contractNumber} Assinado`
+        };
+
+        if (existingTx) {
+          await fetch(`/api/financial/transactions/${existingTx.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(txPayload)
+          });
+        } else {
+          await fetch("/api/financial/transactions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(txPayload)
+          });
+        }
       }
 
       // 4. Atualizar lista em memória e local

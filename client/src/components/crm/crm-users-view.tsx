@@ -4,7 +4,7 @@ import {
   X, AlertCircle, CheckCircle2, Lock, Mail, User as UserIcon, Search, 
   Power, Sparkles
 } from "lucide-react";
-import CRMConfirmModal from "./crm-confirm-modal";
+import { useConfirmDialog } from "../ui/confirm-dialog";
 
 export interface UserItem {
   id: number;
@@ -83,9 +83,7 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
   const [formActive, setFormActive] = useState(true);
   const [savingUser, setSavingUser] = useState(false);
 
-  // Modal de Confirmação de Exclusão
-  const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
-  const [deletingUser, setDeletingUser] = useState(false);
+  const { confirm, showAlert } = useConfirmDialog();
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -228,25 +226,28 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!deleteUserId) return;
-    setDeletingUser(true);
+  const handleDeleteUser = async (user: UserItem) => {
+    const ok = await confirm({
+      title: "Excluir Colaborador",
+      message: `Tem certeza que deseja excluir "${user.name}" (${user.username})?\nO colaborador perderá o acesso imediato ao sistema. Esta ação é permanente.`,
+      variant: "danger",
+      confirmText: "Sim, Excluir"
+    });
+    if (!ok) return;
+
     try {
-      const res = await fetch(`/api/users/${deleteUserId}`, {
+      const res = await fetch(`/api/users/${user.id}`, {
         method: "DELETE"
       });
       if (res.ok) {
         showToast("Usuário excluído com sucesso.");
-        setDeleteUserId(null);
         await fetchUsers();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         showToast(err.message || "Erro ao excluir usuário.", "error");
       }
     } catch (e) {
       showToast("Erro ao conectar com o servidor.", "error");
-    } finally {
-      setDeletingUser(false);
     }
   };
 
@@ -388,7 +389,7 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
                   {!isMainAdmin && !isCurrentUser && (
                     <button
                       type="button"
-                      onClick={() => setDeleteUserId(user.id)}
+                      onClick={() => handleDeleteUser(user)}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer"
                       title="Excluir Usuário"
                     >
@@ -612,19 +613,6 @@ export default function CRMUsersView({ currentUser }: { currentUser?: { username
           </div>
         </div>
       )}
-
-      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
-      <CRMConfirmModal
-        isOpen={Boolean(deleteUserId)}
-        onClose={() => setDeleteUserId(null)}
-        onConfirm={handleConfirmDelete}
-        title="Excluir Colaborador"
-        description="Tem certeza que deseja excluir este usuário do CRM? O colaborador perderá o acesso imediato ao sistema. Esta ação é permanente."
-        confirmText="Sim, Excluir"
-        cancelText="Cancelar"
-        isDestructive={true}
-        loading={deletingUser}
-      />
     </div>
   );
 }
