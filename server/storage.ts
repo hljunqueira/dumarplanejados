@@ -58,9 +58,11 @@ export interface IStorage {
 
   getClients(): Promise<Client[]>;
   getClient(id: number): Promise<Client | undefined>;
+  findClientByDocumentOrName(cpfCnpj?: string, name?: string, phone?: string): Promise<Client | undefined>;
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: number, updates: Partial<InsertClient>): Promise<Client>;
   deleteClient(id: number): Promise<boolean>;
+  deduplicateClients(): Promise<{ mergedCount: number; remainingCount: number }>;
 
   getContracts(): Promise<ContractItem[]>;
   getContract(id: number): Promise<ContractItem | undefined>;
@@ -285,6 +287,106 @@ export class DatabaseStorage implements IStorage {
   async getClient(id: number): Promise<Client | undefined> {
     const [c] = await db.select().from(clients).where(eq(clients.id, id));
     return c;
+  }
+
+  async findClientByDocumentOrName(cpfCnpj?: string, name?: string, phone?: string): Promise<Client | undefined> {
+    const all = await this.getClients();
+    const cleanCpf = (cpfCnpj || "").replace(/\D/g, "");
+    const cleanName = (name || "").trim().toLowerCase();
+    const cleanPhone = (phone || "").replace(/\D/g, "");
+
+    if (cleanCpf && cleanCpf.length >= 11) {
+      const match = all.find(c => (c.cpfCnpj || "").replace(/\D/g, "") === cleanCpf);
+      if (match) return match;
+    }
+
+    if (cleanName) {
+      const match = all.find(c => {
+        const cName = (c.name || "").trim().toLowerCase();
+        if (cName === cleanName) return true;
+        if (cleanPhone && cleanPhone.length >= 8) {
+          const cPhone = (c.phone || "").replace(/\D/g, "");
+          if (cPhone.includes(cleanPhone) || cleanPhone.includes(cPhone)) {
+            return cName.includes(cleanName) || cleanName.includes(cName);
+          }
+        }
+        return false;
+      });
+      if (match) return match;
+    }
+
+    return undefined;
+  }
+
+  async deduplicateClients(): Promise<{ mergedCount: number; remainingCount: number }> {
+    const all = await this.getClients();
+    if (all.length <= 1) return { mergedCount: 0, remainingCount: all.length };
+
+    const groups = new Map<string, Client[]>();
+
+    for (const c of all) {
+      const cleanCpf = (c.cpfCnpj || "").replace(/\D/g, "");
+      const cleanName = (c.name || "").trim().toLowerCase();
+      
+      let key = "";
+      if (cleanCpf && cleanCpf.length >= 11) {
+        key = `cpf_${cleanCpf}`;
+      } else if (cleanName) {
+        key = `name_${cleanName}`;
+      } else {
+        key = `id_${c.id}`;
+      }
+
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(c);
+    }
+
+    let mergedCount = 0;
+
+    for (const clientGroup of Array.from(groups.values())) {
+      if (clientGroup.length <= 1) continue;
+
+      // Ordenar: primeiro o que tiver mais campos preenchidos, ou id menor (mais antigo)
+      clientGroup.sort((a: Client, b: Client) => {
+        const scoreA = (a.cpfCnpj ? 3 : 0) + (a.phone ? 2 : 0) + (a.address ? 2 : 0) + (a.email ? 1 : 0) + (a.rg ? 1 : 0);
+        const scoreB = (b.cpfCnpj ? 3 : 0) + (b.phone ? 2 : 0) + (b.address ? 2 : 0) + (b.email ? 1 : 0) + (b.rg ? 1 : 0);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return a.id - b.id;
+      });
+
+      const canonical = clientGroup[0];
+      const duplicates = clientGroup.slice(1);
+
+      let hasUpdates = false;
+      const updates: Partial<InsertClient> = {};
+
+      for (const dup of duplicates) {
+        if (!canonical.cpfCnpj && dup.cpfCnpj) { canonical.cpfCnpj = dup.cpfCnpj; updates.cpfCnpj = dup.cpfCnpj; hasUpdates = true; }
+        if (!canonical.rg && dup.rg) { canonical.rg = dup.rg; updates.rg = dup.rg; hasUpdates = true; }
+        if (!canonical.phone && dup.phone) { canonical.phone = dup.phone; updates.phone = dup.phone; hasUpdates = true; }
+        if (!canonical.email && dup.email) { canonical.email = dup.email; updates.email = dup.email; hasUpdates = true; }
+        if (!canonical.address && dup.address) { canonical.address = dup.address; updates.address = dup.address; hasUpdates = true; }
+        if (!canonical.bairro && dup.bairro) { canonical.bairro = dup.bairro; updates.bairro = dup.bairro; hasUpdates = true; }
+        if (!canonical.city && dup.city) { canonical.city = dup.city; updates.city = dup.city; hasUpdates = true; }
+        if (!canonical.cep && dup.cep) { canonical.cep = dup.cep; updates.cep = dup.cep; hasUpdates = true; }
+        if (!canonical.leadId && dup.leadId) { canonical.leadId = dup.leadId; updates.leadId = dup.leadId; hasUpdates = true; }
+
+        // Migrar referências de quotes e receipts para o canonical
+        await db.update(quotes).set({ clientId: canonical.id }).where(eq(quotes.clientId, dup.id));
+        await db.update(receipts).set({ clientId: canonical.id }).where(eq(receipts.clientId, dup.id));
+
+        // Deletar o duplicado
+        await db.delete(clients).where(eq(clients.id, dup.id));
+        mergedCount++;
+      }
+
+      if (hasUpdates) {
+        await db.update(clients).set(updates).where(eq(clients.id, canonical.id));
+      }
+    }
+
+    const remaining = await this.getClients();
+    return { mergedCount, remainingCount: remaining.length };
   }
 
   async createClient(insertClient: InsertClient): Promise<Client> {

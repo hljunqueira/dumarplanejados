@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { 
   BarChart2, Users, Calendar as CalendarIcon, Settings, User, 
   LogOut, MessageSquare, FileText, X, ChevronLeft, ChevronRight,
-  ShieldCheck, Bot
+  ShieldCheck, Bot, UserCheck
 } from "lucide-react";
 import logoDumar from "@/assets/logo1.jpeg";
 
@@ -17,9 +17,11 @@ export interface CurrentUserType {
   active?: boolean;
 }
 
+export type CRMSectionType = "dashboard" | "kanban" | "clientes" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro";
+
 interface CRMSidebarProps {
-  activeSection: "dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro";
-  setActiveSection?: (section: "dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro") => void;
+  activeSection: CRMSectionType;
+  setActiveSection?: (section: CRMSectionType) => void;
   setIsAuthenticated: (val: boolean) => void;
   currentUser: CurrentUserType;
   isMobileOpen?: boolean;
@@ -50,7 +52,7 @@ export default function CRMSidebar({
   const nameDisplay = currentUser?.name || currentUser?.username || "Administrador";
   const firstLetter = nameDisplay.charAt(0).toUpperCase();
 
-  const handleNavigate = (section: "dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro", path: string) => {
+  const handleNavigate = (section: CRMSectionType, path: string) => {
     if (setActiveSection) setActiveSection(section);
     setLocation(path);
     if (setIsMobileOpen) setIsMobileOpen(false);
@@ -60,6 +62,7 @@ export default function CRMSidebar({
   const allNavItems = [
     { id: "dashboard", label: "Visão Geral", icon: BarChart2, path: "/crm/dashboard" },
     { id: "kanban", label: "Funil de Vendas", icon: Users, path: "/crm/funil" },
+    { id: "clientes", label: "Clientes", icon: UserCheck, path: "/crm/clientes" },
     { id: "agenda", label: "Agenda", icon: CalendarIcon, path: "/crm/agenda" },
     { id: "financeiro", label: "Gestão Financeira", icon: FileText, path: "/crm/financeiro" },
     { id: "mensagens", label: "Automação & IA", icon: Bot, path: "/crm/automacao" },
@@ -72,6 +75,9 @@ export default function CRMSidebar({
 
   const navItems = allNavItems.filter(item => {
     if (isAdmin) return true;
+    if (item.id === "clientes") {
+      return userPermissions.includes("clientes") || userPermissions.includes("kanban") || userPermissions.includes("financeiro");
+    }
     if (item.id === "configuracoes") {
       return userPermissions.includes("configuracoes") || userPermissions.includes("usuarios");
     }

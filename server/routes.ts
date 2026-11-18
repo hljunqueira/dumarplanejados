@@ -1056,6 +1056,29 @@ Olá! Não há contas ou despesas programadas para vencer amanhã (*${formattedT
     }
 
     try {
+      // 1. Verificação inteligente anti-duplicação (Upsert)
+      const existing = await storage.findClientByDocumentOrName(cpfCnpj, name, phone);
+      if (existing) {
+        const updates: any = {};
+        if (cpfCnpj && !existing.cpfCnpj) updates.cpfCnpj = cpfCnpj.trim();
+        if (rg && !existing.rg) updates.rg = rg.trim();
+        if (phone && !existing.phone) updates.phone = phone.trim();
+        if (email && !existing.email) updates.email = email.trim();
+        if (address && !existing.address) updates.address = address.trim();
+        if (bairro && !existing.bairro) updates.bairro = bairro.trim();
+        if (city && !existing.city) updates.city = city.trim();
+        if (cep && !existing.cep) updates.cep = cep.trim();
+        if (notes && !existing.notes) updates.notes = notes.trim();
+        if (leadId && !existing.leadId) updates.leadId = Number(leadId);
+
+        let finalClient = existing;
+        if (Object.keys(updates).length > 0) {
+          finalClient = await storage.updateClient(existing.id, updates);
+        }
+        return res.status(200).json(finalClient);
+      }
+
+      // 2. Se não existir, cria o novo cliente
       const newClient = await storage.createClient({
         name: name.trim(),
         cpfCnpj: cpfCnpj ? cpfCnpj.trim() : "",
@@ -1072,8 +1095,24 @@ Olá! Não há contas ou despesas programadas para vencer amanhã (*${formattedT
       });
       return res.status(201).json(newClient);
     } catch (err) {
-      console.error("Erro ao criar cliente:", err);
-      return res.status(500).json({ message: "Erro ao criar cliente" });
+      console.error("Erro ao criar/atualizar cliente:", err);
+      return res.status(500).json({ message: "Erro ao registrar cliente" });
+    }
+  });
+
+  // Rota de deduplicação e mesclagem de base de clientes
+  app.post("/api/clients/deduplicate", async (req, res) => {
+    try {
+      const result = await storage.deduplicateClients();
+      return res.status(200).json({
+        success: true,
+        message: `${result.mergedCount} registros duplicados mesclados com sucesso!`,
+        mergedCount: result.mergedCount,
+        remainingCount: result.remainingCount
+      });
+    } catch (err) {
+      console.error("Erro ao deduplicar clientes:", err);
+      return res.status(500).json({ message: "Erro ao deduplicar clientes" });
     }
   });
 

@@ -6,6 +6,7 @@ import {
   Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare, Users, Receipt
 } from "lucide-react";
 
+import { useLocation } from "wouter";
 import { Lead } from "./types";
 import { Supplier, Client } from "@shared/schema";
 import { useConfirmDialog } from "../ui/confirm-dialog";
@@ -14,7 +15,6 @@ import CRMContractsView from "./crm-contracts-view";
 import CRMQuotesView from "./crm-quotes-view";
 import CRMReceiptsView from "./crm-receipts-view";
 import CRMSuppliersModal from "./crm-suppliers-modal";
-import CRMClientsModal from "./crm-clients-modal";
 import { ReceiptData } from "@/lib/receipt-utils";
 import { parseMonetaryInput, formatBRL } from "@/lib/currency";
 
@@ -76,6 +76,7 @@ const CATEGORIES = [
 export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroProps) {
   const [financialTab, setFinancialTab] = useState<"cashflow" | "quotes" | "contracts" | "receipts">("cashflow");
   const [receiptInitialData, setReceiptInitialData] = useState<Partial<ReceiptData> | null>(null);
+  const [, setLocation] = useLocation();
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [suppliersList, setSuppliersList] = useState<Supplier[]>([]);
   const [clientsList, setClientsList] = useState<Client[]>([]);
@@ -105,7 +106,6 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSuppliersModalOpen, setIsSuppliersModalOpen] = useState(false);
-  const [isClientsModalOpen, setIsClientsModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<FinancialTransaction | null>(null);
 
   // Modal Edição de Grupo Recorrente
@@ -825,52 +825,57 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     .reduce((acc, t) => acc + t.amount, 0);
 
   return (
-    <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6 bg-black/40 font-sans text-white">
-      {/* SELETOR DE ABAS DO FINANCEIRO */}
-      <div className="flex items-center gap-2 bg-[#0f0f0f] border border-white/10 p-1.5 rounded-2xl shadow-lg">
-        <button
-          onClick={() => setFinancialTab("cashflow")}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "cashflow"
-              ? "bg-white text-black shadow-lg"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-        >
-          <DollarSign size={16} /> Lançamentos & Fluxo de Caixa
-        </button>
+    <div className="flex-1 h-full min-h-0 flex flex-col overflow-hidden bg-black/40 font-sans text-white">
+      {/* SELETOR DE ABAS DO FINANCEIRO (FIXO NO TOPO) */}
+      <div className="p-4 sm:p-6 pb-2 flex-shrink-0 z-10">
+        <div className="flex items-center gap-2 bg-[#0f0f0f] border border-white/10 p-1.5 rounded-2xl shadow-lg overflow-x-auto scrollbar-none">
+          <button
+            onClick={() => setFinancialTab("cashflow")}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "cashflow"
+                ? "bg-white text-black shadow-lg"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+          >
+            <DollarSign size={16} /> Lançamentos & Fluxo de Caixa
+          </button>
 
-        <button
-          onClick={() => setFinancialTab("quotes")}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "quotes"
-              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-        >
-          <Calculator size={16} /> Orçamentos & Propostas
-        </button>
+          <button
+            onClick={() => setFinancialTab("quotes")}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "quotes"
+                ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+          >
+            <Calculator size={16} /> Orçamentos & Propostas
+          </button>
 
-        <button
-          onClick={() => setFinancialTab("contracts")}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "contracts"
-              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-        >
-          <FileText size={16} /> Contratos & Minuta Jurídica
-        </button>
+          <button
+            onClick={() => setFinancialTab("contracts")}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "contracts"
+                ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+          >
+            <FileText size={16} /> Contratos & Minuta Jurídica
+          </button>
 
-        <button
-          onClick={() => {
-            setReceiptInitialData(null);
-            setFinancialTab("receipts");
-          }}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "receipts"
-              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-        >
-          <Receipt size={16} /> Recibos de Pagamento
-        </button>
+          <button
+            onClick={() => {
+              setReceiptInitialData(null);
+              setFinancialTab("receipts");
+            }}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "receipts"
+                ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+          >
+            <Receipt size={16} /> Recibos de Pagamento
+          </button>
+        </div>
       </div>
+
+      {/* ÁREA DE CONTEÚDO ATIVA (ROLAGEM CONTIDA) */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 pt-2 space-y-6 scrollbar-thin">
 
       {/* RENDERIZAÇÃO DA ABA RECIBOS */}
       {financialTab === "receipts" && (
@@ -1072,10 +1077,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </button>
 
                 <button
-                  onClick={() => setIsClientsModalOpen(true)}
+                  type="button"
+                  onClick={() => setLocation("/crm/clientes")}
                   className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/10"
                 >
-                  <Users size={15} /> Cadastro de Clientes
+                  <Users size={15} /> Base de Clientes
                 </button>
 
                 <button
@@ -1804,10 +1810,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                         <label className="block text-gray-300 font-semibold">Vincular a Cliente / Lead</label>
                         <button
                           type="button"
-                          onClick={() => setIsClientsModalOpen(true)}
+                          onClick={() => setLocation("/crm/clientes")}
                           className="text-[10px] text-amber-400 hover:underline flex items-center gap-0.5 cursor-pointer font-semibold"
                         >
-                          + Gerenciar Clientes
+                          + Base de Clientes
                         </button>
                       </div>
                       <select
@@ -2197,26 +2203,9 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
             }}
             selectedSupplierId={formSupplierId ? Number(formSupplierId) : null}
           />
-
-          {/* MODAL DE GESTÃO E CADASTRO DE CLIENTES */}
-          <CRMClientsModal
-            isOpen={isClientsModalOpen}
-            onClose={() => {
-              setIsClientsModalOpen(false);
-              fetchClients();
-            }}
-            onSelectClient={(client) => {
-              if (client.leadId) {
-                setFormLeadId(client.leadId.toString());
-              } else {
-                setFormLeadId(client.name);
-              }
-              setIsClientsModalOpen(false);
-              fetchClients();
-            }}
-          />
         </>
       )}
+      </div>
     </div>
   );
 }

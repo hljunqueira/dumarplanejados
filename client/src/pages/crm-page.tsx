@@ -17,6 +17,7 @@ const CRMAgenda = lazy(() => import("@/components/crm/crm-agenda"));
 const CRMConnections = lazy(() => import("@/components/crm/crm-connections"));
 const CRMPerfil = lazy(() => import("@/components/crm/crm-perfil"));
 const CRMFinanceiro = lazy(() => import("@/components/crm/crm-financeiro"));
+const CRMClientesView = lazy(() => import("@/components/crm/crm-clientes-view"));
 const CRMSettings = lazy(() => import("@/components/crm/crm-settings"));
 const CRMConfiguracoes = lazy(() => import("@/components/crm/crm-configuracoes"));
 
@@ -84,7 +85,7 @@ export default function CRMPage() {
   const [chatInput, setChatInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterUtm, setFilterUtm] = useState("all");
-  const [activeSection, setActiveSection] = useState<"dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro">("dashboard");
+  const [activeSection, setActiveSection] = useState<"dashboard" | "kanban" | "clientes" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro">("dashboard");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
 
@@ -157,6 +158,9 @@ export default function CRMPage() {
 
     const canAccess = (sec: string) => {
       if (isAdmin) return true;
+      if (sec === "clientes") {
+        return userPerms.includes("clientes") || userPerms.includes("kanban") || userPerms.includes("financeiro");
+      }
       if (sec === "configuracoes") {
         return userPerms.includes("configuracoes") || userPerms.includes("usuarios");
       }
@@ -168,9 +172,10 @@ export default function CRMPage() {
 
     if (matchRoute && paramsRoute?.section) {
       const s = paramsRoute.section.toLowerCase();
-      let targetSec: "dashboard" | "kanban" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro" = "dashboard";
+      let targetSec: "dashboard" | "kanban" | "clientes" | "agenda" | "configuracoes" | "mensagens" | "perfil" | "financeiro" = "dashboard";
 
       if (s === "funil" || s === "kanban") targetSec = "kanban";
+      else if (s === "clientes" || s === "cadastro-clientes") targetSec = "clientes";
       else if (s === "conexoes" || s === "configuracoes" || s === "whatsapp" || s === "usuarios") targetSec = "configuracoes";
       else if (s === "agenda") targetSec = "agenda";
       else if (s === "financeiro" || s === "contratos") targetSec = "financeiro";
@@ -599,6 +604,7 @@ export default function CRMPage() {
               <h2 className="text-xs font-bold uppercase tracking-wider text-amber-400">
                 {activeSection === "dashboard" && "Início"}
                 {activeSection === "kanban" && "Funil de Vendas"}
+                {activeSection === "clientes" && "Clientes"}
                 {activeSection === "agenda" && "Agenda"}
                 {activeSection === "financeiro" && "Financeiro"}
                 {activeSection === "mensagens" && "Automação & IA"}
@@ -640,6 +646,7 @@ export default function CRMPage() {
             <div>
               <h2 className="text-xs font-black tracking-wider uppercase text-white">
                 {activeSection === "dashboard" && "Visão Geral"}
+                {activeSection === "clientes" && "Base de Clientes"}
                 {activeSection === "agenda" && "Agenda"}
                 {activeSection === "financeiro" && "Gestão Financeira"}
                 {activeSection === "perfil" && "Meu Perfil"}
@@ -718,32 +725,38 @@ export default function CRMPage() {
         )}
 
         <Suspense fallback={<CrmModuleFallback />}>
+          {activeSection === "clientes" && (
+            <div className="flex-1 h-full min-h-0 overflow-hidden flex flex-col">
+              <CRMClientesView leads={leads} />
+            </div>
+          )}
+
           {activeSection === "agenda" && (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <div className="flex-1 h-full min-h-0 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
               <CRMAgenda leads={leads} />
             </div>
           )}
 
           {activeSection === "perfil" && (
-            <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
+            <div className="flex-1 h-full min-h-0 overflow-y-auto p-4 sm:p-8 scrollbar-thin">
               <CRMPerfil currentUser={currentUser} setCurrentUser={setCurrentUser} />
             </div>
           )}
 
           {activeSection === "financeiro" && (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <div className="flex-1 h-full min-h-0 overflow-hidden flex flex-col">
               <CRMFinanceiro leads={leads} setSelectedLead={setSelectedLead} />
             </div>
           )}
 
           {activeSection === "mensagens" && (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <div className="flex-1 h-full min-h-0 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
               <CRMSettings />
             </div>
           )}
 
           {activeSection === "configuracoes" && (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+            <div className="flex-1 h-full min-h-0 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
               <CRMConfiguracoes currentUser={currentUser} setCurrentUser={setCurrentUser} />
             </div>
           )}
