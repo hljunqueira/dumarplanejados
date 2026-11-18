@@ -3,7 +3,8 @@ import {
   DollarSign, FileText, Calculator, CheckCircle2, Clock, AlertCircle, TrendingUp,
   TrendingDown, Plus, Search, Filter, Trash2, Edit3, Download, Check,
   ArrowUpRight, ArrowDownRight, Tag, Calendar, CreditCard, UserCheck, X,
-  Layers, Zap, Truck, ChevronDown, ChevronRight, Repeat, CheckSquare, Users, Receipt
+  Layers, Zap, Truck, ChevronDown, ChevronRight, ChevronLeft, Repeat, CheckSquare, Users, Receipt,
+  Eye, Info
 } from "lucide-react";
 
 import { useLocation } from "wouter";
@@ -55,6 +56,65 @@ export interface RecurrenceGroupSummary {
   transactions: FinancialTransaction[];
 }
 
+/**
+ * Utilitários à prova de falhas para tratamento de datas em padrão BR (DD/MM/YYYY) e ISO (YYYY-MM-DD).
+ * Elimina completamente a ocorrência de "Invalid Date".
+ */
+export function parseDateSafe(dateStr?: string | null): Date | null {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  const clean = dateStr.trim();
+  if (!clean) return null;
+
+  // Formato brasileiro DD/MM/YYYY
+  const brMatch = clean.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brMatch) {
+    const [, d, m, y] = brMatch;
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  // Formato ISO YYYY-MM-DD
+  const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  const d = new Date(clean);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function toIsoDateKey(dateStr?: string | null): string {
+  if (!dateStr) return "9999-99-99";
+  const d = parseDateSafe(dateStr);
+  if (!d) return dateStr.includes("-") ? dateStr : "9999-99-99";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function formatDateSafeBR(dateStr?: string | null): string {
+  if (!dateStr || typeof dateStr !== "string") return "-";
+  const clean = dateStr.trim();
+  if (!clean) return "-";
+
+  // Se já está no formato DD/MM/YYYY, retorna direto
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) {
+    return clean;
+  }
+
+  const d = parseDateSafe(clean);
+  if (d) {
+    const day = String(d.getDate()).padStart(2, "0");
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const y = d.getFullYear();
+    return `${day}/${m}/${y}`;
+  }
+
+  return clean;
+}
 
 interface CRMFinanceiroProps {
   leads: Lead[];
@@ -91,6 +151,16 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   const [groupByRecurring, setGroupByRecurring] = useState<boolean>(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [isSendingAlert, setIsSendingAlert] = useState(false);
+
+  // Paginação & Visualização
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [viewingTx, setViewingTx] = useState<FinancialTransaction | null>(null);
+
+  // Resetar página quando filtros mudam
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter, statusFilter, periodFilter, sortBy, groupByRecurring]);
 
 
   const toggleGroup = (groupId: string) => {
@@ -240,8 +310,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     setFormAmount(tx.amount.toString());
     setFormCategory(tx.category);
     setFormStatus(tx.status);
-    setFormDueDate(tx.dueDate || new Date().toISOString().split("T")[0]);
-    setFormPaymentDate(tx.paymentDate || new Date().toISOString().split("T")[0]);
+    const dueIso = toIsoDateKey(tx.dueDate);
+    const payIso = toIsoDateKey(tx.paymentDate);
+    const today = new Date().toISOString().split("T")[0];
+    setFormDueDate(dueIso && dueIso !== "9999-99-99" ? dueIso : today);
+    setFormPaymentDate(payIso && payIso !== "9999-99-99" ? payIso : today);
     setFormPaymentMethod(tx.paymentMethod || "PIX");
     setFormLeadId(tx.leadId ? tx.leadId.toString() : "");
     setFormSupplierId(tx.supplierId ? tx.supplierId.toString() : "");
@@ -443,6 +516,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
       clientName = tx.description.split(" - ")[1].trim();
     }
 
+    const safeDate = toIsoDateKey(tx.paymentDate || tx.dueDate);
+    const today = new Date().toISOString().split("T")[0];
+    const receiptDate = safeDate && safeDate !== "9999-99-99" ? safeDate : today;
+
     setReceiptInitialData({
       clientName,
       clientCpfCnpj: linkedClient?.cpfCnpj || "",
@@ -450,8 +527,8 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
       amount: tx.amount,
       description: tx.description,
       paymentMethod: tx.paymentMethod || "PIX",
-      receiptDate: tx.paymentDate || tx.dueDate || new Date().toISOString().split("T")[0],
-      paymentDate: tx.paymentDate || tx.dueDate || new Date().toISOString().split("T")[0],
+      receiptDate,
+      paymentDate: receiptDate,
       leadId: tx.leadId,
       clientId: linkedClient?.id || null,
       financialTransactionId: tx.id
@@ -659,15 +736,19 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
 
     let matchesPeriod = true;
     if (periodFilter !== "all" && t.dueDate) {
-      const txDate = new Date(t.dueDate);
-      const now = new Date();
-      if (periodFilter === "this_month") {
-        matchesPeriod = txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
-      } else if (periodFilter === "last_month") {
-        const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        matchesPeriod = txDate.getMonth() === lastM.getMonth() && txDate.getFullYear() === lastM.getFullYear();
-      } else if (periodFilter === "year") {
-        matchesPeriod = txDate.getFullYear() === now.getFullYear();
+      const txDate = parseDateSafe(t.dueDate);
+      if (txDate) {
+        const now = new Date();
+        if (periodFilter === "this_month") {
+          matchesPeriod = txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
+        } else if (periodFilter === "last_month") {
+          const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          matchesPeriod = txDate.getMonth() === lastM.getMonth() && txDate.getFullYear() === lastM.getFullYear();
+        } else if (periodFilter === "year") {
+          matchesPeriod = txDate.getFullYear() === now.getFullYear();
+        }
+      } else {
+        matchesPeriod = false;
       }
     }
 
@@ -679,15 +760,17 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     if (!groupByRecurring) {
       const singleList = filteredTransactions.map(tx => ({ type: "single" as const, tx }));
       singleList.sort((a, b) => {
-        if (sortBy === "due_asc") return (a.tx.dueDate || "9999").localeCompare(b.tx.dueDate || "9999");
-        if (sortBy === "due_desc") return (b.tx.dueDate || "").localeCompare(a.tx.dueDate || "");
+        const dateA = toIsoDateKey(a.tx.dueDate);
+        const dateB = toIsoDateKey(b.tx.dueDate);
+        if (sortBy === "due_asc") return dateA.localeCompare(dateB);
+        if (sortBy === "due_desc") return dateB.localeCompare(dateA);
         if (sortBy === "amount_desc") return b.tx.amount - a.tx.amount;
         if (sortBy === "amount_asc") return a.tx.amount - b.tx.amount;
         if (sortBy === "status") {
           const w = (s: string) => (s === "atrasado" ? 0 : s === "pendente" ? 1 : 2);
           return w(a.tx.status) - w(b.tx.status);
         }
-        return (a.tx.dueDate || "9999").localeCompare(b.tx.dueDate || "9999");
+        return dateA.localeCompare(dateB);
       });
       return singleList;
     }
@@ -728,7 +811,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
     const rows: DisplayRowType[] = [];
 
     groupMap.forEach((txList, gKey) => {
-      txList.sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || "") || ((a.installmentIndex || 0) - (b.installmentIndex || 0)));
+      txList.sort((a, b) => toIsoDateKey(a.dueDate).localeCompare(toIsoDateKey(b.dueDate)) || ((a.installmentIndex || 0) - (b.installmentIndex || 0)));
 
       const { baseTitle } = getRecurrenceKey(txList[0]);
       const first = txList[0];
@@ -768,17 +851,17 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
 
     // Ordenação configurável das linhas principais
     rows.sort((a, b) => {
-      const dateA = a.type === "group" ? (a.group.nextDueDate || "9999") : (a.tx.dueDate || "9999");
-      const dateB = b.type === "group" ? (b.group.nextDueDate || "9999") : (b.tx.dueDate || "9999");
+      const dateA = toIsoDateKey(a.type === "group" ? a.group.nextDueDate : a.tx.dueDate);
+      const dateB = toIsoDateKey(b.type === "group" ? b.group.nextDueDate : b.tx.dueDate);
 
       const amtA = a.type === "group" ? a.group.monthlyAmount : a.tx.amount;
       const amtB = b.type === "group" ? b.group.monthlyAmount : b.tx.amount;
 
       if (sortBy === "due_asc") {
-        return (dateA || "9999").localeCompare(dateB || "9999");
+        return dateA.localeCompare(dateB);
       }
       if (sortBy === "due_desc") {
-        return (dateB || "").localeCompare(dateA || "");
+        return dateB.localeCompare(dateA);
       }
       if (sortBy === "amount_desc") {
         return amtB - amtA;
@@ -795,11 +878,18 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
         };
         return getWeight(a) - getWeight(b);
       }
-      return (dateA || "9999").localeCompare(dateB || "9999");
+      return dateA.localeCompare(dateB);
     });
 
     return rows;
   }, [filteredTransactions, groupByRecurring, sortBy]);
+
+  // Paginação inteligente dos lançamentos
+  const totalPages = Math.max(1, Math.ceil(displayRows.length / itemsPerPage));
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return displayRows.slice(start, start + itemsPerPage);
+  }, [displayRows, currentPage, itemsPerPage]);
 
 
 
@@ -827,36 +917,36 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
   return (
     <div className="flex-1 h-full min-h-0 flex flex-col overflow-hidden bg-black/40 font-sans text-white">
       {/* SELETOR DE ABAS DO FINANCEIRO (FIXO NO TOPO) */}
-      <div className="p-4 sm:p-6 pb-2 flex-shrink-0 z-10">
-        <div className="flex items-center gap-2 bg-[#0f0f0f] border border-white/10 p-1.5 rounded-2xl shadow-lg overflow-x-auto scrollbar-none">
+      <div className="px-3 sm:px-5 pt-2.5 pb-1.5 flex-shrink-0 z-10">
+        <div className="flex items-center gap-1.5 bg-[#0f0f0f] border border-white/10 p-1.5 rounded-xl shadow-lg overflow-x-auto scrollbar-none">
           <button
             onClick={() => setFinancialTab("cashflow")}
-            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "cashflow"
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "cashflow"
                 ? "bg-white text-black shadow-lg"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
-            <DollarSign size={16} /> Lançamentos & Fluxo de Caixa
+            <DollarSign size={15} /> Lançamentos & Fluxo de Caixa
           </button>
 
           <button
             onClick={() => setFinancialTab("quotes")}
-            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "quotes"
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "quotes"
                 ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
-            <Calculator size={16} /> Orçamentos & Propostas
+            <Calculator size={15} /> Orçamentos & Propostas
           </button>
 
           <button
             onClick={() => setFinancialTab("contracts")}
-            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "contracts"
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "contracts"
                 ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
-            <FileText size={16} /> Contratos & Minuta Jurídica
+            <FileText size={15} /> Contratos & Minuta Jurídica
           </button>
 
           <button
@@ -864,267 +954,226 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
               setReceiptInitialData(null);
               setFinancialTab("receipts");
             }}
-            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "receipts"
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${financialTab === "receipts"
                 ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
-            <Receipt size={16} /> Recibos de Pagamento
+            <Receipt size={15} /> Recibos de Pagamento
           </button>
         </div>
       </div>
 
-      {/* ÁREA DE CONTEÚDO ATIVA (ROLAGEM CONTIDA) */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 pt-2 space-y-6 scrollbar-thin">
-
-      {/* RENDERIZAÇÃO DA ABA RECIBOS */}
-      {financialTab === "receipts" && (
-        <CRMReceiptsView
-          leads={leads}
-          initialData={receiptInitialData}
-          onNewTransaction={fetchTransactions}
-        />
-      )}
-
-      {/* RENDERIZAÇÃO DA ABA ORÇAMENTOS */}
-      {financialTab === "quotes" && (
-        <CRMQuotesView 
-          leads={leads}
-          onOpenContract={() => setFinancialTab("contracts")}
-        />
-      )}
-
-      {/* RENDERIZAÇÃO DA ABA CONTRATOS */}
-      {financialTab === "contracts" && (
-        <CRMContractsView leads={leads} />
-      )}
-
-      {/* RENDERIZAÇÃO DA ABA FLUXO DE CAIXA */}
-      {financialTab === "cashflow" && (
-        <>
-          {/* HEADER & METRICAS CHAVE COM MÁXIMA CLAREZA */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-            {/* CARD 1: TOTAL RECEBIDO (ENTRADAS LIQUIDADAS) */}
-            <div className="bg-[#0f0f0f] border border-emerald-500/20 p-5 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between group hover:border-emerald-500/40 transition-all">
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all"></div>
-
+      {/* ÁREA DE CONTEÚDO ATIVA */}
+      {financialTab === "cashflow" ? (
+        <div className="flex-1 min-h-0 flex flex-col gap-2 px-3 sm:px-5 pb-2.5 overflow-hidden">
+          {/* HEADER & METRICAS CHAVE COMPACTAS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 flex-shrink-0">
+            {/* CARD 1: TOTAL RECEBIDO */}
+            <div className="bg-[#0f0f0f] border border-emerald-500/20 p-2.5 rounded-xl shadow-md relative overflow-hidden flex flex-col justify-between group hover:border-emerald-500/40 transition-all">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400/90 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400/90 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   Total Recebido (Entradas)
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
-                  <TrendingUp size={18} />
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+                  <TrendingUp size={13} />
                 </div>
               </div>
 
-              <div className="my-3">
-                <h3 className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight">
+              <div className="my-0.5">
+                <h3 className="text-base sm:text-lg font-black text-emerald-400 tracking-tight">
                   {totalReceitasPagas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </h3>
               </div>
 
-              <div className="pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-400">
-                <span className="text-emerald-500/80 font-medium">✓ Faturamento liquidado</span>
+              <div className="pt-1 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400">
+                <span className="text-emerald-500/80 font-medium truncate">Liquidado</span>
                 {contasAReceber > 0 && (
-                  <span className="text-blue-400 font-bold bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
-                    +{contasAReceber.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} a receber
+                  <span className="text-blue-400 font-bold bg-blue-500/10 px-1 py-0.2 rounded border border-blue-500/20 truncate">
+                    +{contasAReceber.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} a rec.
                   </span>
                 )}
               </div>
             </div>
 
-            {/* CARD 2: TOTAL PAGO (DESPESAS LIQUIDADAS) */}
-            <div className="bg-[#0f0f0f] border border-rose-500/20 p-5 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between group hover:border-rose-500/40 transition-all">
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-rose-500/5 rounded-full blur-xl group-hover:bg-rose-500/10 transition-all"></div>
-
+            {/* CARD 2: TOTAL PAGO */}
+            <div className="bg-[#0f0f0f] border border-rose-500/20 p-2.5 rounded-xl shadow-md relative overflow-hidden flex flex-col justify-between group hover:border-rose-500/40 transition-all">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-rose-400/90 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-rose-400/90 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
                   Total Pago (Despesas)
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center">
-                  <TrendingDown size={18} />
+                <div className="w-6 h-6 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center">
+                  <TrendingDown size={13} />
                 </div>
               </div>
 
-              <div className="my-3">
-                <h3 className="text-2xl sm:text-3xl font-black text-rose-400 tracking-tight">
+              <div className="my-0.5">
+                <h3 className="text-base sm:text-lg font-black text-rose-400 tracking-tight">
                   {totalDespesasPagas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </h3>
               </div>
 
-              <div className="pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-400">
-                <span className="text-rose-500/80 font-medium">↘ Custos & Compras pagas</span>
+              <div className="pt-1 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400">
+                <span className="text-rose-500/80 font-medium truncate">Custos pagos</span>
                 {contasAPagar > 0 && (
-                  <span className="text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                    {contasAPagar.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} a pagar
+                  <span className="text-amber-400 font-bold bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20 truncate">
+                    {contasAPagar.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} a pag.
                   </span>
                 )}
               </div>
             </div>
 
-            {/* CARD 3: SALDO EM CAIXA (LUCRO LÍQUIDO REAL) */}
-            <div className={`bg-[#0f0f0f] border ${lucroLiquido >= 0 ? "border-amber-500/20 hover:border-amber-500/40" : "border-red-500/30 hover:border-red-500/50"} p-5 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between group transition-all`}>
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-all"></div>
-
+            {/* CARD 3: SALDO EM CAIXA */}
+            <div className={`bg-[#0f0f0f] border ${lucroLiquido >= 0 ? "border-amber-500/20 hover:border-amber-500/40" : "border-red-500/30 hover:border-red-500/50"} p-2.5 rounded-xl shadow-md relative overflow-hidden flex flex-col justify-between group transition-all`}>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-400/90 flex items-center gap-1.5">
-                  <DollarSign size={13} className="text-amber-400" />
-                  Saldo em Caixa (Lucro Real)
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400/90 flex items-center gap-1.5">
+                  <DollarSign size={12} className="text-amber-400" />
+                  Saldo em Caixa (Real)
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
-                  <DollarSign size={18} />
+                <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                  <DollarSign size={13} />
                 </div>
               </div>
 
-              <div className="my-3">
-                <h3 className={`text-2xl sm:text-3xl font-black tracking-tight ${lucroLiquido >= 0 ? "text-amber-400" : "text-red-400"}`}>
+              <div className="my-0.5">
+                <h3 className={`text-base sm:text-lg font-black tracking-tight ${lucroLiquido >= 0 ? "text-amber-400" : "text-red-400"}`}>
                   {lucroLiquido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </h3>
               </div>
 
-              <div className="pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-400">
-                <span className="text-gray-400 font-medium">Margem Operacional:</span>
-                <span className={`font-bold px-2 py-0.5 rounded ${lucroLiquido >= 0 ? "bg-amber-500/20 text-amber-300" : "bg-red-500/20 text-red-300"}`}>
+              <div className="pt-1 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400">
+                <span className="text-gray-400 font-medium">Margem Real:</span>
+                <span className={`font-bold px-1.5 py-0.2 rounded ${lucroLiquido >= 0 ? "bg-amber-500/20 text-amber-300" : "bg-red-500/20 text-red-300"}`}>
                   {margemLucro}%
                 </span>
               </div>
             </div>
 
-            {/* CARD 4: PREVISÃO DE CAIXA & PENDÊNCIAS FUTURAS */}
-            <div className="bg-[#0f0f0f] border border-blue-500/20 hover:border-blue-500/40 p-5 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between group transition-all">
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all"></div>
-
+            {/* CARD 4: PREVISÃO & PENDÊNCIAS */}
+            <div className="bg-[#0f0f0f] border border-blue-500/20 hover:border-blue-500/40 p-2.5 rounded-xl shadow-md relative overflow-hidden flex flex-col justify-between group transition-all">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-blue-400/90 flex items-center gap-1.5">
-                  <Clock size={13} className="text-blue-400" />
-                  Previsão & Contas a Vencer
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400/90 flex items-center gap-1.5">
+                  <Clock size={12} className="text-blue-400" />
+                  Previsão Futura
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center">
-                  <Calendar size={18} />
+                <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+                  <Calendar size={13} />
                 </div>
               </div>
 
-              {/* Grid 2 colunas com A Receber e A Pagar com clareza total */}
-              <div className="my-2 grid grid-cols-2 gap-2 bg-black/40 p-2 rounded-xl border border-white/5">
-                <div>
-                  <span className="text-[10px] text-gray-400 block">⬆️ A Receber</span>
-                  <span className="text-xs font-black text-emerald-400 block mt-0.5">
-                    {contasAReceber.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-gray-400 block">⬇️ A Pagar</span>
-                  <span className="text-xs font-black text-rose-400 block mt-0.5">
-                    {contasAPagar.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                </div>
+              <div className="my-0.5 flex items-center justify-between text-[11px] font-bold">
+                <span className="text-emerald-400">+{contasAReceber.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                <span className="text-gray-500 text-[10px]">|</span>
+                <span className="text-rose-400">-{contasAPagar.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
               </div>
 
-              <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
-                <span className="text-gray-400 font-medium">Saldo Projetado:</span>
+              <div className="pt-1 border-t border-white/5 flex items-center justify-between text-[10px]">
+                <span className="text-gray-400 font-medium">Projetado:</span>
                 <span className={`font-bold ${(lucroLiquido + contasAReceber - contasAPagar) >= 0 ? "text-blue-400" : "text-rose-400"}`}>
                   {(lucroLiquido + contasAReceber - contasAPagar).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </span>
               </div>
             </div>
-
           </div>
 
-          {/* CONTROLES DA TABELA & BOTÕES DE AÇÃO */}
-          <div className="bg-[#0f0f0f] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
-              <div>
-                <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  <FileText size={18} className="text-amber-400" />
-                  Gestão Financeira & Lançamentos de Caixa
+          {/* TOOLBAR COMPACTA: AÇÕES RÁPIDAS & FILTROS */}
+          <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-2.5 shadow-md flex-shrink-0 flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText size={14} className="text-amber-400" />
+                  Lançamentos de Caixa
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Controle completo de receitas, despesas, fornecedores e contratos de marcenaria</p>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-300 font-semibold border border-white/10">
+                  {displayRows.length} {displayRows.length === 1 ? "registro" : "registros"}
+                </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   onClick={() => handleOpenNewModal("receita")}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-600/20"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-md shadow-emerald-600/20"
                 >
-                  <Plus size={15} /> Nova Receita
+                  <Plus size={13} /> Nova Receita
                 </button>
 
                 <button
                   onClick={() => handleOpenNewModal("despesa")}
-                  className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-rose-600/20"
+                  className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-md shadow-rose-600/20"
                 >
-                  <Plus size={15} /> Nova Despesa
+                  <Plus size={13} /> Nova Despesa
                 </button>
 
                 <button
                   onClick={handleSendWhatsAppAlert}
                   disabled={isSendingAlert}
-                  className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
-                  title="Enviar no WhatsApp da Diretoria o resumo executivo das contas que vencem amanhã"
+                  className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/30 font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                  title="Avisar diretoria no WhatsApp das contas que vencem amanhã"
                 >
-                  <Zap size={15} className="text-emerald-400" />
-                  {isSendingAlert ? "Enviando no WhatsApp..." : "Avisar Diretoria no Whats (Amanhã)"}
+                  <Zap size={13} className="text-emerald-400" />
+                  <span className="hidden xl:inline">{isSendingAlert ? "Enviando..." : "Whats Diretoria"}</span>
                 </button>
 
                 <button
                   onClick={() => setIsSuppliersModalOpen(true)}
-                  className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/10"
+                  className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
                 >
-                  <Truck size={15} /> Fornecedores & Parceiros
+                  <Truck size={13} />
+                  <span className="hidden md:inline">Fornecedores</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setLocation("/crm/clientes")}
-                  className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/10"
+                  className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
                 >
-                  <Users size={15} /> Base de Clientes
+                  <Users size={13} />
+                  <span className="hidden md:inline">Clientes</span>
                 </button>
 
                 <button
                   onClick={() => setGroupByRecurring(prev => !prev)}
-                  className={`font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border ${groupByRecurring
-                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10"
+                  className={`font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer border ${
+                    groupByRecurring
+                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
                       : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
-                    }`}
-                  title="Agrupar ou desagrupar parcelas e custos fixos recorrentes"
+                  }`}
+                  title="Agrupar ou desagrupar parcelas recorrentes"
                 >
-                  <Repeat size={15} className={groupByRecurring ? "text-amber-400" : ""} />
-                  {groupByRecurring ? "Recorrências: Agrupadas" : "Recorrências: Expandidas"}
+                  <Repeat size={13} className={groupByRecurring ? "text-amber-400" : ""} />
+                  <span className="hidden sm:inline">{groupByRecurring ? "Agrupadas" : "Expandidas"}</span>
                 </button>
 
                 <button
                   onClick={handleExportCSV}
-                  className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border border-white/10"
+                  className="bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer border border-white/10"
+                  title="Exportar CSV"
                 >
-                  <Download size={15} /> Exportar CSV
+                  <Download size={13} />
                 </button>
               </div>
             </div>
 
-            {/* FILTROS, BUSCA & ORDENAÇÃO */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-black/30 p-3 rounded-xl border border-white/5">
-              {/* Busca */}
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            {/* FILTROS EM GRID COMPACTA */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 pt-1 border-t border-white/5">
+              <div className="relative col-span-2 sm:col-span-1">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Buscar lançamento..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1 pl-8 pr-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400/50 h-[30px]"
                 />
               </div>
 
-              {/* Tipo */}
               <div>
                 <select
                   value={typeFilter}
                   onChange={e => setTypeFilter(e.target.value as any)}
-                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none cursor-pointer h-[30px]"
                 >
                   <option value="all" className="bg-neutral-900">Todos os Tipos</option>
                   <option value="receita" className="bg-neutral-900">Receitas (Entradas)</option>
@@ -1132,12 +1181,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </select>
               </div>
 
-              {/* Status */}
               <div>
                 <select
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value as any)}
-                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none cursor-pointer h-[30px]"
                 >
                   <option value="all" className="bg-neutral-900">Todos os Status</option>
                   <option value="pago" className="bg-neutral-900">Pagos / Recebidos</option>
@@ -1146,12 +1194,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </select>
               </div>
 
-              {/* Período */}
               <div>
                 <select
                   value={periodFilter}
                   onChange={e => setPeriodFilter(e.target.value as any)}
-                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none cursor-pointer h-[30px]"
                 >
                   <option value="all" className="bg-neutral-900">Todo o Período</option>
                   <option value="this_month" className="bg-neutral-900">Este Mês</option>
@@ -1160,13 +1207,11 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </select>
               </div>
 
-              {/* Ordenação Inteligente por Data e Valor */}
               <div>
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value as any)}
-                  className="w-full bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none cursor-pointer"
-                  title="Escolha o critério de ordenação da tabela"
+                  className="w-full bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none cursor-pointer h-[30px]"
                 >
                   <option value="due_asc" className="bg-neutral-900 text-white">📅 Vencimento (Próximo 1º)</option>
                   <option value="due_desc" className="bg-neutral-900 text-white">📅 Vencimento (Distante 1º)</option>
@@ -1176,49 +1221,50 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </select>
               </div>
             </div>
+          </div>
 
-
-            {/* TABELA DE LANÇAMENTOS */}
-            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/40">
+          {/* TABELA CONTIDA + PAGINAÇÃO (SEM SCROLL GLOBAL NA PÁGINA) */}
+          <div className="flex-1 min-h-0 bg-[#0f0f0f] border border-white/10 rounded-xl flex flex-col overflow-hidden shadow-xl">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto scrollbar-thin">
               <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-white/10 text-gray-400 font-bold uppercase tracking-wider text-[10px] bg-white/[0.02]">
-                    <th className="py-3 px-4 w-[120px]">Vencimento</th>
-                    <th className="py-3 px-4 w-[90px]">Tipo</th>
-                    <th className="py-3 px-4">Descrição / Fornecedor</th>
-                    <th className="py-3 px-4 w-[140px] hidden md:table-cell">Categoria</th>
-                    <th className="py-3 px-4 w-[90px] hidden sm:table-cell">Pagamento</th>
-                    <th className="py-3 px-4 w-[130px]">Valor (R$)</th>
-                    <th className="py-3 px-4 w-[135px]">Status</th>
-                    <th className="py-3 px-4 w-[105px] text-right">Ações</th>
+                <thead className="sticky top-0 bg-[#161616] z-10 border-b border-white/10 shadow-sm">
+                  <tr className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="py-2.5 px-3 w-[115px]">Vencimento</th>
+                    <th className="py-2.5 px-3 w-[85px]">Tipo</th>
+                    <th className="py-2.5 px-3">Descrição</th>
+                    <th className="py-2.5 px-3 w-[160px] hidden sm:table-cell">Cliente / Fornecedor</th>
+                    <th className="py-2.5 px-3 w-[130px] hidden md:table-cell">Categoria</th>
+                    <th className="py-2.5 px-3 w-[115px]">Valor</th>
+                    <th className="py-2.5 px-3 w-[100px]">Status</th>
+                    <th className="py-2.5 px-3 w-[125px] text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {displayRows.map(row => {
+                  {paginatedRows.map(row => {
                     if (row.type === "group") {
                       const { group } = row;
                       const isExpanded = expandedGroups.has(group.groupId);
                       const isReceita = group.type === "receita";
                       const isAllPaid = group.paidCount === group.totalCount;
 
-                      const todayStr = new Date().toISOString().split("T")[0];
+                      const todayIso = new Date().toISOString().split("T")[0];
                       const tomorrowDate = new Date();
                       tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-                      const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
+                      const tomorrowIso = tomorrowDate.toISOString().split("T")[0];
 
-                      const isGroupToday = group.nextDueDate === todayStr && group.paidCount < group.totalCount;
-                      const isGroupTomorrow = group.nextDueDate === tomorrowStr && group.paidCount < group.totalCount;
+                      const groupDueIso = toIsoDateKey(group.nextDueDate);
+                      const isGroupToday = groupDueIso === todayIso && group.paidCount < group.totalCount;
+                      const isGroupTomorrow = groupDueIso === tomorrowIso && group.paidCount < group.totalCount;
 
                       const categoryObj = CATEGORIES.find(c => c.id === group.category);
                       const categoryLabel = categoryObj ? categoryObj.label : group.category;
 
                       return (
-
                         <React.Fragment key={`frag-group-${group.groupId}`}>
                           {/* LINHA MASTER AGRUPADA */}
                           <tr
                             onClick={() => toggleGroup(group.groupId)}
-                            className={`transition-all cursor-pointer border-l-4 shadow-sm ${isGroupToday
+                            className={`transition-all cursor-pointer border-l-4 shadow-sm h-10 ${isGroupToday
                                 ? "bg-red-950/30 hover:bg-red-950/50 border-l-rose-500"
                                 : isGroupTomorrow
                                   ? "bg-amber-950/30 hover:bg-amber-950/50 border-l-amber-400"
@@ -1226,156 +1272,139 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                               }`}
                           >
                             {/* Vencimento Próxima Parcela */}
-                            <td className="py-3.5 px-4 text-gray-200 font-bold text-[11px]">
+                            <td className="py-2 px-3 text-gray-200 font-bold text-[11px] whitespace-nowrap">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-amber-400 transition-transform">
-                                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                <span className="text-amber-400 transition-transform shrink-0">
+                                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                 </span>
-                                <div>
-                                  <div className="flex items-center gap-1 flex-wrap">
-                                    <span className="text-[9px] text-gray-400 block font-normal">Próx. Vencimento:</span>
-                                    {isGroupToday && (
-                                      <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1.5 py-0.2 rounded border border-rose-500/40 animate-pulse">
-                                        🚨 Vence Hoje
-                                      </span>
-                                    )}
-                                    {isGroupTomorrow && (
-                                      <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.2 rounded border border-amber-500/40">
-                                        ⚠️ Vence Amanhã
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-white font-bold">{group.nextDueDate ? new Date(group.nextDueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-white font-bold">{formatDateSafeBR(group.nextDueDate)}</span>
+                                  {isGroupToday && (
+                                    <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1 py-0.2 rounded border border-rose-500/40 animate-pulse">
+                                      🚨 Hoje
+                                    </span>
+                                  )}
+                                  {isGroupTomorrow && (
+                                    <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1 py-0.2 rounded border border-amber-500/40">
+                                      ⚠️ Amanhã
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </td>
 
-
                             {/* Tipo */}
-                            <td className="py-3.5 px-4">
-                              <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1.5 ${isReceita
+                            <td className="py-2 px-3 whitespace-nowrap">
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase inline-flex items-center gap-1 ${isReceita
                                   ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
                                   : "bg-amber-500/15 text-amber-400 border-amber-500/30"
                                 }`}>
-                                <Repeat size={11} className={isReceita ? "text-emerald-400" : "text-amber-400"} />
-                                {isReceita ? "Receita Recorrente" : "Custo Fixo Recorrente"}
+                                <Repeat size={10} className={isReceita ? "text-emerald-400" : "text-amber-400"} />
+                                Recorrente
                               </span>
                             </td>
 
                             {/* Descrição & Resumo */}
-                            <td className="py-3.5 px-4">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-black text-white text-xs">{group.baseTitle}</span>
-                                <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
-                                  <Layers size={10} /> {group.totalCount} Meses
+                            <td className="py-2 px-3">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-white text-xs truncate max-w-[200px] lg:max-w-[280px]" title={group.baseTitle}>
+                                  {group.baseTitle}
                                 </span>
-                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${isAllPaid
+                                <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded border border-amber-500/30">
+                                  {group.totalCount}x
+                                </span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${isAllPaid
                                     ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
                                     : "bg-blue-500/20 text-blue-300 border-blue-500/30"
                                   }`}>
-                                  {group.paidCount} de {group.totalCount} Pagas ({Math.round((group.paidCount / group.totalCount) * 100)}%)
+                                  {group.paidCount}/{group.totalCount} ({Math.round((group.paidCount / group.totalCount) * 100)}%)
                                 </span>
                               </div>
+                            </td>
 
-                              {group.supplierName && (
-                                <div className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
-                                  <Truck size={11} className="text-amber-400" /> Fornecedor: {group.supplierName}
-                                </div>
+                            {/* Fornecedor / Cliente */}
+                            <td className="py-2 px-3 text-[11px] max-w-[150px] truncate hidden sm:table-cell">
+                              {group.supplierName ? (
+                                <span className="text-amber-400 font-medium flex items-center gap-1 truncate" title={`Fornecedor: ${group.supplierName}`}>
+                                  <Truck size={11} className="shrink-0" /> {group.supplierName}
+                                </span>
+                              ) : (
+                                <span className="text-gray-500">-</span>
                               )}
                             </td>
 
                             {/* Categoria */}
-                            <td className="py-3.5 px-4 text-gray-300 text-[11px] max-w-[150px] truncate">
+                            <td className="py-2 px-3 text-gray-400 text-[11px] max-w-[130px] truncate hidden md:table-cell">
                               {categoryLabel}
                             </td>
 
-                            {/* Forma de Pagamento */}
-                            <td className="py-3.5 px-4 text-gray-300 text-[11px]">
-                              {group.paymentMethod || "PIX"}
-                            </td>
-
                             {/* Valor */}
-                            <td className={`py-3.5 px-4 font-black text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
-                              <div>{isReceita ? "+" : "-"} {group.monthlyAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
-                              <div className="text-[10px] font-normal text-gray-400">Total: {group.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                            <td className={`py-2 px-3 font-black text-xs whitespace-nowrap ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
+                              <div>
+                                {isReceita ? "+" : "-"} {formatBRL(group.monthlyAmount)}
+                                <span className="text-[9px] font-normal text-gray-400">/mês</span>
+                              </div>
                             </td>
 
                             {/* Status */}
-                            <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+                            <td className="py-2 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                               {group.nextPendingTx ? (
                                 <button
                                   onClick={() => handleToggleStatus(group.nextPendingTx!)}
                                   title="Clique para dar baixa na próxima parcela pendente"
-                                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1.5 shadow-sm"
+                                  className="text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase cursor-pointer transition-all bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1"
                                 >
-                                  <Clock size={11} /> Baixar ({group.nextPendingTx.installmentIndex || 1}ª)
+                                  <Clock size={10} /> Baixar ({group.nextPendingTx.installmentIndex || 1}ª)
                                 </button>
                               ) : (
-                                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
-                                  <CheckCircle2 size={11} /> 100% Pago
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                                  <CheckCircle2 size={10} /> 100% Pago
                                 </span>
                               )}
                             </td>
 
                             {/* Ações */}
-                            <td className="py-3.5 px-4 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                            <td className="py-2 px-3 text-right space-x-1 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => handleOpenEditGroupModal(group)}
-                                className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer inline-flex items-center"
-                                title="Editar valor e dados de todas as parcelas"
+                                className="p-1 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors cursor-pointer inline-flex items-center"
+                                title="Editar lote de parcelas"
                               >
-                                <Edit3 size={14} />
+                                <Edit3 size={13} />
                               </button>
 
                               <button
                                 onClick={() => handleDeleteRecurringGroup(group)}
-                                className="p-1.5 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer inline-flex items-center"
-                                title={`Excluir todas as ${group.totalCount} parcelas deste grupo`}
+                                className="p-1 text-gray-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/15 rounded transition-colors cursor-pointer inline-flex items-center"
+                                title={`Excluir todas as ${group.totalCount} parcelas`}
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={13} />
                               </button>
 
                               <button
                                 onClick={() => toggleGroup(group.groupId)}
-                                className="px-2.5 py-1 text-[11px] font-bold text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-white/10"
+                                className="px-2 py-0.5 text-[10px] font-bold text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded transition-colors cursor-pointer inline-flex items-center gap-1 border border-white/10"
                                 title={isExpanded ? "Recolher parcelas" : "Expandir parcelas"}
                               >
-                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                                {isExpanded ? "Ocultar" : `Ver ${group.totalCount}x`}
+                                {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                                {isExpanded ? "Ocultar" : `${group.totalCount}x`}
                               </button>
                             </td>
                           </tr>
 
                           {/* SUB-TABELA ANINHADA DE PARCELAS QUANDO EXPANDIDO */}
                           {isExpanded && (
-                            <tr className="bg-black/60 border-l-4 border-l-amber-500/40 animate-fade-in">
-                              <td colSpan={8} className="p-3 pl-6 sm:pl-8">
-                                <div className="bg-[#111111] border border-white/10 rounded-xl p-3.5 shadow-inner space-y-2.5">
-                                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-2">
-                                    <span className="flex items-center gap-1.5 text-amber-300 font-extrabold">
-                                      <Layers size={13} /> Parcelas de {group.baseTitle} ({group.paidCount}/{group.totalCount} Pagas)
+                            <tr className="bg-black/60 border-l-4 border-l-amber-500/40">
+                              <td colSpan={8} className="p-2.5 pl-6 sm:pl-8">
+                                <div className="bg-[#111111] border border-white/10 rounded-xl p-3 shadow-inner space-y-2">
+                                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between border-b border-white/5 pb-1.5 flex-wrap gap-2">
+                                    <span className="flex items-center gap-1 text-amber-300 font-extrabold">
+                                      <Layers size={12} /> Parcelas de {group.baseTitle} ({group.paidCount}/{group.totalCount} Pagas)
                                     </span>
                                     <div className="flex items-center gap-2">
-                                      <span className="text-[10px] text-gray-400 hidden sm:inline">Total: <strong className="text-white">{group.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
-
-                                      <button
-                                        onClick={() => handleOpenEditGroupModal(group)}
-                                        className="px-2.5 py-1 text-[10px] font-bold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/25 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-amber-500/30"
-                                        title="Editar valor de todas as parcelas"
-                                      >
-                                        <Edit3 size={11} /> Editar Grupo ({group.totalCount}x)
-                                      </button>
-
-                                      <button
-                                        onClick={() => handleDeleteRecurringGroup(group)}
-                                        className="px-2.5 py-1 text-[10px] font-bold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/25 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 border border-rose-500/30"
-                                        title="Excluir todas as parcelas"
-                                      >
-                                        <Trash2 size={11} /> Excluir Todas ({group.totalCount}x)
-                                      </button>
+                                      <span className="text-[10px] text-gray-400">Total: <strong className="text-white">{formatBRL(group.totalAmount)}</strong></span>
                                     </div>
                                   </div>
-
 
                                   <div className="divide-y divide-white/5">
                                     {group.transactions.map((subTx, idx) => {
@@ -1384,12 +1413,12 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                                       return (
                                         <div
                                           key={subTx.id}
-                                          onClick={() => handleOpenEditModal(subTx)}
-                                          title="Clique para editar data ou valor desta parcela"
-                                          className="py-2.5 flex items-center justify-between text-xs hover:bg-amber-500/10 px-2.5 rounded-lg transition-colors cursor-pointer group"
+                                          onClick={() => setViewingTx(subTx)}
+                                          title="Clique para ver detalhes desta parcela"
+                                          className="py-1.5 flex items-center justify-between text-xs hover:bg-amber-500/10 px-2 rounded transition-colors cursor-pointer group"
                                         >
-                                          <div className="flex items-center gap-3">
-                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] border ${isSubPaid
+                                          <div className="flex items-center gap-2.5">
+                                            <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] border ${isSubPaid
                                                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                                                 : "bg-white/5 text-gray-400 border-white/10"
                                               }`}>
@@ -1397,19 +1426,19 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                                             </span>
                                             <div>
                                               <div className="flex items-center gap-1.5">
-                                                <span className="font-semibold text-white text-xs group-hover:text-amber-300 transition-colors">{subTx.description}</span>
+                                                <span className="font-semibold text-white text-xs group-hover:text-amber-300 transition-colors truncate max-w-[200px]">{subTx.description}</span>
                                                 <Edit3 size={11} className="text-gray-500 group-hover:text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
                                               </div>
                                               <div className="text-[10px] text-gray-400 flex items-center gap-2">
-                                                <span>Vencimento: <strong className="text-gray-200 group-hover:text-amber-300 underline">{subTx.dueDate ? new Date(subTx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</strong></span>
-                                                {subTx.paymentDate && <span className="text-emerald-400 font-medium">· Pago em: {new Date(subTx.paymentDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>}
+                                                <span>Venc: <strong className="text-gray-200">{formatDateSafeBR(subTx.dueDate)}</strong></span>
+                                                {subTx.paymentDate && <span className="text-emerald-400 font-medium">· Pago: {formatDateSafeBR(subTx.paymentDate)}</span>}
                                               </div>
                                             </div>
                                           </div>
 
-                                          <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                                          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                                             <span className={`font-bold text-xs ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
-                                              {subTx.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                              {formatBRL(subTx.amount)}
                                             </span>
 
                                             <button
@@ -1417,7 +1446,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                                                 e.stopPropagation();
                                                 handleToggleStatus(subTx);
                                               }}
-                                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all ${isSubPaid
+                                              className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase cursor-pointer transition-all ${isSubPaid
                                                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
                                                   : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
                                                 }`}
@@ -1426,6 +1455,16 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                                             </button>
 
                                             <div className="flex items-center gap-1">
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setViewingTx(subTx);
+                                                }}
+                                                className="p-1 text-blue-400 hover:text-white bg-blue-500/10 hover:bg-blue-600 rounded transition-colors"
+                                                title="Ver Detalhes"
+                                              >
+                                                <Eye size={12} />
+                                              </button>
                                               <button
                                                 onClick={(e) => {
                                                   e.stopPropagation();
@@ -1465,13 +1504,14 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                     const isReceita = tx.type === "receita";
                     const isPaid = tx.status === "pago";
 
-                    const todayStr = new Date().toISOString().split("T")[0];
+                    const todayIso = new Date().toISOString().split("T")[0];
                     const tomorrowDate = new Date();
                     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-                    const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
+                    const tomorrowIso = tomorrowDate.toISOString().split("T")[0];
 
-                    const isDueToday = tx.dueDate === todayStr && !isPaid;
-                    const isDueTomorrow = tx.dueDate === tomorrowStr && !isPaid;
+                    const txDueIso = toIsoDateKey(tx.dueDate);
+                    const isDueToday = txDueIso === todayIso && !isPaid;
+                    const isDueTomorrow = txDueIso === tomorrowIso && !isPaid;
 
                     const categoryObj = CATEGORIES.find(c => c.id === tx.category);
                     const categoryLabel = categoryObj ? categoryObj.label : tx.category;
@@ -1481,102 +1521,93 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                     return (
                       <tr
                         key={`tx-${tx.id}`}
-                        onClick={() => handleOpenEditModal(tx)}
-                        title="Clique para editar este lançamento (data, valor, descrição, etc.)"
-                        className={`transition-colors cursor-pointer group hover:bg-amber-500/10 ${isDueToday
+                        onClick={() => setViewingTx(tx)}
+                        title="Clique para abrir detalhes completos deste lançamento"
+                        className={`transition-colors cursor-pointer group h-10 ${isDueToday
                             ? "bg-red-950/20 hover:bg-red-950/35"
                             : isDueTomorrow
                               ? "bg-amber-950/20 hover:bg-amber-950/35"
-                              : "hover:bg-white/5"
+                              : "hover:bg-amber-500/10"
                           }`}
                       >
                         {/* Vencimento */}
-                        <td className="py-3.5 px-4 text-gray-300 font-semibold text-[11px] whitespace-nowrap">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="group-hover:text-amber-300 transition-colors flex items-center gap-1">
-                              {tx.dueDate ? new Date(tx.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "-"}
-                              <Edit3 size={11} className="text-gray-500 group-hover:text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                        <td className="py-2 px-3 text-gray-300 font-semibold text-[11px] whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span className="group-hover:text-amber-300 transition-colors font-bold">
+                              {formatDateSafeBR(tx.dueDate)}
                             </span>
                             {isDueToday && (
-                              <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1.5 py-0.2 rounded border border-rose-500/40 animate-pulse">
-                                🚨 Vence Hoje
+                              <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-1 py-0.2 rounded border border-rose-500/40 animate-pulse">
+                                🚨 Hoje
                               </span>
                             )}
                             {isDueTomorrow && (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.2 rounded border border-amber-500/40">
-                                ⚠️ Vence Amanhã
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1 py-0.2 rounded border border-amber-500/40">
+                                ⚠️ Amanhã
                               </span>
                             )}
                           </div>
                         </td>
 
-
                         {/* Tipo Badge */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1 ${isReceita
+                        <td className="py-2 px-3 whitespace-nowrap">
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase inline-flex items-center gap-1 ${isReceita
                               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                               : "bg-rose-500/10 text-rose-400 border-rose-500/20"
                             }`}>
-                            {isReceita ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
+                            {isReceita ? <ArrowDownRight size={11} /> : <ArrowUpRight size={11} />}
                             {isReceita ? "Entrada" : "Saída"}
                           </span>
                         </td>
 
-                        {/* Descrição & Lead / Fornecedor */}
-                        <td className="py-3.5 px-4 max-w-[280px]">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-bold text-white text-xs group-hover:text-amber-300 transition-colors" title={tx.description}>{tx.description}</span>
+                        {/* Descrição */}
+                        <td className="py-2 px-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-white text-xs group-hover:text-amber-300 transition-colors truncate max-w-[240px] lg:max-w-[340px] block" title={tx.description}>
+                              {tx.description}
+                            </span>
                             {((tx as any).isRecurring || tx.notes?.includes("Recorrente")) && (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-0.5">
-                                <Clock size={10} /> Custo Fixo
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1 py-0.2 rounded border border-amber-500/30 shrink-0">
+                                Fixo
                               </span>
                             )}
                           </div>
+                        </td>
 
-                          {tx.supplierName && (
-                            <div className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
-                              <Truck size={11} className="text-amber-400" /> Fornecedor: {tx.supplierName}
-                            </div>
-                          )}
-
-                          {linkedLead && (
-                            <div className="text-[10px] text-blue-400 font-medium flex items-center gap-1 mt-0.5">
-                              <UserCheck size={11} /> Cliente: {linkedLead.name}
-                            </div>
-                          )}
-
-                          {tx.notes && (
-                            <div className="text-[10px] text-gray-500 truncate max-w-[220px] mt-0.5">{tx.notes}</div>
+                        {/* Cliente / Fornecedor */}
+                        <td className="py-2 px-3 text-[11px] max-w-[150px] truncate hidden sm:table-cell">
+                          {linkedLead ? (
+                            <span className="text-blue-400 font-medium flex items-center gap-1 truncate" title={`Cliente: ${linkedLead.name}`}>
+                              <UserCheck size={11} className="shrink-0" /> {linkedLead.name}
+                            </span>
+                          ) : tx.supplierName ? (
+                            <span className="text-amber-400 font-medium flex items-center gap-1 truncate" title={`Fornecedor: ${tx.supplierName}`}>
+                              <Truck size={11} className="shrink-0" /> {tx.supplierName}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
                           )}
                         </td>
 
                         {/* Categoria */}
-                        <td className="py-3.5 px-4 text-gray-400 text-[11px] max-w-[140px] truncate hidden md:table-cell">
+                        <td className="py-2 px-3 text-gray-400 text-[11px] max-w-[130px] truncate hidden md:table-cell" title={categoryLabel}>
                           {categoryLabel}
                         </td>
 
-                        {/* Forma de Pagamento */}
-                        <td className="py-3.5 px-4 text-gray-400 text-[11px] whitespace-nowrap hidden sm:table-cell">
-                          {tx.paymentMethod || "PIX"}
-                        </td>
-
                         {/* Valor */}
-                        <td className={`py-3.5 px-4 font-black text-xs whitespace-nowrap ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
-                          <span className="group-hover:underline flex items-center gap-1">
-                            {isReceita ? "+" : "-"} {tx.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                            <Edit3 size={11} className="text-gray-500 group-hover:text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                          </span>
+                        <td className={`py-2 px-3 font-black text-xs whitespace-nowrap ${isReceita ? "text-emerald-400" : "text-rose-400"}`}>
+                          {isReceita ? "+" : "-"} {formatBRL(tx.amount)}
                         </td>
 
                         {/* Status */}
-                        <td className="py-3.5 px-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <td className="py-2 px-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleToggleStatus(tx);
                             }}
                             title="Clique para alternar entre Pago e Pendente"
-                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase cursor-pointer transition-all ${isPaid
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase cursor-pointer transition-all ${isPaid
                                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
                                 : tx.status === "atrasado"
                                   ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
@@ -1588,7 +1619,19 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                         </td>
 
                         {/* Ações */}
-                        <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <td className="py-2 px-3 text-right space-x-1 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewingTx(tx);
+                            }}
+                            className="p-1.5 text-blue-400 hover:text-white bg-blue-500/10 hover:bg-blue-600 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold"
+                            title="Ver Detalhes do Lançamento"
+                          >
+                            <Eye size={12} />
+                            <span className="hidden xl:inline">Detalhes</span>
+                          </button>
+
                           {isReceita && (
                             <button
                               onClick={(e) => {
@@ -1599,7 +1642,7 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                               title="Gerar Recibo deste Lançamento"
                             >
                               <Receipt size={12} />
-                              <span className="hidden md:inline">Recibo</span>
+                              <span className="hidden xl:inline">Recibo</span>
                             </button>
                           )}
 
@@ -1608,11 +1651,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                               e.stopPropagation();
                               handleOpenEditModal(tx);
                             }}
-                            className="p-1.5 text-amber-400 hover:text-white bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/20 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold"
+                            className="p-1.5 text-amber-400 hover:text-white bg-amber-500/10 hover:bg-amber-600 border border-amber-500/20 rounded-lg transition-colors cursor-pointer inline-flex items-center"
                             title="Editar Lançamento"
                           >
                             <Edit3 size={12} />
-                            <span className="hidden sm:inline">Editar</span>
                           </button>
 
                           <button
@@ -1620,11 +1662,10 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                               e.stopPropagation();
                               handleDeleteTransaction(tx.id);
                             }}
-                            className="p-1.5 text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold"
+                            className="p-1.5 text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 rounded-lg transition-colors cursor-pointer inline-flex items-center"
                             title="Excluir Lançamento"
                           >
-                            <Trash2 size={13} />
-                            <span className="hidden sm:inline">Excluir</span>
+                            <Trash2 size={12} />
                           </button>
                         </td>
                       </tr>
@@ -1639,7 +1680,6 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                     </tr>
                   )}
 
-
                   {loading && (
                     <tr>
                       <td colSpan={8} className="py-10 text-center text-gray-400">
@@ -1650,7 +1690,234 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
                 </tbody>
               </table>
             </div>
+
+            {/* RODAPÉ COM PAGINAÇÃO CONTIDA */}
+            <div className="h-10 px-3 bg-[#121212] border-t border-white/10 flex items-center justify-between text-xs text-gray-400 flex-shrink-0 select-none">
+              <div className="flex items-center gap-2">
+                <span>
+                  Exibindo <strong className="text-white">{displayRows.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</strong> a <strong className="text-white">{Math.min(displayRows.length, currentPage * itemsPerPage)}</strong> de <strong className="text-white">{displayRows.length}</strong>
+                </span>
+                {displayRows.length > 10 && (
+                  <div className="hidden sm:flex items-center gap-1 ml-2 pl-2 border-l border-white/10 text-[11px]">
+                    <span className="text-gray-500">Por pág:</span>
+                    {[10, 15, 25, 50].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => {
+                          setItemsPerPage(n);
+                          setCurrentPage(1);
+                        }}
+                        className={`px-1.5 py-0.2 rounded font-bold cursor-pointer transition-colors ${
+                          itemsPerPage === n ? "bg-amber-500 text-black" : "text-gray-400 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold text-gray-200 transition-colors flex items-center gap-0.5 cursor-pointer"
+                >
+                  <ChevronLeft size={13} /> Ant
+                </button>
+
+                <span className="px-1.5 text-xs font-bold text-white">
+                  {currentPage} / {totalPages}
+                </span>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold text-gray-200 transition-colors flex items-center gap-0.5 cursor-pointer"
+                >
+                  Próx <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* MODAL DE DETALHES DO LANÇAMENTO */}
+          {viewingTx && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[160] flex items-center justify-center p-4">
+              <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-xl p-5 sm:p-6 shadow-2xl space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto scrollbar-thin">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider">
+                        Detalhes do Lançamento #{viewingTx.id}
+                      </h3>
+                      <p className="text-[11px] text-gray-400">Visualização completa de valores, vencimento e vínculos</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setViewingTx(null)}
+                    className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Banner de Valor e Tipo */}
+                <div className={`p-4 rounded-xl border flex items-center justify-between ${
+                  viewingTx.type === "receita"
+                    ? "bg-emerald-950/20 border-emerald-500/30"
+                    : "bg-rose-950/20 border-rose-500/30"
+                }`}>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                      {viewingTx.type === "receita" ? "Receita (Entrada)" : "Despesa (Saída)"}
+                    </span>
+                    <span className={`text-2xl font-black ${
+                      viewingTx.type === "receita" ? "text-emerald-400" : "text-rose-400"
+                    }`}>
+                      {viewingTx.type === "receita" ? "+" : "-"} {formatBRL(viewingTx.amount)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase ${
+                      viewingTx.status === "pago"
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                        : viewingTx.status === "atrasado"
+                        ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                        : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    }`}>
+                      {viewingTx.status === "pago" ? "✅ Pago / Liquidado" : viewingTx.status === "atrasado" ? "⚠️ Atrasado" : "⏳ Pendente"}
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      Forma: <strong className="text-white">{viewingTx.paymentMethod || "PIX"}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Informações Estruturadas (Grid) */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-black/40 border border-white/5 rounded-xl p-3">
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">📅 Data de Vencimento</span>
+                    <span className="text-white font-bold text-sm mt-0.5 block">
+                      {formatDateSafeBR(viewingTx.dueDate)}
+                    </span>
+                  </div>
+
+                  <div className="bg-black/40 border border-white/5 rounded-xl p-3">
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">
+                      {viewingTx.status === "pago" ? "✓ Data de Pagamento" : "⏳ Previsão"}
+                    </span>
+                    <span className="text-white font-bold text-sm mt-0.5 block">
+                      {viewingTx.paymentDate ? formatDateSafeBR(viewingTx.paymentDate) : "Aguardando baixa"}
+                    </span>
+                  </div>
+
+                  <div className="bg-black/40 border border-white/5 rounded-xl p-3">
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">🏷️ Categoria</span>
+                    <span className="text-white font-bold text-xs mt-0.5 block">
+                      {CATEGORIES.find(c => c.id === viewingTx.category)?.label || viewingTx.category}
+                    </span>
+                  </div>
+
+                  <div className="bg-black/40 border border-white/5 rounded-xl p-3">
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">
+                      {viewingTx.type === "receita" ? "👤 Cliente Vinculado" : "🚚 Fornecedor"}
+                    </span>
+                    <span className="text-white font-bold text-xs mt-0.5 block truncate">
+                      {viewingTx.type === "receita"
+                        ? (leads.find(l => String(l.id) === String(viewingTx.leadId))?.name || "Não vinculado")
+                        : (viewingTx.supplierName || "Não informado")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Descrição Completa */}
+                <div className="bg-black/40 border border-white/5 rounded-xl p-3 text-xs">
+                  <span className="text-[10px] text-gray-400 block uppercase font-bold mb-1">📝 Descrição do Lançamento</span>
+                  <p className="text-white font-medium text-xs leading-relaxed">{viewingTx.description}</p>
+                </div>
+
+                {/* Observações / Notas / Origem de Contrato */}
+                {viewingTx.notes && (
+                  <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs">
+                    <span className="text-[10px] text-amber-400 block uppercase font-bold mb-1 flex items-center gap-1">
+                      <Info size={12} /> Observações & Detalhes Adicionais
+                    </span>
+                    <p className="text-gray-200 text-xs leading-relaxed whitespace-pre-wrap">{viewingTx.notes}</p>
+                  </div>
+                )}
+
+                {/* Ações do Modal */}
+                <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {viewingTx.type === "receita" && (
+                      <button
+                        onClick={() => {
+                          const tx = viewingTx;
+                          setViewingTx(null);
+                          handleGenerateReceiptFromTx(tx);
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/20"
+                      >
+                        <Receipt size={13} /> Gerar Recibo
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        const tx = viewingTx;
+                        setViewingTx(null);
+                        handleOpenEditModal(tx);
+                      }}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/20"
+                    >
+                      <Edit3 size={13} /> Editar Lançamento
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleToggleStatus(viewingTx);
+                        setViewingTx(prev => prev ? {
+                          ...prev,
+                          status: prev.status === "pago" ? "pendente" : "pago",
+                          paymentDate: prev.status === "pago" ? "" : new Date().toISOString().split("T")[0]
+                        } : null);
+                      }}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-white/10"
+                    >
+                      <CheckCircle2 size={13} /> Alternar ({viewingTx.status === "pago" ? "Marcar Pendente" : "Marcar Pago"})
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const txId = viewingTx.id;
+                        setViewingTx(null);
+                        handleDeleteTransaction(txId);
+                      }}
+                      className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 size={13} /> Excluir
+                    </button>
+
+                    <button
+                      onClick={() => setViewingTx(null)}
+                      className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg font-bold text-xs cursor-pointer border border-white/10"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* MODAL CRIAR / EDITAR LANÇAMENTO (AMPLO EM GRID DE 4 COLUNAS) */}
           {isModalOpen && (
@@ -2188,7 +2455,6 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
           )}
 
           {/* MODAL DE GESTÃO DE FORNECEDORES & PARCEIROS */}
-
           <CRMSuppliersModal
             isOpen={isSuppliersModalOpen}
             onClose={() => {
@@ -2203,9 +2469,29 @@ export default function CRMFinanceiro({ leads, setSelectedLead }: CRMFinanceiroP
             }}
             selectedSupplierId={formSupplierId ? Number(formSupplierId) : null}
           />
-        </>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 pt-2 space-y-6 scrollbar-thin">
+          {financialTab === "receipts" && (
+            <CRMReceiptsView
+              leads={leads}
+              initialData={receiptInitialData}
+              onNewTransaction={fetchTransactions}
+            />
+          )}
+
+          {financialTab === "quotes" && (
+            <CRMQuotesView
+              leads={leads}
+              onOpenContract={() => setFinancialTab("contracts")}
+            />
+          )}
+
+          {financialTab === "contracts" && (
+            <CRMContractsView leads={leads} />
+          )}
+        </div>
       )}
-      </div>
     </div>
   );
 }
