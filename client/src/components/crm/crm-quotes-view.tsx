@@ -1605,7 +1605,7 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                       <h3 className="font-bold uppercase tracking-wider text-neutral-900 mb-1">Condições de Pagamento</h3>
                       <p className="text-neutral-700 whitespace-pre-line leading-relaxed">{currentQuote.paymentTerms || "A combinar com o projetista comercial."}</p>
                       <p className="mt-2 text-neutral-600"><span className="font-semibold">Prazo de Fabricação:</span> {currentQuote.deliveryDays} dias úteis.</p>
-                      <p className="mt-1 text-[11px] text-neutral-500">Montagem inclusa no local da obra com equipe própria Dumar.</p>
+                      <p className="mt-1 text-[11px] text-neutral-500">Montagem inclusa no local da obra por equipe especializada.</p>
                     </div>
 
                     <div className="text-right space-y-1">
@@ -1622,7 +1622,7 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                   {/* PADRÕES TÉCNICOS & GARANTIA */}
                   <div className="border border-neutral-200 p-3 rounded-lg text-[10px] text-neutral-600 space-y-1 bg-neutral-50/50">
                     <span className="font-bold text-neutral-800 uppercase tracking-wider block">Garantia e Padrões Construtivos:</span>
-                    <p>• Garantia de 05 (cinco) anos para estrutura em MDF e 01 (um) ano para ferragens conforme manual de uso.</p>
+                    <p>• Garantia de 01 (um) ano para estrutura em MDF e ferragens conforme manual de uso.</p>
                     <p>• Padrões em MDF de alta densidade 100% com proteção antimicrobiana e corrediças/dobradiças de amortecimento suave.</p>
                   </div>
 
