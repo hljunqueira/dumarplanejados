@@ -379,8 +379,9 @@ export default function CRMReceiptsView({ leads, initialData, onNewTransaction }
   };
 
   // Imprimir Recibo
-  const handlePrint = () => {
-    if (!currentReceipt.clientName.trim() || currentReceipt.amount <= 0) {
+  const handlePrint = (customReceipt?: ReceiptData | React.MouseEvent) => {
+    const rc = (customReceipt && "receiptNumber" in customReceipt) ? customReceipt : currentReceipt;
+    if (!rc.clientName.trim() || rc.amount <= 0) {
       toast({
         title: "Preencha o Recibo",
         description: "Informe o cliente e o valor antes de imprimir.",
@@ -388,7 +389,81 @@ export default function CRMReceiptsView({ leads, initialData, onNewTransaction }
       });
       return;
     }
-    window.print();
+
+    const printElement = document.getElementById("printable-receipt-area");
+    if (!printElement) {
+      window.print();
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=900,height=850");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const contentHtml = printElement.innerHTML;
+    const origin = window.location.origin;
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <base href="${origin}/" />
+        <title>Recibo - ${rc.receiptNumber || "REC"} - ${rc.clientName || "Cliente"} - Dumar Móveis Planejados</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 12mm 15mm 12mm 15mm;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box;
+          }
+          html, body {
+            background: #ffffff !important;
+            color: #171717 !important;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 11px;
+            line-height: 1.45;
+          }
+          .receipt-sheet {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-sheet p-4 sm:p-6 space-y-5">
+          ${contentHtml}
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.focus();
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   // Lista Filtrada para a Tabela
@@ -893,7 +968,7 @@ export default function CRMReceiptsView({ leads, initialData, onNewTransaction }
                           type="button"
                           onClick={() => {
                             setCurrentReceipt(item);
-                            setTimeout(() => window.print(), 100);
+                            setTimeout(() => handlePrint(item), 100);
                           }}
                           className="p-1.5 text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 font-bold text-[11px]"
                           title="Imprimir Recibo"

@@ -677,6 +677,7 @@ export default function CRMContractsView({ leads }: CRMContractsViewProps): JSX.
       <html lang="pt-BR">
       <head>
         <meta charset="UTF-8" />
+        <base href="${window.location.origin}/" />
         <title>Contrato - ${currentContract.contractNumber} - ${currentContract.clientName}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

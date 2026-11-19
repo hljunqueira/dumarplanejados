@@ -9,6 +9,7 @@ import { Client, Quote, QuoteItem } from "@shared/schema";
 import { useConfirmDialog } from "../ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import logoDumar from "@/assets/logo1.jpeg";
+import { formatDateSafeBR } from "./crm-financeiro";
 
 interface CRMQuotesViewProps {
   leads: Lead[];
@@ -301,6 +302,92 @@ export default function CRMQuotesView({ leads, onOpenContract }: CRMQuotesViewPr
     setActiveTab(mode);
     setEditSubTab("items");
     setIsModalOpen(true);
+  };
+
+  // Imprimir / Salvar Orçamento em PDF (Janela Isolada com Layout A4 Executivo)
+  const handlePrintQuote = () => {
+    const printElement = document.getElementById("printable-quote-area");
+    if (!printElement) {
+      window.print();
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=950,height=1100");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const contentHtml = printElement.innerHTML;
+    const origin = window.location.origin;
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <base href="${origin}/" />
+        <title>Orçamento - ${currentQuote.quoteNumber || "ORC"} - ${currentQuote.clientName || "Cliente"} - Dumar Móveis Planejados</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 10mm 12mm 10mm 12mm;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box;
+          }
+          html, body {
+            background: #ffffff !important;
+            color: #171717 !important;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 11px;
+            line-height: 1.45;
+          }
+          .quote-sheet {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="quote-sheet p-4 sm:p-6 space-y-5">
+          ${contentHtml}
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.focus();
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   // Salvar Orçamento
@@ -1376,33 +1463,75 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
             {/* CONTEÚDO: ABA PRÉ-VISUALIZAÇÃO & IMPRESSÃO EXECUTIVA */}
             {activeTab === "preview" && (
               <div className="flex-1 flex flex-col overflow-hidden bg-white text-black">
-                {/* BARRA DE IMPRESSÃO */}
-                <div className="bg-[#1a1a1a] p-3 px-5 flex items-center justify-between text-white border-b border-white/10">
-                  <span className="text-xs font-bold text-gray-300">
-                    Layout Executivo de Apresentação (Pronto para A4 e PDF)
-                  </span>
+                {/* CSS ESPECÍFICO DE IMPRESSÃO PARA ORÇAMENTO */}
+                <style>{`
+                  @media print {
+                    body * {
+                      visibility: hidden !important;
+                    }
+                    #printable-quote-area, #printable-quote-area * {
+                      visibility: visible !important;
+                    }
+                    #printable-quote-area {
+                      position: absolute !important;
+                      left: 0 !important;
+                      top: 0 !important;
+                      width: 100% !important;
+                      max-width: 100% !important;
+                      margin: 0 !important;
+                      padding: 10mm 12mm !important;
+                      background: #ffffff !important;
+                      color: #171717 !important;
+                      box-shadow: none !important;
+                      border: none !important;
+                    }
+                    .no-print {
+                      display: none !important;
+                    }
+                  }
+                `}</style>
+
+                {/* BARRA DE IMPRESSÃO (NO-PRINT) */}
+                <div className="no-print bg-[#1a1a1a] p-3 px-5 flex items-center justify-between text-white border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => window.print()}
-                      className="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-4 py-2 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 uppercase"
+                      type="button"
+                      onClick={() => setActiveTab("edit")}
+                      className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Edit3 size={13} /> Voltar para Edição
+                    </button>
+                    <span className="text-xs font-bold text-gray-400 hidden sm:inline">
+                      | Layout Executivo de Apresentação (A4 / PDF Timbrado)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePrintQuote}
+                      className="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-4 py-2 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 uppercase shadow-md shadow-amber-500/20"
                     >
                       <Printer size={14} /> Imprimir / Salvar PDF
                     </button>
                   </div>
                 </div>
 
-                {/* FOLHA A4 DE IMPRESSÃO */}
-                <div className="flex-1 overflow-y-auto p-8 sm:p-12 space-y-6 max-w-3xl mx-auto w-full text-neutral-800 font-sans print:p-0">
+                {/* FOLHA A4 DE IMPRESSÃO EXECUTIVA */}
+                <div
+                  id="printable-quote-area"
+                  className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-5 max-w-4xl mx-auto w-full text-neutral-800 font-sans print:p-0 print:max-w-none print:w-full print:overflow-visible bg-white"
+                >
                   {/* CABEÇALHO */}
-                  <div className="flex items-center justify-between border-b-2 border-neutral-800 pb-5">
+                  <div className="flex items-center justify-between border-b-2 border-neutral-800 pb-4">
                     <div className="flex items-center gap-4">
                       <img src={logoDumar} alt="Dumar Móveis Planejados" className="h-16 w-auto object-contain rounded" />
                       <div>
                         <h1 className="text-xl font-black uppercase tracking-wider text-black">
                           Dumar Móveis Planejados Ltda
                         </h1>
-                        <p className="text-[11px] text-neutral-600">CNPJ: 42.588.140/0001-72</p>
-                        <p className="text-[11px] text-neutral-600">Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva/SC</p>
+                        <p className="text-[11px] font-semibold text-neutral-700">Marcenaria de Alto Padrão • Móveis Sob Medida</p>
+                        <p className="text-[11px] text-neutral-600">CNPJ: 42.588.140/0001-72 • Av. Santa Catarina, 551 sala 205, Centro - Balneário Arroio do Silva/SC</p>
                         <p className="text-[11px] text-neutral-600">WhatsApp: (48) 98848-6827 • dumarmoveisplanejados@gmail.com</p>
                       </div>
                     </div>
@@ -1412,20 +1541,25 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                         {currentQuote.quoteNumber}
                       </span>
                       <span className="text-[10px] text-neutral-500 mt-1 block">
-                        Emissão: {new Date(currentQuote.quoteDate + "T12:00:00").toLocaleDateString("pt-BR")}
+                        Emissão: {formatDateSafeBR(currentQuote.quoteDate)}
                       </span>
                       <span className="text-[10px] text-neutral-500 block">
-                        Validade: {new Date(currentQuote.validUntil + "T12:00:00").toLocaleDateString("pt-BR")}
+                        Validade: {formatDateSafeBR(currentQuote.validUntil)}
                       </span>
                     </div>
                   </div>
 
                   {/* DADOS DO CLIENTE */}
-                  <div className="bg-neutral-50 border border-neutral-200 p-4 rounded-lg text-xs space-y-1">
-                    <div className="font-bold text-neutral-900 text-sm mb-1">{currentQuote.clientName}</div>
+                  <div className="bg-neutral-50 border border-neutral-200 p-3.5 rounded-lg text-xs space-y-1">
+                    <div className="font-extrabold text-neutral-900 text-sm mb-1">
+                      CLIENTE: {currentQuote.clientName}
+                    </div>
                     <div className="grid grid-cols-2 gap-2 text-neutral-700">
                       <div><span className="font-semibold">Telefone:</span> {currentQuote.clientPhone || "Não informado"}</div>
                       <div><span className="font-semibold">CPF/CNPJ:</span> {currentQuote.clientCpfCnpj || "Não informado"}</div>
+                      {currentQuote.clientEmail && (
+                        <div><span className="font-semibold">E-mail:</span> {currentQuote.clientEmail}</div>
+                      )}
                       <div className="col-span-2"><span className="font-semibold">Endereço da Obra:</span> {currentQuote.clientAddress || "Balneário Arroio do Silva - SC"}</div>
                     </div>
                   </div>
@@ -1448,7 +1582,7 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                       </thead>
                       <tbody className="divide-y divide-neutral-200">
                         {currentQuote.items.map((item, idx) => (
-                          <tr key={idx}>
+                          <tr key={idx} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                             <td className="p-2 text-center font-mono border-r border-neutral-200">{String(idx + 1).padStart(2, "0")}</td>
                             <td className="p-2 font-bold text-neutral-900 border-r border-neutral-200">{item.environment}</td>
                             <td className="p-2 text-neutral-700 border-r border-neutral-200">{item.description}</td>
@@ -1469,14 +1603,15 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                   <div className="grid grid-cols-2 gap-4 border border-neutral-200 p-4 rounded-lg bg-neutral-50 text-xs">
                     <div>
                       <h3 className="font-bold uppercase tracking-wider text-neutral-900 mb-1">Condições de Pagamento</h3>
-                      <p className="text-neutral-700 whitespace-pre-line">{currentQuote.paymentTerms}</p>
+                      <p className="text-neutral-700 whitespace-pre-line leading-relaxed">{currentQuote.paymentTerms || "A combinar com o projetista comercial."}</p>
                       <p className="mt-2 text-neutral-600"><span className="font-semibold">Prazo de Fabricação:</span> {currentQuote.deliveryDays} dias úteis.</p>
+                      <p className="mt-1 text-[11px] text-neutral-500">Montagem inclusa no local da obra com equipe própria Dumar.</p>
                     </div>
 
                     <div className="text-right space-y-1">
                       <div className="text-neutral-600">Subtotal dos Itens: R$ {currentQuote.subtotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
                       {currentQuote.discountValue > 0 && (
-                        <div className="text-emerald-700">Desconto Comercial: - R$ {currentQuote.discountValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+                        <div className="text-emerald-700 font-medium">Desconto Comercial: - R$ {currentQuote.discountValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
                       )}
                       <div className="text-base font-black text-neutral-900 pt-2 border-t border-neutral-300">
                         Total da Proposta: R$ {currentQuote.totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -1484,17 +1619,29 @@ _Ficamos à disposição para apresentar os renders 3D e o memorial descritivo e
                     </div>
                   </div>
 
+                  {/* PADRÕES TÉCNICOS & GARANTIA */}
+                  <div className="border border-neutral-200 p-3 rounded-lg text-[10px] text-neutral-600 space-y-1 bg-neutral-50/50">
+                    <span className="font-bold text-neutral-800 uppercase tracking-wider block">Garantia e Padrões Construtivos:</span>
+                    <p>• Garantia de 05 (cinco) anos para estrutura em MDF e 01 (um) ano para ferragens conforme manual de uso.</p>
+                    <p>• Padrões em MDF de alta densidade 100% com proteção antimicrobiana e corrediças/dobradiças de amortecimento suave.</p>
+                  </div>
+
                   {/* ASSINATURAS */}
-                  <div className="pt-10 grid grid-cols-2 gap-10 text-center text-xs text-neutral-600">
+                  <div className="pt-8 grid grid-cols-2 gap-10 text-center text-xs text-neutral-600">
                     <div className="border-t border-neutral-400 pt-2">
                       <div className="font-bold text-neutral-900">Dumar Móveis Planejados Ltda</div>
-                      <div>Consultor Comercial / Projetista</div>
+                      <div className="text-[11px] text-neutral-500">Consultor Comercial / Projetista</div>
                     </div>
 
                     <div className="border-t border-neutral-400 pt-2">
                       <div className="font-bold text-neutral-900">{currentQuote.clientName}</div>
-                      <div>Aceite da Proposta Comercial</div>
+                      <div className="text-[11px] text-neutral-500">Aceite da Proposta Comercial</div>
                     </div>
+                  </div>
+
+                  {/* RODAPÉ INSTITUCIONAL */}
+                  <div className="pt-4 border-t border-neutral-200 text-center text-[10px] text-neutral-400">
+                    Dumar Móveis Planejados Ltda • CNPJ: 42.588.140/0001-72 • WhatsApp: (48) 98848-6827
                   </div>
                 </div>
               </div>

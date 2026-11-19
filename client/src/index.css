@@ -108,4 +108,78 @@ html, body {
   animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* =========================================================
+   ESTILOS GLOBAIS DE IMPRESSÃO (A4 / PDF EXECUTIVO TIMBRADO)
+   ========================================================= */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 10mm 12mm;
+  }
+
+  /* Oculta tudo na página por padrão para evitar artefatos de tela HTML */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Exibe exclusivamente o elemento imprimível ativo */
+  #printable-quote-area,
+  #printable-quote-area *,
+  #printable-contract-area,
+  #printable-contract-area *,
+  #printable-receipt-area,
+  #printable-receipt-area * {
+    visibility: visible !important;
+  }
+
+  /* Posiciona a folha no topo do papel A4 ocupando 100% de largura */
+  #printable-quote-area,
+  #printable-contract-area,
+  #printable-receipt-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm 12mm !important;
+    background: #ffffff !important;
+    color: #171717 !important;
+    box-shadow: none !important;
+    border: none !important;
+    z-index: 9999999 !important;
+    overflow: visible !important;
+  }
+
+  /* Oculta botões, backdrops escuros, modais, cabeçalhos do CRM e decorações */
+  .no-print,
+  button,
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .noise-overlay,
+  nav,
+  header,
+  .fixed.inset-0 {
+    display: none !important;
+    background: transparent !important;
+  }
+
+  /* Força cores e planos de fundo exatos no PDF */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
 
